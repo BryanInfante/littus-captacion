@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Webinar gratuito de ECCIA sobre interpretación del Scan A en medición de espesores frente a corrosión."
+    />
+    <title>Domina el Scan A | Webinar gratuito ECCIA</title>
+    <link rel="icon" href="brand/assets/logo.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Lato:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="brand/tokens.css" />
+    <link rel="stylesheet" href="brand/components.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand-mark" href="#hero" aria-label="ECCIA, inicio">
+          <img
+            class="brand-logo"
+            src="brand/assets/logo-dark2.png"
+            alt="ECCIA, división de Littus Group América"
+            width="300"
+            height="112"
+          />
+        </a>
+        <a class="btn-secondary header-cta" href="#inscripcion">Apúntate gratis</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero hero-surface spotlight" id="hero" data-spotlight>
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="section-eyebrow">Webinar técnico gratuito · En vivo</p>
+            <h1>
+              Domina la lectura del <span>Scan A</span> y detecta lo que otros
+              inspectores pasan por alto
+            </h1>
+            <p class="hero-lead">
+              Aprende a interpretar correctamente las lecturas del medidor de
+              espesores y descubre por qué un número en pantalla no siempre
+              dice la verdad.
+            </p>
+
+            <ul class="benefit-strip" aria-label="Beneficios del webinar">
+              <li>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 12 2.5 2.5L16 9"/><circle cx="12" cy="12" r="9"/></svg>
+                Con certificado
+              </li>
+              <li>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m9 9 6 3-6 3Z"/></svg>
+                Online y en directo
+              </li>
+              <li>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                2 horas
+              </li>
+            </ul>
+
+            <div class="event-pending">
+              <span>Próxima sesión</span>
+              <strong>02 de julio · 18h00 a 20h00</strong>
+            </div>
+            <p class="authority-line">Evento organizado por Littus Group América</p>
+          </div>
+
+          <aside class="registration-card tech-card" aria-labelledby="form-title">
+            <p class="form-kicker">Reserva tu acceso</p>
+            <h2 id="form-title">Inscríbete sin costo</h2>
+            <p>Completa tus datos para reservar tu lugar en el taller.</p>
+
+            <form id="inscripcion" novalidate>
+              <div class="field">
+                <label for="nombre">Nombre</label>
+                <input
+                  class="input"
+                  id="nombre"
+                  name="nombre"
+                  type="text"
+                  autocomplete="name"
+                  placeholder="Tu nombre"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label for="correo">Correo electrónico</label>
+                <input
+                  class="input"
+                  id="correo"
+                  name="correo"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="tu@correo.com"
+                  required
+                />
+              </div>
+              <button class="btn-primary submit-button" type="submit">
+                Apúntate gratis
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </button>
+              <p class="form-note">Formulario demostrativo: no envía ni almacena datos.</p>
+            </form>
+            <div class="form-status" hidden></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="perfil">
+        <div class="container split-layout">
+          <div class="section-heading">
+            <p class="section-eyebrow">Contenido técnico</p>
+            <h2>Haz crecer tu perfil con esta clase</h2>
+            <p>
+              Entiende qué ocurre detrás de una lectura digital y desarrolla
+              un criterio más sólido para reconocer señales asociadas a
+              corrosión.
+            </p>
+            <a class="btn-primary" href="#inscripcion">Apúntate gratis</a>
+          </div>
+          <ol class="topic-list">
+            <li>
+              <span>01</span>
+              <div>
+                <h3>El error silencioso</h3>
+                <p>El medidor digital frente a la corrosión.</p>
+              </div>
+            </li>
+            <li>
+              <span>02</span>
+              <div>
+                <h3>Fundamentos del Scan A</h3>
+                <p>Tiempo de vuelo, ejes y compensación por temperatura.</p>
+              </div>
+            </li>
+            <li>
+              <span>03</span>
+              <div>
+                <h3>La firma de la corrosión</h3>
+                <p>Picado y pérdida de pared posterior.</p>
+              </div>
+            </li>
+            <li>
+              <span>04</span>
+              <div>
+                <h3>El siguiente paso</h3>
+                <p>Adelanto de lo que se cubre en el curso completo Nivel I.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section section-alt" id="beneficios">
+        <div class="container">
+          <div class="section-heading centered">
+            <p class="section-eyebrow">Recursos incluidos</p>
+            <h2>Esto es lo que te llevas gratis</h2>
+          </div>
+          <div class="card-grid">
+            <article class="tech-card takeaway-card">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z"/><path d="m8.5 14.5-1 6 4.5-2 4.5 2-1-6"/></svg>
+              <h3>Certificado de participación</h3>
+              <p>Validez internacional, avalado por Littus Group America.</p>
+            </article>
+            <article class="tech-card takeaway-card">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6Z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>
+              <h3>Guía de interpretación del Scan A</h3>
+              <p>Material de consulta en formato PDF.</p>
+            </article>
+            <article class="tech-card takeaway-card">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3Z"/></svg>
+              <h3>Material y grabación del taller</h3>
+              <p>Recursos para repasar la sesión después del evento.</p>
+            </article>
+          </div>
+          <div class="section-cta"><a class="btn-primary" href="#inscripcion">Apúntate gratis</a></div>
+        </div>
+      </section>
+
+      <section class="section" id="instructor">
+        <div class="container speaker-layout">
+          <div class="speaker-photo">
+            <img
+              src="src/foto_instructor.png"
+              alt="Marco Aucancela, instructor del webinar Domina el Scan A"
+              width="1024"
+              height="1024"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <div class="speaker-content">
+            <p class="section-eyebrow">Instructor</p>
+            <h2>Conoce a Marco Aucancela</h2>
+            <p class="speaker-lead">
+              Ingeniero Mecánico y profesional con más de 20 años de
+              experiencia en inspección industrial en los sectores Oil &amp;
+              Gas, Petroquímica y Energía.
+            </p>
+            <div class="bio-grid">
+              <div>
+                <h3>Formación</h3>
+                <ul>
+                  <li>Maestría en Ingeniería de Soldadura</li>
+                  <li>Diplomatura de Especialización en Inspección de Soldadura</li>
+                  <li>Diplomatura de Especialización en Ingeniería de Soldadura</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Certificaciones</h3>
+                <ul>
+                  <li>Inspector Senior de Soldadura AWS SCWI · Registro 23050028</li>
+                  <li>Inspector ASNT Nivel III UT, VT, MT, PT · Registro 175531</li>
+                  <li>Inspector Autorizado API 577 · Registro 111363</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Cursos impartidos</h3>
+                <ul>
+                  <li>VT, PT, MT y UT Nivel I y II</li>
+                  <li>Certificación de Inspectores de Soldadura AWS CWI</li>
+                </ul>
+              </div>
+            </div>
+            <a class="btn-primary" href="#inscripcion">Apúntate gratis</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-alt" id="respaldo">
+        <div class="container authority-card tech-card">
+          <img
+            class="brand-logo"
+            src="brand/assets/logo-dark.png"
+            alt="ECCIA, Littus Group América"
+            width="300"
+            height="112"
+            loading="lazy"
+          />
+          <div>
+            <p class="section-eyebrow">Autoridad técnica regional</p>
+            <h2>Respaldado por Littus Group América</h2>
+            <p>
+              ECCIA es la división de Littus Group América especializada en
+              inspección, entrenamiento y certificación NDT para los mercados
+              de Ecuador, Perú y Colombia. Su enfoque combina experiencia
+              industrial y formación técnica aplicada.
+            </p>
+          </div>
+          <a class="btn-primary" href="#inscripcion">Apúntate gratis</a>
+        </div>
+      </section>
+
+      <section class="final-cta spotlight" id="cierre" data-spotlight>
+        <div class="container final-cta-inner">
+          <p class="section-eyebrow">Da el siguiente paso</p>
+          <h2>Aprende a mirar más allá del número en pantalla</h2>
+          <p>
+            Reserva tu acceso al taller y fortalece tu criterio para
+            interpretar el Scan A frente a indicaciones de corrosión.
+          </p>
+          <p class="pending-inline">
+            Este webinar no tiene límite de cupos. Próxima sesión: 02 de julio,
+            de 18h00 a 20h00.
+          </p>
+          <a class="btn-primary" href="#inscripcion">Apúntate gratis</a>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="container faq-layout">
+          <div class="section-heading">
+            <p class="section-eyebrow">Preguntas frecuentes</p>
+            <h2>Antes de inscribirte</h2>
+            <a class="btn-primary" href="#inscripcion">Apúntate gratis</a>
+          </div>
+          <div class="faq-list">
+            <details>
+              <summary>¿Necesito experiencia previa en NDT?</summary>
+              <p>
+                No se asume dominio avanzado. El contenido introduce los
+                fundamentos necesarios para comprender la lectura del Scan A.
+              </p>
+            </details>
+            <details>
+              <summary>¿El certificado tiene validez oficial?</summary>
+              <p>
+                Sí. Tiene validez internacional y está avalado por Littus Group
+                America.
+              </p>
+            </details>
+            <details>
+              <summary>¿Cómo accedo el día del evento?</summary>
+              <p>
+                La transmisión será por el canal de YouTube. El enlace de
+                acceso se enviará cuando esté disponible.
+              </p>
+            </details>
+            <details>
+              <summary>¿Qué necesito para conectarme?</summary>
+              <p>Solo necesitas una laptop y una conexión estable a internet.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container footer-inner">
+        <img
+          class="brand-logo"
+          src="brand/assets/logo-dark.png"
+          alt="ECCIA"
+          width="300"
+          height="112"
+          loading="lazy"
+        />
+        <p>ECCIA · División de Littus Group América</p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+/* Sincronizado desde brands/eccia/tokens.json. */
+:root {
+  --eccia-bg: #0A0E13;
+  --eccia-bg-soft: #0D1117;
+  --eccia-surface: #111318;
+  --eccia-surface-raised: #151922;
+  --eccia-border: #1E2329;
+  --eccia-border-strong: #2D333B;
+  --eccia-accent: #00AEEF;
+  --eccia-accent-hover: #1DBFF5;
+  --eccia-accent-soft: rgba(0, 174, 239, 0.10);
+  --eccia-accent-glow: rgba(0, 174, 239, 0.14);
+  --eccia-text: #F0F6FC;
+  --eccia-text-soft: #C9D1D9;
+  --eccia-muted: #8B949E;
+  --eccia-subtle: #6E7681;
+  --eccia-success: #3FB950;
+  --eccia-warning: #D29922;
+  --eccia-error: #F85149;
+  --eccia-navy-secondary: #1E3A8A;
+  --eccia-fallback-icon-gradient: linear-gradient(145deg, #D8DEE9, #FFFFFF 42%, #A7B0BC);
+  --eccia-fallback-icon-text: #0A0E13;
+  --font-display: Montserrat, system-ui, sans-serif;
+  --font-body: Inter, system-ui, sans-serif;
+  --font-detail: Lato, system-ui, sans-serif;
+  --eccia-layout-container-max-width: 1200px;
+  --eccia-layout-radius: 8px;
+  --eccia-layout-radius-pill: 999px;
+  --eccia-layout-radius-max-structural: 8px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+}

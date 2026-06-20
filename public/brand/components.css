@@ -1,0 +1,238 @@
+/*
+  Componentes de referencia — estética ECCIA.
+  Estos snippets ASUMEN que las variables CSS de tokens.json ya están
+  generadas en el proyecto (ver apply-brand.sh). No redefinen valores aquí.
+
+  Esto es referencia para copiar/adaptar, no un framework a importar entero.
+*/
+
+/* ---------- Logo ---------- */
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.875rem;
+  min-inline-size: max-content;
+}
+
+.brand-logo {
+  display: block;
+  block-size: clamp(2.75rem, 4vw, 4rem);
+  inline-size: auto;
+  max-inline-size: min(18rem, 42vw);
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.hero .brand-logo {
+  block-size: clamp(4.5rem, 8vw, 7rem);
+  max-inline-size: min(28rem, 70vw);
+}
+
+.brand-icon {
+  display: block;
+  block-size: clamp(1.75rem, 3vw, 2.5rem);
+  inline-size: auto;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .brand-logo {
+    block-size: clamp(2.25rem, 10vw, 3rem);
+    max-inline-size: 72vw;
+  }
+  .hero .brand-logo {
+    block-size: clamp(3.25rem, 16vw, 5rem);
+  }
+}
+
+/* Wordmark fallback — usar SOLO si los archivos de logo aún no existen */
+.brand-fallback-icon {
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--eccia-fallback-icon-gradient);
+  color: var(--eccia-fallback-icon-text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.04em;
+}
+
+.brand-copy { display: grid; gap: 0.15rem; }
+
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.92rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--eccia-text);
+  line-height: 1;
+}
+
+.brand-owner {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--eccia-muted);
+  line-height: 1.15;
+}
+
+/* ---------- Botones ---------- */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--eccia-accent);
+  color: #061018;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.btn-primary:hover { background: var(--eccia-accent-hover); box-shadow: 0 0 0 4px var(--eccia-accent-soft); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:focus-visible { outline: 2px solid var(--eccia-accent); outline-offset: 3px; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid var(--eccia-border-strong);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  color: var(--eccia-text-soft);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+.btn-secondary:hover { border-color: rgba(0,174,239,0.42); color: var(--eccia-text); background: rgba(0,174,239,0.05); }
+.btn-secondary:focus-visible { outline: 2px solid var(--eccia-accent); outline-offset: 3px; }
+
+/* ---------- Card técnica ---------- */
+
+.tech-card {
+  border: 1px solid var(--eccia-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+    var(--eccia-surface);
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+/* ---------- Input ---------- */
+
+.field { display: grid; gap: 0.5rem; }
+.field label { color: var(--eccia-muted); font-size: 0.75rem; font-weight: 600; }
+
+.input {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--eccia-border);
+  border-radius: 8px;
+  background: var(--eccia-bg-soft);
+  color: var(--eccia-text);
+  font: inherit;
+  padding: 0.7rem 0.85rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.input::placeholder { color: var(--eccia-subtle); }
+.input:focus { border-color: var(--eccia-accent); box-shadow: 0 0 0 3px var(--eccia-accent-soft); }
+
+/* ---------- Section eyebrow ---------- */
+
+.section-eyebrow {
+  color: var(--eccia-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---------- Patrones visuales: orb técnico ---------- */
+/* Regla: lado opuesto al contenido, no compite con texto, máx 2 orbs visibles por pantalla, sin multicolor */
+
+.hero-surface {
+  background:
+    radial-gradient(ellipse 70% 60% at 18% 58%, var(--eccia-accent-glow), transparent 68%),
+    radial-gradient(ellipse 42% 38% at 8% 64%, rgba(0,174,239,0.07), transparent 62%),
+    var(--eccia-bg);
+}
+
+/* ---------- Dot grid técnico ---------- */
+/* Regla: usar en hero/fondos amplios, no detrás de texto pequeño sin overlay, no en formularios densos */
+
+.dot-grid {
+  position: relative;
+  background-image: radial-gradient(circle, rgba(201,209,217,0.16) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.dot-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 55% at var(--mx, 22%) var(--my, 55%), rgba(0,174,239,0.11), transparent 66%);
+}
+
+/* ---------- Spotlight interactivo ---------- */
+/* Regla: solo secciones de impacto, simplificar en mobile, respetar prefers-reduced-motion */
+
+.spotlight { position: relative; overflow: hidden; }
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(620px circle at var(--mx, 50%) var(--my, 50%), rgba(0,174,239,0.07), transparent 72%);
+}
+/* JS requerido:
+const spotlight = document.querySelector('[data-spotlight]');
+if (spotlight) {
+  spotlight.addEventListener('pointermove', (event) => {
+    const rect = spotlight.getBoundingClientRect();
+    spotlight.style.setProperty('--mx', `${event.clientX - rect.left}px`);
+    spotlight.style.setProperty('--my', `${event.clientY - rect.top}px`);
+  });
+}
+*/
+
+/* ---------- Línea técnica SVG (timelines, procesos NDT) ---------- */
+
+.trace-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: trace 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes trace { to { stroke-dashoffset: 0; } }
+
+/* ---------- Motion: accesibilidad obligatoria ---------- */
+/* Esto NO es específico de ECCIA — es buena práctica universal.
+   Se incluye aquí solo porque los patrones de arriba la requieren. */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
