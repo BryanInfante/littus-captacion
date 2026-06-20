@@ -83,6 +83,10 @@ Assert-Contains 'estable a internet.' "Deben mostrarse los requisitos confirmado
 Assert-Contains 'src/foto_instructor.png' "La sección del instructor debe mostrar la fotografía disponible."
 Assert-Contains 'alt="Marco Aucancela, instructor del webinar Domina el Scan A"' "La fotografía debe tener un texto alternativo descriptivo."
 Assert-True (-not $html.Contains('[PENDIENTE: foto de Marco Aucancela]')) "No debe mostrarse el placeholder cuando la fotografía está disponible."
+Assert-Contains 'class="instructor-intro"' "La sección del instructor debe tener una introducción visual independiente."
+Assert-Contains 'class="speaker-identity"' "La fotografía debe incluir una ficha de identidad profesional."
+Assert-Contains 'class="speaker-highlights"' "La sección debe destacar la experiencia y credenciales principales."
+Assert-Contains 'class="speaker-details"' "La trayectoria debe presentarse en un bloque estructurado."
 
 Assert-True (-not $html.Contains('[PENDIENTE: confirmar cupo disponible o fecha del evento]')) "No debe quedar pendiente la información de cupos o fecha."
 Assert-True (-not $html.Contains('[PENDIENTE: indicar plataforma y proceso de acceso]')) "No debe quedar pendiente la plataforma de acceso."
@@ -114,6 +118,18 @@ $functionalDetailSelectors = @(
 foreach ($selector in $functionalDetailSelectors) {
     $rulePattern = [regex]::Escape($selector) + '\s*\{[^}]*font-family:\s*var\(--font-body\)'
     Assert-True ([regex]::IsMatch($styles, $rulePattern)) "El selector '$selector' debe usar Inter mediante --font-body."
+}
+
+$instructorStyleSelectors = @(
+    '.instructor-section',
+    '.instructor-intro',
+    '.speaker-identity',
+    '.speaker-highlights',
+    '.speaker-details'
+)
+
+foreach ($selector in $instructorStyleSelectors) {
+    Assert-True ($styles.Contains($selector)) "Faltan estilos para '$selector' en la sección del instructor."
 }
 
 Write-Output "Landing checks: OK"
