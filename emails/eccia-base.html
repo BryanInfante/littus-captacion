@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>{{SUBJECT}}</title>
+  </head>
+  <body style="margin: 0; padding: 0; background: #f3f5f7; color: #111318; font-family: Arial, Helvetica, sans-serif;">
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
+      {{PREHEADER}}
+    </div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; background: #f3f5f7;">
+      <tr>
+        <td align="center" style="padding: 32px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; overflow: hidden; border: 1px solid #d9dee3; border-radius: 8px; background: #ffffff;">
+            <tr>
+              <td style="padding: 24px 32px; background: #0a0e13;">
+                <img
+                  src="{{LOGO_URL}}"
+                  width="190"
+                  alt="ECCIA, división de Littus Group America"
+                  style="display: block; width: 190px; max-width: 100%; height: auto; border: 0;"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 40px 32px 16px;">
+                <p style="margin: 0 0 12px; color: #00AEEF; font-size: 12px; font-weight: 700; line-height: 1.4; letter-spacing: 1.5px; text-transform: uppercase;">
+                  {{EYEBROW}}
+                </p>
+                <h1 style="margin: 0; color: #111318; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -0.6px;">
+                  {{TITLE}}
+                </h1>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 16px 32px 8px;">
+                <p style="margin: 0 0 20px; color: #2d333b; font-size: 16px; line-height: 1.7;">
+                  Hola {{{contact.first_name|profesional}}},
+                </p>
+
+                <!-- EDITAR: reemplaza este bloque con el contenido principal de la campaña. -->
+                <div style="color: #2d333b; font-size: 16px; line-height: 1.7;">
+                  {{BODY_HTML}}
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 24px 32px 40px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="border-radius: 8px; background: #00AEEF;">
+                      <a
+                        href="{{CTA_URL}}"
+                        style="display: inline-block; padding: 14px 22px; color: #061018; font-size: 14px; font-weight: 700; line-height: 1; text-decoration: none;"
+                      >
+                        {{CTA_LABEL}}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 28px 32px; border-top: 1px solid #1e2329; background: #0a0e13;">
+                <p style="margin: 0 0 8px; color: #f0f6fc; font-size: 13px; font-weight: 700; line-height: 1.5;">
+                  ECCIA · Littus Group America
+                </p>
+                <p style="margin: 0 0 16px; color: #c9d1d9; font-size: 12px; line-height: 1.6;">
+                  Inspección, entrenamiento y certificación NDT para Ecuador,
+                  Perú y Colombia.
+                </p>
+                <p style="margin: 0; color: #8b949e; font-size: 12px; line-height: 1.6;">
+                  Recibes este mensaje porque aceptaste comunicaciones de
+                  ECCIA. Puedes
+                  <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color: #00AEEF; text-decoration: underline;">
+                    cancelar la suscripción
+                  </a>
+                  en cualquier momento.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

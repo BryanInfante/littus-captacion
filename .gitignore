@@ -1,0 +1,28 @@
+# Variables de entorno y secretos locales
+.env
+.env.*
+!.env.example
+
+# Archivos temporales de Supabase CLI
+supabase/.temp/
+
+# Dependencias y salidas generadas si se agregan herramientas en el futuro
+node_modules/
+dist/
+build/
+coverage/
+
+# Registros y archivos temporales
+*.log
+*.tmp
+*.swp
+*~
+
+# Editores e IDEs
+.idea/
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
