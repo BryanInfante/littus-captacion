@@ -6,6 +6,8 @@ $appPath = Join-Path $PSScriptRoot "..\public\app.js"
 $emailTemplatePath = Join-Path $PSScriptRoot "..\emails\eccia-base.html"
 $emailGuidePath = Join-Path $PSScriptRoot "..\EMAIL_OPERATIONS.md"
 $resendSyncPath = Join-Path $PSScriptRoot "..\supabase\functions\sync-resend-contact\index.ts"
+$confirmationEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-registration-confirmation.html"
+$confirmationFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\index.ts"
 
 if (-not (Test-Path -LiteralPath $indexPath)) {
     throw "Falta public/index.html"
@@ -26,6 +28,16 @@ $emailGuide = if (Test-Path -LiteralPath $emailGuidePath) {
 }
 $resendSync = if (Test-Path -LiteralPath $resendSyncPath) {
     Get-Content -LiteralPath $resendSyncPath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$confirmationEmail = if (Test-Path -LiteralPath $confirmationEmailPath) {
+    Get-Content -LiteralPath $confirmationEmailPath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$confirmationFunction = if (Test-Path -LiteralPath $confirmationFunctionPath) {
+    Get-Content -LiteralPath $confirmationFunctionPath -Raw -Encoding UTF8
 } else {
     ""
 }
@@ -267,5 +279,21 @@ Assert-True ($resendSync.Contains("resend_synced_at")) "La función debe ser ide
 Assert-True ($resendSync.Contains('encodeURIComponent(registration.correo)')) "La gestión de contactos existentes debe codificar el correo en la URL."
 Assert-True (-not $resendSync.Contains('re_')) "La API key de Resend no debe quedar escrita en el código."
 Assert-True ($emailGuide.Contains('sync-resend-contact')) "La guía debe documentar la sincronización automática desplegada."
+Assert-True (Test-Path -LiteralPath $confirmationEmailPath) "Falta la plantilla transaccional de confirmación."
+Assert-True ($confirmationEmail.Contains('{{FIRST_NAME}}')) "La confirmación debe personalizar el nombre sin depender de Contacts."
+Assert-True ($confirmationEmail.Contains('02 de julio')) "La confirmación debe incluir la fecha real del taller."
+Assert-True ($confirmationEmail.Contains('18h00 a 20h00')) "La confirmación debe incluir el horario real del taller."
+Assert-True ($confirmationEmail.Contains('canal de YouTube')) "La confirmación debe explicar cómo se enviará el acceso."
+Assert-True (-not $confirmationEmail.Contains('RESEND_UNSUBSCRIBE_URL')) "Una confirmación operativa no debe incluir baja promocional."
+Assert-True (-not $confirmationEmail.Contains('aceptaste comunicaciones')) "Una confirmación operativa no debe afirmar consentimiento comercial."
+Assert-True (Test-Path -LiteralPath $confirmationFunctionPath) "Falta la Edge Function de confirmación."
+Assert-True ($confirmationFunction.Contains("`${RESEND_API_URL}/emails")) "La confirmación debe usar POST /emails de Resend."
+Assert-True ($confirmationFunction.Contains("'Idempotency-Key'")) "La confirmación debe usar una clave de idempotencia."
+Assert-True ($confirmationFunction.Contains('registration-confirmation/')) "La clave de idempotencia debe estar vinculada a la inscripción."
+Assert-True ($confirmationFunction.Contains('confirmation_sent_at')) "La función debe registrar la fecha de confirmación."
+Assert-True ($confirmationFunction.Contains('confirmation_resend_email_id')) "La función debe auditar el identificador de Resend."
+Assert-True ($confirmationFunction.Contains('confirmation_error')) "La función debe registrar el último error."
+Assert-True (-not $confirmationFunction.Contains('marketing_consent')) "El envío operativo no debe depender del consentimiento comercial."
+Assert-True (-not $confirmationFunction.Contains('/contacts')) "La confirmación individual no debe crear ni modificar Contacts."
 
 Write-Output "Landing checks: OK"

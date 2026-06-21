@@ -12,6 +12,9 @@ el código de la landing.
 - `emails/eccia-base.html` es la plantilla maestra de respaldo.
 - La Edge Function `sync-resend-contact` sincroniza únicamente los contactos
   cuyo campo `marketing_consent` sea verdadero.
+- La Edge Function `send-registration-confirmation` envía una confirmación
+  individual mediante `POST /emails` a cada persona inscrita, sin depender del
+  consentimiento promocional.
 
 No se debe colocar `RESEND_API_KEY` en `public/app.js`, GitHub Pages ni ningún
 archivo público. Esa credencial deberá guardarse como secreto de una Edge
@@ -73,3 +76,7 @@ Los mensajes necesarios para participar en un taller —confirmación, acceso,
 recordatorio y certificado— son comunicaciones operativas. Las invitaciones a
 otros talleres o promociones solo se envían a quienes marcaron el
 consentimiento opcional.
+
+La confirmación usa una clave de idempotencia vinculada al identificador de la
+inscripción y registra en Supabase el ID de Resend, la fecha de envío y el
+último error. No usa Contacts, Segments, Topics ni enlaces de baja promocional.

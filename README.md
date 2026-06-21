@@ -14,9 +14,10 @@ Resend.
 | Persistencia en Supabase | Operativa |
 | Consentimiento promocional separado | Operativo |
 | Sincronización Supabase → Resend | Operativa |
+| Confirmación transaccional individual | Operativa |
 | Segmento y Topic de Resend | Configurados |
 | Plantilla visual de Broadcast | Creada y probada |
-| Workflow de GitHub Pages | Pendiente |
+| GitHub Pages con dominio y HTTPS | Operativo |
 | Protección anti-bot | Pendiente antes de una campaña de alto tráfico |
 
 ## Arquitectura
@@ -27,6 +28,10 @@ GitHub Pages
     │ POST público limitado por RLS
     ▼
 Supabase · eccia_taller_inscripciones
+    │
+    ├── trigger asíncrono para confirmación operativa
+    │       └── Edge Function · send-registration-confirmation
+    │               └── Resend · POST /emails
     │
     │ trigger asíncrono, solo con consentimiento
     ▼
@@ -63,6 +68,9 @@ Resend · Contacts + Segment + Topic + Broadcasts
 │   └── functions/
 │       └── sync-resend-contact/
 │           └── index.ts           # Sincronización segura con Resend
+│       └── send-registration-confirmation/
+│           ├── index.ts           # Envío idempotente de confirmación
+│           └── template.ts        # HTML transaccional ECCIA
 ├── emails/
 │   └── eccia-base.html            # Respaldo HTML de la plantilla de correo
 ├── tests/
@@ -132,6 +140,7 @@ La tabla conserva:
 - fecha de consentimiento controlada por PostgreSQL;
 - identificador y estado de sincronización con Resend;
 - último error de sincronización, si existe.
+- identificador, fecha y último error del email de confirmación.
 
 ### Flujo de inscripción
 
@@ -139,11 +148,13 @@ La tabla conserva:
 2. Puede aceptar opcionalmente futuras comunicaciones ECCIA.
 3. El navegador inserta los datos mediante la API REST de Supabase.
 4. Si no existe consentimiento, la inscripción termina allí.
-5. Si existe consentimiento, PostgreSQL invoca asincrónicamente la Edge
+5. PostgreSQL invoca asincrónicamente la confirmación individual para toda
+   inscripción.
+6. Si existe consentimiento, PostgreSQL invoca asincrónicamente la Edge
    Function.
-6. La función vuelve a consultar la fila real antes de llamar a Resend.
-7. El contacto se crea o actualiza y queda asociado al segmento configurado.
-8. Supabase registra la fecha de sincronización o el error correspondiente.
+7. Cada función vuelve a consultar la fila real antes de llamar a Resend.
+8. El contacto promocional se crea o actualiza y queda asociado al segmento.
+9. Supabase registra por separado el estado de confirmación y sincronización.
 
 ## Resend
 
@@ -201,17 +212,9 @@ haberse registrado a un taller.
 
 ## Despliegue en GitHub Pages
 
-El proyecto todavía no contiene un workflow de despliegue. GitHub Pages no
-publica automáticamente una carpeta arbitraria llamada `public`, por lo que se
-debe elegir una estrategia explícita:
-
-1. **GitHub Actions — recomendada:** publicar el contenido de `public/` como
-   artefacto de Pages.
-2. Mover la aplicación al directorio raíz.
-3. Renombrar `public/` a `docs/` y usar la opción `/docs` de Pages.
-
-No mover carpetas sin revisar primero las rutas relativas de logos, fotografías,
-CSS y JavaScript.
+El workflow `.github/workflows/pages.yml` publica el contenido de `public/`
+como artefacto de GitHub Pages. El dominio
+`https://preinscripcion.littusgroup.com` está configurado con HTTPS activo.
 
 ## Marca ECCIA
 
@@ -250,4 +253,3 @@ Antes de cualquier cambio visual:
 - [Plantilla HTML de respaldo](emails/eccia-base.html)
 - [Reglas de marca para agentes](AGENTS.md)
 - [Edge Function de sincronización](supabase/functions/sync-resend-contact/index.ts)
-
