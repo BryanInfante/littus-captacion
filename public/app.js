@@ -50,7 +50,7 @@ form?.addEventListener("submit", async (event) => {
       showStatus(
         "success",
         "Inscripción confirmada",
-        "Tus datos fueron registrados para el taller técnico Domina el Scan A.",
+        "Tus datos fueron registrados para Ultrasonido - Interpretación del Scan A.",
       );
       return;
     }
