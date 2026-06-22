@@ -154,7 +154,8 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .footer-navigation a { min-height: 44px; display: inline-flex; align-items: center; color: var(--eccia-text-soft); text-decoration: none; }
 .footer-navigation a:hover { color: var(--eccia-accent); }
 .footer-socials ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.social-placeholder { min-height: 44px; display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--eccia-muted); cursor: default; }
+.footer-socials a:hover { color: var(--eccia-accent); }
+.social-placeholder { min-height: 44px; display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--eccia-muted); cursor: pointer; text-decoration: none;}
 .social-placeholder svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 .registration-modal { width: min(calc(100% - 32px), 620px); max-height: calc(100dvh - 32px); margin: auto; padding: 0; overflow: visible; border: 1px solid var(--eccia-border-strong); border-radius: var(--eccia-layout-radius); background: transparent; color: var(--eccia-text); }
 .registration-modal::backdrop { background: rgba(0,0,0,.72); }
