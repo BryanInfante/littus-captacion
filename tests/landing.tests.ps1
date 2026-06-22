@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $indexPath = Join-Path $PSScriptRoot "..\public\index.html"
 $stylesPath = Join-Path $PSScriptRoot "..\public\styles.css"
@@ -8,6 +8,7 @@ $emailGuidePath = Join-Path $PSScriptRoot "..\EMAIL_OPERATIONS.md"
 $resendSyncPath = Join-Path $PSScriptRoot "..\supabase\functions\sync-resend-contact\index.ts"
 $confirmationEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-registration-confirmation.html"
 $confirmationFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\index.ts"
+$confirmationTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\template.ts"
 
 if (-not (Test-Path -LiteralPath $indexPath)) {
     throw "Falta public/index.html"
@@ -38,6 +39,11 @@ $confirmationEmail = if (Test-Path -LiteralPath $confirmationEmailPath) {
 }
 $confirmationFunction = if (Test-Path -LiteralPath $confirmationFunctionPath) {
     Get-Content -LiteralPath $confirmationFunctionPath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$confirmationTemplate = if (Test-Path -LiteralPath $confirmationTemplatePath) {
+    Get-Content -LiteralPath $confirmationTemplatePath -Raw -Encoding UTF8
 } else {
     ""
 }
@@ -140,9 +146,8 @@ Assert-Contains 'Validez internacional, avalado por Littus Group America.' "Debe
 Assert-Contains 'Este taller t' "Debe indicarse que el taller técnico no tiene límite de cupos."
 Assert-Contains 'cnico no tiene' "Debe indicarse que el taller técnico no tiene límite de cupos."
 Assert-Contains 'por el canal de YouTube.' "Debe indicarse que el taller técnico se transmitirá por YouTube."
-Assert-Contains 'El enlace de' "Debe aclararse que el enlace de YouTube aún no está disponible."
-Assert-Contains 'acceso se enviar' "Debe aclararse que el enlace de YouTube aún no está disponible."
-Assert-Contains 'cuando est' "Debe aclararse que el enlace de YouTube aún no está disponible."
+Assert-Contains 'https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_' "La landing debe incluir el enlace real del live."
+Assert-True (-not $html.Contains('acceso se enviará cuando esté disponible')) "La landing no debe conservar el texto obsoleto sobre el acceso."
 Assert-Contains 'Solo necesitas una laptop' "Deben mostrarse los requisitos confirmados."
 Assert-Contains 'estable a internet.' "Deben mostrarse los requisitos confirmados."
 Assert-Contains 'src/foto_instructor.png' "La sección del instructor debe mostrar la fotografía disponible."
@@ -236,6 +241,22 @@ Assert-True ($styles.Contains('.submit-button:disabled')) "El botón debe comuni
 Assert-True ($styles.Contains('.form-status[data-state="error"]')) "El formulario debe diferenciar visualmente los errores."
 Assert-True ($styles.Contains('.consent-field')) "El consentimiento debe tener un tratamiento visual accesible."
 Assert-True ($styles.Contains('.consent-field input')) "La casilla de consentimiento debe conservar un control nativo claramente visible."
+Assert-Contains 'id="registration-success-modal"' "Falta el modal posterior a la inscripción."
+Assert-Contains 'role="dialog"' "El modal debe exponerse como diálogo accesible."
+Assert-Contains 'aria-modal="true"' "El modal debe declararse modal para tecnologías de asistencia."
+Assert-Contains 'aria-labelledby="registration-success-title"' "El modal debe tener un nombre accesible."
+Assert-Contains 'data-modal-close' "El modal debe ofrecer un control de cierre."
+Assert-Contains 'https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD' "El modal debe incluir la comunidad de WhatsApp."
+Assert-Contains 'rel="noopener noreferrer"' "Los enlaces externos deben abrirse de forma segura."
+Assert-True ($styles.Contains('.registration-modal')) "Faltan estilos para el modal de confirmación."
+Assert-True ($styles.Contains('.registration-modal::backdrop')) "El modal debe tener un backdrop identificable."
+Assert-True ($styles.Contains('.registration-modal__dialog')) "El diálogo debe tener una superficie visual ECCIA."
+Assert-True ($app.Contains('registrationModal.showModal()')) "El modal debe abrirse tras una inscripción exitosa."
+Assert-True ($app.Contains('event.key === "Escape"')) "El modal debe poder cerrarse con Escape."
+Assert-True ($app.Contains('event.target === registrationModal')) "El modal debe cerrarse al activar el backdrop."
+Assert-True ($app.Contains('previouslyFocusedElement?.focus()')) "El modal debe devolver el foco al elemento previo."
+Assert-True ($app.Contains('getFocusableElements')) "El modal debe contener el foco mientras está abierto."
+Assert-True ($app.Contains('modalPrimaryAction.focus()')) "El foco inicial debe ir a la acción principal."
 Assert-True ($styles.Contains('clamp(2.75rem, 7vw, 4.75rem)')) "El titular del hero debe usar la escala editorial definida por ECCIA."
 Assert-True ($styles.Contains('.hero-editorial')) "Faltan estilos para la composición editorial del hero."
 Assert-True ($styles.Contains('.registration-rail')) "Faltan estilos para subordinar visualmente el formulario."
@@ -266,6 +287,16 @@ Assert-True ($styles.Contains('.authority-copy')) "Faltan estilos para el conten
 Assert-True ($styles.Contains('.authority-media::after')) "La fotografía institucional debe incorporar un overlay."
 Assert-True ($styles.Contains('linear-gradient(180deg, rgba(10,14,19,.04)')) "El overlay debe usar un gradiente negro progresivo."
 Assert-True ($styles.Contains('pointer-events: none')) "El overlay de la fotografía no debe interceptar interacción."
+Assert-Contains 'footer-grid"' "El footer debe organizar identidad, navegación y redes."
+Assert-Contains 'href="https://cursos.littusgroup.com"' "El footer debe enlazar al sitio real de cursos."
+Assert-Contains 'href="https://littusgroup.com"' "El footer debe enlazar al sitio real de servicios."
+Assert-Contains 'class="social-placeholder"' "Las redes sin URL deben ser placeholders semánticos no interactivos."
+Assert-True (-not [regex]::IsMatch($html, '<a[^>]+href="#"[^>]*>\s*(Facebook|Instagram|TikTok|LinkedIn|YouTube)')) "El footer no debe inventar enlaces de redes."
+foreach ($network in @('Facebook', 'Instagram', 'TikTok', 'LinkedIn', 'YouTube')) {
+    Assert-Contains ">$network<" "Falta el placeholder semántico para $network."
+}
+Assert-True ($styles.Contains('.footer-navigation')) "Faltan estilos para la navegación del footer."
+Assert-True ($styles.Contains('.footer-socials')) "Faltan estilos para las redes del footer."
 
 Assert-True (Test-Path -LiteralPath $emailTemplatePath) "Falta la plantilla maestra de correo ECCIA."
 Assert-True ($emailTemplate.Contains('{{{contact.first_name|profesional}}}')) "La plantilla debe admitir personalización segura del saludo."
@@ -290,7 +321,11 @@ Assert-True (Test-Path -LiteralPath $confirmationEmailPath) "Falta la plantilla 
 Assert-True ($confirmationEmail.Contains('{{FIRST_NAME}}')) "La confirmación debe personalizar el nombre sin depender de Contacts."
 Assert-True ($confirmationEmail.Contains('02 de julio')) "La confirmación debe incluir la fecha real del taller."
 Assert-True ($confirmationEmail.Contains('18h00 a 20h00')) "La confirmación debe incluir el horario real del taller."
-Assert-True ($confirmationEmail.Contains('canal de YouTube')) "La confirmación debe explicar cómo se enviará el acceso."
+Assert-True ($confirmationEmail.Contains('https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD')) "La confirmación debe incluir la comunidad de WhatsApp."
+Assert-True ($confirmationEmail.Contains('https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_')) "La confirmación debe incluir el live."
+Assert-True ($confirmationEmail.Contains('href="https://cursos.littusgroup.com/"')) "La confirmación debe enlazar al aula virtual desde el footer."
+Assert-True ($confirmationEmail.Contains('Visitar el aula virtual')) "El enlace al aula virtual debe tener un texto de acción claro."
+Assert-True (-not $confirmationEmail.Contains('cuando esté disponible')) "La confirmación no debe conservar el texto obsoleto sobre el acceso."
 Assert-True (-not $confirmationEmail.Contains('RESEND_UNSUBSCRIBE_URL')) "Una confirmación operativa no debe incluir baja promocional."
 Assert-True (-not $confirmationEmail.Contains('aceptaste comunicaciones')) "Una confirmación operativa no debe afirmar consentimiento comercial."
 Assert-True (Test-Path -LiteralPath $confirmationFunctionPath) "Falta la Edge Function de confirmación."
@@ -302,5 +337,12 @@ Assert-True ($confirmationFunction.Contains('confirmation_resend_email_id')) "La
 Assert-True ($confirmationFunction.Contains('confirmation_error')) "La función debe registrar el último error."
 Assert-True (-not $confirmationFunction.Contains('marketing_consent')) "El envío operativo no debe depender del consentimiento comercial."
 Assert-True (-not $confirmationFunction.Contains('/contacts')) "La confirmación individual no debe crear ni modificar Contacts."
+Assert-True (Test-Path -LiteralPath $confirmationTemplatePath) "Falta el template de la confirmación."
+Assert-True ($confirmationTemplate.Contains('https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD')) "El template TS debe incluir la comunidad de WhatsApp."
+Assert-True ($confirmationTemplate.Contains('https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_')) "El template TS debe incluir el live."
+Assert-True ($confirmationTemplate.Contains('href="https://cursos.littusgroup.com/"')) "El template TS debe enlazar al aula virtual desde el footer."
+Assert-True ($confirmationTemplate.Contains('Visitar el aula virtual')) "El template TS debe identificar claramente el acceso al aula virtual."
+Assert-True (-not $confirmationTemplate.Contains('cuando esté disponible')) "El template TS no debe conservar el texto obsoleto sobre el acceso."
+Assert-True (-not $confirmationTemplate.Contains('marketing_consent')) "El template operativo no debe depender del consentimiento comercial."
 
 Write-Output "Landing checks: OK"

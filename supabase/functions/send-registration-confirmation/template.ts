@@ -44,12 +44,21 @@ export const renderConfirmationEmail = (fullName: string) => {
               <p style="margin:0 0 8px"><strong>Modalidad:</strong> Online y en directo</p>
               <p style="margin:0"><strong>Incluye:</strong> Certificado de participación</p>
             </td></tr></table>
-            <p style="margin:0 0 20px">La transmisión será por el canal de YouTube. Te enviaremos el enlace de acceso cuando esté disponible.</p>
+            <p style="margin:0 0 16px">Estos accesos forman parte de la información operativa de tu inscripción:</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px">
+              <tr><td style="padding:0 0 12px">
+                <a href="https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD" target="_blank" rel="noopener noreferrer" style="display:block;padding:14px 20px;border-radius:8px;background:#00AEEF;color:#061018;font-weight:700;line-height:1.4;text-align:center;text-decoration:none">Unirme a la comunidad de WhatsApp</a>
+              </td></tr>
+              <tr><td>
+                <a href="https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_" target="_blank" rel="noopener noreferrer" style="display:block;padding:13px 20px;border:1px solid #2D333B;border-radius:8px;color:#111318;font-weight:700;line-height:1.4;text-align:center;text-decoration:none">Abrir o guardar el live programado</a>
+              </td></tr>
+            </table>
             <p style="margin:0">Si necesitas ayuda con tu inscripción, responde directamente a este correo.</p>
           </td></tr>
           <tr><td style="padding:28px 32px;border-top:1px solid #1E2329;background:#0A0E13">
             <p style="margin:0 0 8px;color:#F0F6FC;font-size:13px;font-weight:700;line-height:1.5">ECCIA · Littus Group America</p>
-            <p style="margin:0;color:#C9D1D9;font-size:12px;line-height:1.6">Este es un mensaje operativo relacionado con tu inscripción al taller.</p>
+            <p style="margin:0 0 10px;color:#C9D1D9;font-size:12px;line-height:1.6">Este es un mensaje operativo relacionado con tu inscripción al taller.</p>
+            <a href="https://cursos.littusgroup.com/" target="_blank" rel="noopener noreferrer" style="color:#00AEEF;font-size:13px;font-weight:700;line-height:1.6;text-decoration:underline">Visitar el aula virtual</a>
           </td></tr>
         </table>
       </td></tr>

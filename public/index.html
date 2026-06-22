@@ -373,15 +373,19 @@
             <details>
               <summary>¿Cómo accedo el día del evento?</summary>
               <p>
-                La transmisión será por el canal de YouTube. El enlace de
-                acceso se enviará cuando esté disponible.
+                La transmisión será por el canal de YouTube.
+                <a
+                  href="https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >Abre o guarda el live programado</a>.
               </p>
             </details>
             <details>
               <summary>¿Hay límite de cupos?</summary>
               <p>
                 Este taller técnico no tiene límite de cupos. Tu registro nos
-                permite enviarte la información de acceso cuando esté disponible.
+                permite confirmar tu participación y enviarte información operativa.
               </p>
             </details>
             <details>
@@ -393,19 +397,65 @@
       </section>
     </main>
 
-    <footer>
-      <div class="container footer-inner">
-        <img
-          class="brand-logo"
-          src="brand/assets/logo-dark.png"
-          alt="ECCIA"
-          width="300"
-          height="112"
-          loading="lazy"
-        />
-        <p>ECCIA · División de Littus Group America</p>
+    <footer aria-label="Información de ECCIA">
+      <div class="container footer-inner footer-grid">
+        <div class="footer-brand">
+          <img
+            class="brand-logo"
+            src="brand/assets/logo-dark.png"
+            alt="ECCIA, división de Littus Group America"
+            width="300"
+            height="112"
+            loading="lazy"
+          />
+          <p>ECCIA · División de Littus Group America</p>
+        </div>
+
+        <nav class="footer-navigation" aria-label="Sitios de Littus Group">
+          <h2>Explora</h2>
+          <ul>
+            <li><a href="https://cursos.littusgroup.com" target="_blank" rel="noopener noreferrer">Cursos y formación</a></li>
+            <li><a href="https://littusgroup.com" target="_blank" rel="noopener noreferrer">Servicios de inspección</a></li>
+          </ul>
+        </nav>
+
+        <div class="footer-socials" aria-labelledby="footer-socials-title">
+          <h2 id="footer-socials-title">Redes sociales</h2>
+          <!-- Sustituir cada span por un enlace cuando ECCIA proporcione la URL oficial. -->
+          <ul>
+            <li><span class="social-placeholder" aria-label="Facebook, enlace pendiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4.5A15 15 0 0 0 14.4 4C11.8 4 10 5.6 10 8.6V11H7v4h3v5h4v-5h3l.5-4H14V8.8c0-.6.2-.8 0-.8Z"/></svg><span>Facebook</span></span></li>
+            <li><span class="social-placeholder" aria-label="Instagram, enlace pendiente"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.5" cy="6.5" r="1"/></svg><span>Instagram</span></span></li>
+            <li><span class="social-placeholder" aria-label="TikTok, enlace pendiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4v10.5a3.5 3.5 0 1 1-3-3.46V8a6.5 6.5 0 1 0 6 6.48V9.2A7 7 0 0 0 20 10V7a4 4 0 0 1-3-3h-3Z"/></svg><span>TikTok</span></span></li>
+            <li><span class="social-placeholder" aria-label="LinkedIn, enlace pendiente"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9" width="4" height="11"/><circle cx="6" cy="5.5" r="2"/><path d="M11 9h4v1.7A4.5 4.5 0 0 1 22 14.5V20h-4v-5c0-1.5-.7-2.5-2-2.5s-2 1-2 2.5v5h-3V9Z"/></svg><span>LinkedIn</span></span></li>
+            <li><span class="social-placeholder" aria-label="YouTube, enlace pendiente"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="m10 9 5 3-5 3V9Z"/></svg><span>YouTube</span></span></li>
+          </ul>
+        </div>
       </div>
     </footer>
+
+    <dialog
+      class="registration-modal"
+      id="registration-success-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="registration-success-title"
+      aria-describedby="registration-success-description"
+    >
+      <div class="registration-modal__dialog">
+        <button class="registration-modal__close" type="button" data-modal-close aria-label="Cerrar confirmación">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+        <p class="section-eyebrow">Inscripción confirmada</p>
+        <h2 id="registration-success-title">Ya tienes los accesos del taller</h2>
+        <p id="registration-success-description">
+          Únete a la comunidad para recibir avisos operativos y guarda el live programado.
+        </p>
+        <div class="registration-modal__actions">
+          <a class="btn-primary" data-modal-primary href="https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD" target="_blank" rel="noopener noreferrer">Unirme a la comunidad de WhatsApp</a>
+          <a class="btn-secondary" href="https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_" target="_blank" rel="noopener noreferrer">Abrir o guardar el live</a>
+        </div>
+      </div>
+    </dialog>
 
     <a class="mobile-cta" href="#inscripcion">Apúntate gratis</a>
   </body>

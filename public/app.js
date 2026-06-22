@@ -1,6 +1,10 @@
 const form = document.querySelector("#inscripcion");
 const status = document.querySelector(".form-status");
 const spotlights = document.querySelectorAll("[data-spotlight]");
+const registrationModal = document.querySelector("#registration-success-modal");
+const modalPrimaryAction = registrationModal?.querySelector("[data-modal-primary]");
+const modalCloseButton = registrationModal?.querySelector("[data-modal-close]");
+let previouslyFocusedElement = null;
 
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
 const REGISTRATIONS_ENDPOINT =
@@ -12,6 +16,60 @@ const showStatus = (state, title, message) => {
   status.innerHTML = `<strong>${title}</strong>${message}`;
   status.focus();
 };
+
+const getFocusableElements = () =>
+  [...registrationModal.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+
+const openRegistrationModal = () => {
+  if (!registrationModal?.showModal) {
+    return;
+  }
+
+  previouslyFocusedElement = document.activeElement;
+  registrationModal.showModal();
+  modalPrimaryAction.focus();
+};
+
+const closeRegistrationModal = () => {
+  registrationModal?.close();
+};
+
+modalCloseButton?.addEventListener("click", closeRegistrationModal);
+
+registrationModal?.addEventListener("click", (event) => {
+  if (event.target === registrationModal) {
+    closeRegistrationModal();
+  }
+});
+
+registrationModal?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeRegistrationModal();
+    return;
+  }
+
+  if (event.key !== "Tab") {
+    return;
+  }
+
+  const focusableElements = getFocusableElements();
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+});
+
+registrationModal?.addEventListener("close", () => {
+  previouslyFocusedElement?.focus();
+  previouslyFocusedElement = null;
+});
 
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -52,6 +110,7 @@ form?.addEventListener("submit", async (event) => {
         "Inscripción confirmada",
         "Tus datos fueron registrados para Ultrasonido - Interpretación del Scan A.",
       );
+      openRegistrationModal();
       return;
     }
 
