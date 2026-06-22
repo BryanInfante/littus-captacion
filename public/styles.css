@@ -35,7 +35,7 @@ section[id] { scroll-margin-top: 104px; }
   backdrop-filter: blur(18px);
 }
 .header-inner { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-lg); }
-.header-inner .brand-logo { block-size: 74px; }
+.header-inner .brand-logo { block-size: 68px; }
 .hero { position: relative; overflow: hidden; min-height: 100svh; padding: 154px 0 var(--space-3xl); }
 .hero-editorial { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); gap: clamp(var(--space-2xl), 6vw, var(--space-4xl)); align-items: start; }
 .hero-copy { min-width: 0; }
