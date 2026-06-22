@@ -147,7 +147,8 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .footer-inner { color: var(--eccia-text-soft); font-family: var(--font-body); font-size: .8125rem; font-weight: 500; line-height: 1.55; }
 .footer-grid { display: grid; grid-template-columns: minmax(260px, 1.25fr) minmax(180px, .75fr) minmax(280px, 1fr); gap: clamp(var(--space-xl), 5vw, var(--space-3xl)); padding-block: var(--space-2xl); }
 .footer-brand { display: grid; align-content: start; gap: var(--space-md); }
-.footer-inner .brand-logo { block-size: 48px; }
+.footer-logo { display: block; justify-self: center; inline-size: auto; block-size: clamp(128px, 12vw, 160px); object-fit: contain; }
+.footer-brand p { justify-self: center; text-align: center; }
 .footer-inner p { max-width: 360px; margin: 0; }
 .footer-navigation h2, .footer-socials h2 { margin: 0 0 var(--space-md); color: var(--eccia-text); font-family: var(--font-display); font-size: 1rem; }
 .footer-navigation ul, .footer-socials ul { display: grid; gap: var(--space-xs); margin: 0; padding: 0; list-style: none; }
