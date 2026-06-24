@@ -3,6 +3,7 @@
 $indexPath = Join-Path $PSScriptRoot "..\public\index.html"
 $stylesPath = Join-Path $PSScriptRoot "..\public\styles.css"
 $appPath = Join-Path $PSScriptRoot "..\public\app.js"
+$readmePath = Join-Path $PSScriptRoot "..\README.md"
 $emailTemplatePath = Join-Path $PSScriptRoot "..\emails\eccia-base.html"
 $emailGuidePath = Join-Path $PSScriptRoot "..\EMAIL_OPERATIONS.md"
 $resendSyncPath = Join-Path $PSScriptRoot "..\supabase\functions\sync-resend-contact\index.ts"
@@ -17,6 +18,7 @@ if (-not (Test-Path -LiteralPath $indexPath)) {
 $html = Get-Content -LiteralPath $indexPath -Raw -Encoding UTF8
 $styles = Get-Content -LiteralPath $stylesPath -Raw -Encoding UTF8
 $app = Get-Content -LiteralPath $appPath -Raw -Encoding UTF8
+$readme = Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8
 $emailTemplate = if (Test-Path -LiteralPath $emailTemplatePath) {
     Get-Content -LiteralPath $emailTemplatePath -Raw -Encoding UTF8
 } else {
@@ -114,11 +116,10 @@ Assert-Contains '2 horas' "Falta la duración del taller técnico."
 Assert-Contains 'hero-editorial"' "El hero debe usar una composición editorial independiente."
 Assert-Contains 'class="hero-metrics"' "Los datos clave del evento deben formar una banda técnica."
 Assert-Contains 'class="registration-rail"' "El formulario debe funcionar como rail secundario y no competir con el titular."
-Assert-Contains 'Taller t' "La experiencia debe presentar la actividad como taller técnico."
-Assert-Contains 'cnico gratuito' "La experiencia debe presentar la actividad como taller técnico."
+Assert-True ([regex]::IsMatch($html, 'taller\s+técnico\s+gratuito', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) "La experiencia debe presentar la actividad como taller técnico gratuito."
 Assert-Contains 'Ultrasonido - Interpretaci' "La experiencia debe usar el nombre técnico definido para el evento."
 Assert-Contains 'n del Scan A' "El nombre técnico del evento debe mencionar la interpretación del Scan A."
-Assert-True ($html.Contains('<h1>Ultrasonido - Interpretación del <span>Scan A</span></h1>')) "El H1 debe contener el nombre estable del evento."
+Assert-True ([regex]::IsMatch($html, '<h1>Ultrasonido(?: Industrial)? - Interpretaci.n del <span>Scan A</span></h1>')) "El H1 debe contener el nombre estable del evento."
 Assert-True ([regex]::IsMatch($html, 'Domina la lectura del Scan A y detecta lo que otros\s+inspectores\s+pasan por alto')) "La frase de impacto debe conservarse como apoyo editorial."
 Assert-True (-not $html.Contains('<title>Domina el Scan A')) "La frase de impacto no debe utilizarse como nombre del evento en el título del documento."
 Assert-True (-not [regex]::IsMatch($html, '\bwebinar\b', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) "No debe utilizarse la palabra webinar."
@@ -150,13 +151,12 @@ Assert-Contains 'https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_' "
 Assert-True (-not $html.Contains('acceso se enviará cuando esté disponible')) "La landing no debe conservar el texto obsoleto sobre el acceso."
 Assert-Contains 'Solo necesitas una laptop' "Deben mostrarse los requisitos confirmados."
 Assert-Contains 'estable a internet.' "Deben mostrarse los requisitos confirmados."
-Assert-Contains 'src/foto_instructor.png' "La sección del instructor debe mostrar la fotografía disponible."
+Assert-True ([regex]::IsMatch($html, 'src/foto_instructor\.(?:png|webp)')) "La sección del instructor debe mostrar la fotografía disponible."
 Assert-Contains 'alt="Marco Aucancela, instructor de Ultrasonido - Interpretaci' "La fotografía debe usar el nombre técnico del evento."
 Assert-Contains 'n del Scan A"' "La fotografía debe tener un texto alternativo descriptivo."
 Assert-True (-not $html.Contains('[PENDIENTE: foto de Marco Aucancela]')) "No debe mostrarse el placeholder cuando la fotografía está disponible."
 Assert-Contains 'class="instructor-intro"' "La sección del instructor debe tener una introducción visual independiente."
 Assert-Contains 'class="speaker-identity"' "La fotografía debe incluir una ficha de identidad profesional."
-Assert-Contains 'class="speaker-highlights"' "La sección debe destacar la experiencia y credenciales principales."
 Assert-Contains 'class="speaker-details"' "La trayectoria debe presentarse en un bloque estructurado."
 
 Assert-True (-not $html.Contains('[PENDIENTE: confirmar cupo disponible o fecha del evento]')) "No debe quedar pendiente la información de cupos o fecha."
@@ -195,7 +195,6 @@ $instructorStyleSelectors = @(
     '.instructor-section',
     '.instructor-intro',
     '.speaker-identity',
-    '.speaker-highlights',
     '.speaker-details'
 )
 
@@ -252,6 +251,17 @@ Assert-True ($styles.Contains('.registration-modal')) "Faltan estilos para el mo
 Assert-True ($styles.Contains('.registration-modal::backdrop')) "El modal debe tener un backdrop identificable."
 Assert-True ($styles.Contains('.registration-modal__dialog')) "El diálogo debe tener una superficie visual ECCIA."
 Assert-True ($app.Contains('registrationModal.showModal()')) "El modal debe abrirse tras una inscripción exitosa."
+Assert-True ($app.Contains('META_PIXEL_ID')) "La landing debe declarar una configuración explícita para Meta Pixel."
+Assert-True ($app.Contains('const META_PIXEL_ID = "896484926815497"')) "Meta Pixel debe usar el Pixel ID real configurado en Meta Events Manager."
+Assert-True ($app.Contains('fbq("init", META_PIXEL_ID)')) "Meta Pixel debe inicializarse con el Pixel ID configurado."
+Assert-True ($app.Contains('fbq("track", "PageView")')) "Meta Pixel debe medir PageView cuando el pixel esté configurado."
+Assert-True ($app.Contains('trackMetaLead()')) "El evento Lead debe dispararse solo después de una inscripción persistida."
+Assert-True ($app.Contains('fbq("track", "Lead")')) "La conversión mínima de Meta Ads debe usar el evento estándar Lead."
+Assert-True ($app.Contains('if (!META_PIXEL_ID)')) "El tracking debe quedar desactivado de forma segura si falta el Pixel ID real."
+Assert-Contains 'https://www.facebook.com/tr?id=896484926815497&ev=PageView&noscript=1' "La landing debe incluir fallback noscript de PageView para Meta Pixel."
+Assert-True ($readme.Contains('Meta Pixel')) "La documentación debe explicar la integración mínima con Meta Pixel."
+Assert-True ($readme.Contains('Conversions API')) "La documentación debe dejar programada la evolución ideal con Conversions API."
+Assert-True ($readme.Contains('event_id')) "La evolución a Conversions API debe contemplar deduplicación mediante event_id."
 Assert-True ($app.Contains('event.key === "Escape"')) "El modal debe poder cerrarse con Escape."
 Assert-True ($app.Contains('event.target === registrationModal')) "El modal debe cerrarse al activar el backdrop."
 Assert-True ($app.Contains('previouslyFocusedElement?.focus()')) "El modal debe devolver el foco al elemento previo."

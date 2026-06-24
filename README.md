@@ -17,6 +17,8 @@ Resend.
 | Confirmación transaccional individual | Operativa |
 | Segmento y Topic de Resend | Configurados |
 | Plantilla visual de Broadcast | Creada y probada |
+| Meta Pixel | Preparado; requiere configurar `META_PIXEL_ID` real |
+| Meta Conversions API | Programada como evolución ideal |
 | GitHub Pages con dominio y HTTPS | Operativo |
 | Protección anti-bot | Pendiente antes de una campaña de alto tráfico |
 
@@ -40,6 +42,11 @@ Supabase Edge Function · sync-resend-contact
     │ RESEND_API_KEY almacenada como secreto
     ▼
 Resend · Contacts + Segment + Topic + Broadcasts
+
+Meta Ads
+    ▲
+    │ Meta Pixel: PageView + Lead post-Supabase
+    │ Conversions API: pendiente para medición server-side
 ```
 
 ### Principios de seguridad
@@ -209,6 +216,39 @@ Solo pueden enviarse a quienes aceptaron expresamente:
 
 No mezclar ambas finalidades ni suscribir automáticamente a una persona por
 haberse registrado a un taller.
+
+## Meta Ads y medición
+
+### Integración mínima activa
+
+La landing tiene soporte para **Meta Pixel** en `public/app.js`.
+
+- `PageView` se envía cuando existe un `META_PIXEL_ID` configurado.
+- `Lead` se envía únicamente después de que Supabase responde correctamente al
+  `POST` de inscripción.
+- Si `META_PIXEL_ID` está vacío, el tracking queda desactivado de forma segura.
+
+Antes de publicar la campaña en Meta Ads, reemplazar:
+
+```js
+const META_PIXEL_ID = "";
+```
+
+por el identificador real del pixel entregado por Meta Events Manager.
+
+### Evolución ideal programada
+
+Para una medición más robusta, implementar **Conversions API** desde Supabase
+Edge Functions. La evolución recomendada es:
+
+1. generar un `event_id` por inscripción exitosa;
+2. enviar `Lead` desde el navegador con ese mismo `event_id`;
+3. enviar `Lead` desde servidor hacia Conversions API con el mismo `event_id`;
+4. dejar que Meta deduplique navegador + servidor;
+5. guardar el resultado server-side para auditoría de conversiones.
+
+No implementar Conversions API copiando tokens secretos al frontend. El token de
+Meta debe vivir como secreto de Supabase, igual que `RESEND_API_KEY`.
 
 ## Despliegue en GitHub Pages
 
