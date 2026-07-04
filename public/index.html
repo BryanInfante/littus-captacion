@@ -88,9 +88,9 @@
 
           <aside class="registration-rail" aria-labelledby="form-title">
             <div class="registration-card">
-              <p class="form-kicker">Reserva tu acceso</p>
-              <h2 id="form-title">Inscríbete sin costo</h2>
-              <p>Completa tus datos para reservar tu lugar en el taller.</p>
+              <p class="form-kicker">Evento finalizado</p>
+              <h2 id="form-title">Registro cerrado</h2>
+              <p>La masterclass ya terminó. El formulario de inscripción está cerrado.</p>
 
               <form id="inscripcion" aria-describedby="form-note" novalidate>
                 <div class="field">
@@ -105,6 +105,7 @@
                     autocomplete="name"
                     aria-describedby="nombre-help"
                     placeholder="Tu nombre"
+                    disabled
                     required
                   />
                   <p class="field-help" id="nombre-help">Campo obligatorio.</p>
@@ -122,6 +123,7 @@
                     autocomplete="email"
                     aria-describedby="correo-help"
                     placeholder="tu@correo.com"
+                    disabled
                     required
                   />
                   <p class="field-help" id="correo-help">Campo obligatorio.</p>
@@ -131,19 +133,19 @@
                     id="marketing-consent"
                     name="marketing_consent"
                     type="checkbox"
+                    disabled
                   />
                   <span>
                     Quiero recibir información sobre futuros talleres y
                     actividades de ECCIA. Esta opción es voluntaria.
                   </span>
                 </label>
-                <button class="btn-primary submit-button" type="submit">
-                  Apúntate gratis
+                <button class="btn-primary submit-button" type="submit" disabled>
+                  Registro cerrado
                   <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </button>
                 <p class="form-note" id="form-note">
-                  Al enviar el formulario, tus datos se registrarán para
-                  gestionar tu acceso al taller técnico.
+                  Gracias por el interés. Este evento ya finalizó y no recibe nuevas inscripciones.
                 </p>
               </form>
               <div
@@ -460,18 +462,18 @@
         <button class="registration-modal__close" type="button" data-modal-close aria-label="Cerrar confirmación">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
         </button>
-        <p class="section-eyebrow">Inscripción confirmada</p>
-        <h2 id="registration-success-title">Ya tienes los accesos del taller</h2>
+        <p class="section-eyebrow">Evento finalizado</p>
+        <h2 id="registration-success-title">Este evento ha terminado</h2>
         <p id="registration-success-description">
-          Únete a la comunidad para recibir avisos operativos y guarda el live programado.
+          La masterclass de Ultrasonido Industrial - Interpretación del Scan-A ya finalizó. Si quieres información sobre próximas fechas o entrenamientos, puedes escribirnos por WhatsApp.
         </p>
         <div class="registration-modal__actions">
-          <a class="btn-primary" data-modal-primary href="https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD" target="_blank" rel="noopener noreferrer">Unirme a la comunidad de WhatsApp</a>
-          <a class="btn-secondary" href="https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_" target="_blank" rel="noopener noreferrer">Abrir o guardar el live</a>
+          <a class="btn-primary" data-modal-primary href="https://wa.me/59399976669" target="_blank" rel="noopener noreferrer">Solicitar próximas fechas</a>
+          <a class="btn-secondary" href="regalos.html">Ir a recursos y certificado</a>
         </div>
       </div>
     </dialog>
 
-    <a class="mobile-cta" href="#inscripcion">Apúntate gratis</a>
+    <a class="mobile-cta" href="#inscripcion">Evento finalizado</a>
   </body>
 </html>

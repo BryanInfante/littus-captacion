@@ -10,6 +10,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E
 const REGISTRATIONS_ENDPOINT =
   "https://qfbhyzynpyqqcpuuibod.supabase.co/rest/v1/eccia_taller_inscripciones";
 const META_PIXEL_ID = "896484926815497";
+const REGISTRATION_CLOSED = true;
 
 const initMetaPixel = () => {
   if (!META_PIXEL_ID) {
@@ -66,7 +67,7 @@ const openRegistrationModal = () => {
 
   previouslyFocusedElement = document.activeElement;
   registrationModal.showModal();
-  modalPrimaryAction.focus();
+  modalPrimaryAction?.focus();
 };
 
 const closeRegistrationModal = () => {
@@ -112,6 +113,16 @@ registrationModal?.addEventListener("close", () => {
 
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  if (REGISTRATION_CLOSED) {
+    showStatus(
+      "error",
+      "Registro cerrado",
+      "Este evento ya terminó y no recibe nuevas inscripciones.",
+    );
+    openRegistrationModal();
+    return;
+  }
 
   if (!form.reportValidity()) {
     return;
@@ -179,6 +190,11 @@ form?.addEventListener("submit", async (event) => {
     submitButton.innerHTML = originalButtonContent;
   }
 });
+
+if (REGISTRATION_CLOSED) {
+  form?.setAttribute("aria-disabled", "true");
+  window.addEventListener("load", openRegistrationModal, { once: true });
+}
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
