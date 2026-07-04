@@ -225,6 +225,7 @@ const sendCertificateEmail = async (params: {
   })
 
   const body = await response.json().catch(() => ({}))
+  if (response.status === 409) return `resend-idempotency-conflict/${params.certificateCode}`
   if (!response.ok || typeof body.id !== 'string') {
     throw new Error(`Resend rejected certificate email (${response.status})`)
   }

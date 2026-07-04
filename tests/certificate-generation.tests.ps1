@@ -118,6 +118,7 @@ Assert-Contains $issueFunction 'ensureNextcloudDirectory' "La función debe crea
 Assert-Order $issueFunction 'await ensureNextcloudDirectory(directoryPath)' "method: 'PUT'" "La función debe crear la carpeta Nextcloud antes del PUT del PDF."
 Assert-Contains $issueFunction 'sendCertificateEmail' "La función debe enviar correo solo después del upload."
 Assert-Contains $issueFunction 'Idempotency-Key' "El correo debe usar idempotency key."
+Assert-Contains $issueFunction 'response.status === 409' "Resend 409 por idempotency key repetida no debe invalidar un PDF ya subido."
 Assert-Contains $issueFunction 'certificate_status' "La función debe actualizar estados de certificado."
 Assert-Contains $issueFunction 'validation_url' "La función debe persistir URL de validación."
 Assert-Contains $issueFunction 'buildDownloadCertificateUrl' "La función debe construir enlace público mediante download-certificate."
