@@ -9,6 +9,7 @@ const REGISTRATIONS_TABLE = 'eccia_taller_inscripciones'
 const MASTERCLASS_CODE = 'ultrasonido-industrial-scan-a'
 const FROM = 'ECCIA <gestioneccia@mail.littusgroup.com>'
 const REPLY_TO = 'formanager@littusgroup.com'
+const EVENT_TITLE = 'Seminario de Ultrasonido Industrial Nivel I'
 
 type IssueRequest = {
   nombre_completo?: string
@@ -55,9 +56,35 @@ const buildValidationUrl = (baseUrl: string, code: string) =>
 const buildDownloadCertificateUrl = (supabaseUrl: string, code: string) =>
   `${supabaseUrl.replace(/\/$/, '')}/functions/v1/download-certificate?code=${encodeURIComponent(code)}`
 
+const buildLogoUrl = (baseUrl: string) =>
+  `${baseUrl.replace(/\/$/, '')}/brand/assets/03%20logo_encabezado_derecha.png`
+
 const buildWebDavUrl = (baseUrl: string, path: string) => {
   const cleanPath = path.split('/').filter(Boolean).map(encodeURIComponent).join('/')
   return `${baseUrl.replace(/\/$/, '')}/${cleanPath}`
+}
+
+const fetchBrandLogo = async (baseUrl: string) => {
+  const response = await fetch(buildLogoUrl(baseUrl))
+  if (!response.ok) throw new Error(`Logo fetch failed (${response.status})`)
+  return new Uint8Array(await response.arrayBuffer())
+}
+
+const centerTextUnderQr = (page: ReturnType<PDFDocument['addPage']>, text: string, params: {
+  centerX: number
+  y: number
+  size: number
+  font: Awaited<ReturnType<PDFDocument['embedFont']>>
+  color: ReturnType<typeof rgb>
+}) => {
+  const width = params.font.widthOfTextAtSize(text, params.size)
+  page.drawText(text, {
+    x: params.centerX - width / 2,
+    y: params.y,
+    size: params.size,
+    font: params.font,
+    color: params.color,
+  })
 }
 
 export const renderCertificatePdf = async (params: {
@@ -65,6 +92,7 @@ export const renderCertificatePdf = async (params: {
   certificateCode: string
   validationUrl: string
   qrCodeDataUri: string
+  logoBytes: Uint8Array
 }) => {
   const pdf = await PDFDocument.create()
   const page = pdf.addPage([842, 595])
@@ -74,34 +102,42 @@ export const renderCertificatePdf = async (params: {
   const black = rgb(0.04, 0.06, 0.08)
   const muted = rgb(0.32, 0.38, 0.45)
 
+  const logo = await pdf.embedPng(params.logoBytes)
   page.drawRectangle({ x: 0, y: 585, width: 842, height: 10, color: cyan })
-  page.drawText('ECCIA · Littus Group America', { x: 64, y: 525, size: 18, font: bold, color: black })
-  page.drawText('Certificado de asistencia', { x: 64, y: 455, size: 12, font: bold, color: cyan })
-  page.drawText('Curso de Ultrasonido Industrial Nivel I', { x: 64, y: 415, size: 30, font: bold, color: black })
-  page.drawText('otorgado a', { x: 64, y: 365, size: 12, font, color: muted })
-  page.drawText(params.fullName, { x: 64, y: 328, size: 28, font: bold, color: black })
-  page.drawLine({ start: { x: 64, y: 312 }, end: { x: 220, y: 312 }, thickness: 3, color: cyan })
-  page.drawText('Por su participación en el curso de Ultrasonido Industrial Nivel I, con enfoque en los', { x: 64, y: 270, size: 13, font, color: muted })
-  page.drawText('fundamentos del ultrasonido y la interpretación del Scan-A.', { x: 64, y: 250, size: 13, font, color: muted })
-  page.drawText('DURACIÓN', { x: 64, y: 205, size: 8, font: bold, color: muted })
-  page.drawText('2h', { x: 64, y: 187, size: 13, font: bold, color: black })
-  page.drawText('FECHA', { x: 160, y: 205, size: 8, font: bold, color: muted })
-  page.drawText('03 de julio de 2026', { x: 160, y: 187, size: 13, font: bold, color: black })
+  page.drawImage(logo, { x: 60, y: 444, width: 214, height: 80 })
+  page.drawText('LITTUS GROUP AMERICA - ECCIA', { x: 560, y: 510, size: 9, font: bold, color: black })
+  page.drawText('CERTIFICADO DE ASISTENCIA', { x: 64, y: 405, size: 10, font: bold, color: cyan, characterSpacing: 2 })
+  page.drawLine({ start: { x: 64, y: 392 }, end: { x: 100, y: 392 }, thickness: 2, color: black })
+  page.drawText('Seminario de Ultrasonido', { x: 64, y: 350, size: 31, font: bold, color: black })
+  page.drawText('Industrial Nivel I', { x: 64, y: 314, size: 31, font: bold, color: black })
+  page.drawText('otorgado a', { x: 64, y: 270, size: 11, font, color: muted })
+  page.drawText(params.fullName, { x: 64, y: 235, size: 28, font: bold, color: black })
+  page.drawLine({ start: { x: 64, y: 219 }, end: { x: 220, y: 219 }, thickness: 3, color: cyan })
+  page.drawText('Por su participación en el seminario de Ultrasonido Industrial Nivel I, con enfoque en', { x: 64, y: 182, size: 12, font, color: muted })
+  page.drawText('los fundamentos del ultrasonido y la interpretación del Scan-A.', { x: 64, y: 164, size: 12, font, color: muted })
+  page.drawText('DURACIÓN', { x: 64, y: 120, size: 8, font: bold, color: muted })
+  page.drawText('2h', { x: 64, y: 102, size: 13, font: bold, color: black })
+  page.drawText('FECHA', { x: 160, y: 120, size: 8, font: bold, color: muted })
+  page.drawText('03 de julio de 2026', { x: 160, y: 102, size: 13, font: bold, color: black })
 
-  page.drawLine({ start: { x: 64, y: 105 }, end: { x: 260, y: 105 }, thickness: 1.5, color: black })
-  page.drawText('Ing. Edison Mena', { x: 64, y: 78, size: 13, font: bold, color: black })
-  page.drawText('Gerente Técnico Ecuador', { x: 64, y: 61, size: 9, font, color: cyan })
+  page.drawLine({ start: { x: 64, y: 52 }, end: { x: 260, y: 52 }, thickness: 1.5, color: black })
+  page.drawText('Ing. Edison Mena', { x: 64, y: 29, size: 12, font: bold, color: black })
+  page.drawText('Gerente Técnico Ecuador', { x: 64, y: 15, size: 8, font, color: muted })
 
-  page.drawLine({ start: { x: 410, y: 105 }, end: { x: 606, y: 105 }, thickness: 1.5, color: black })
-  page.drawText('Ing. Marco Aucancela', { x: 410, y: 78, size: 13, font: bold, color: black })
-  page.drawText('Gerente Regional', { x: 410, y: 61, size: 9, font, color: cyan })
+  page.drawLine({ start: { x: 410, y: 52 }, end: { x: 606, y: 52 }, thickness: 1.5, color: black })
+  page.drawText('Ing. Marco Aucancela', { x: 410, y: 29, size: 12, font: bold, color: black })
+  page.drawText('Gerente Regional', { x: 410, y: 15, size: 8, font, color: muted })
 
   const qrBase64 = params.qrCodeDataUri.split(',')[1]
   const qrBytes = Uint8Array.from(atob(qrBase64), (char) => char.charCodeAt(0))
   const qr = await pdf.embedPng(qrBytes)
-  page.drawImage(qr, { x: 700, y: 448, width: 82, height: 82 })
-  page.drawText('Validación', { x: 708, y: 430, size: 8, font: bold, color: black })
-  page.drawText(params.certificateCode, { x: 692, y: 416, size: 7, font, color: muted })
+  const qrX = 664
+  const qrY = 358
+  const qrSize = 104
+  const qrCenterX = qrX + qrSize / 2
+  page.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize })
+  centerTextUnderQr(page, 'Validación del certificado', { centerX: qrCenterX, y: 338, size: 8, font: bold, color: black })
+  centerTextUnderQr(page, params.certificateCode, { centerX: qrCenterX, y: 324, size: 7, font, color: muted })
 
   return pdf.save()
 }
@@ -158,7 +194,7 @@ const renderCertificateEmail = (fullName: string, certificateUrl: string, valida
 <html lang="es"><body style="font-family:Arial,sans-serif;color:#111318">
   <h1>Tu certificado está listo</h1>
   <p>Hola ${fullName.split(/\s+/)[0] || 'profesional'},</p>
-  <p>Tu certificado de asistencia al curso de Ultrasonido Industrial Nivel I ya fue generado.</p>
+  <p>Tu certificado de asistencia al ${EVENT_TITLE.toLowerCase()} ya fue generado.</p>
   <p><a href="${certificateUrl}">Descargar certificado</a></p>
   <p><a href="${validationUrl}">Validar certificado</a></p>
 </body></html>`
@@ -329,7 +365,8 @@ Deno.serve(async (request) => {
     if (updateError || !renderingClaim) return jsonResponse({ error: 'No se pudo registrar el certificado.' }, 500)
     claim = renderingClaim
     try {
-      const pdfBytes = await renderCertificatePdf({ fullName, certificateCode, validationUrl, qrCodeDataUri })
+      const logoBytes = await fetchBrandLogo(baseUrl)
+      const pdfBytes = await renderCertificatePdf({ fullName, certificateCode, validationUrl, qrCodeDataUri, logoBytes })
       const nextcloudPath = `masterclass-ultrasonido-nivel-i/2026/${certificateCode}.pdf`
       await uploadCertificateToNextcloud(nextcloudPath, pdfBytes)
 

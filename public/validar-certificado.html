@@ -66,7 +66,9 @@
         renderResult(`
           <strong>Certificado válido</strong>
           <span>${data.nombre_completo}</span>
-          <span>Curso de Ultrasonido Industrial Nivel I</span>
+          <span>${data.event_title || 'Seminario de Ultrasonido Industrial Nivel I'}</span>
+          <span>Duración: ${data.duration || '2h'}</span>
+          <span>Fecha: ${data.event_date || '03 de julio de 2026'}</span>
           <span>Código: ${data.codigo_certificado}</span>
         `, 'valid')
       }
