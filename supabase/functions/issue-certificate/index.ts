@@ -55,6 +55,11 @@ const buildValidationUrl = (baseUrl: string, code: string) =>
 const buildDownloadCertificateUrl = (supabaseUrl: string, code: string) =>
   `${supabaseUrl.replace(/\/$/, '')}/functions/v1/download-certificate?code=${encodeURIComponent(code)}`
 
+const buildWebDavUrl = (baseUrl: string, path: string) => {
+  const cleanPath = path.split('/').filter(Boolean).map(encodeURIComponent).join('/')
+  return `${baseUrl.replace(/\/$/, '')}/${cleanPath}`
+}
+
 export const renderCertificatePdf = async (params: {
   fullName: string
   certificateCode: string
@@ -105,8 +110,10 @@ const uploadCertificateToNextcloud = async (path: string, bytes: Uint8Array) => 
   const webdavUrl = requiredEnv('NEXTCLOUD_WEBDAV_URL').replace(/\/$/, '')
   const username = requiredEnv('NEXTCLOUD_USERNAME')
   const appPassword = requiredEnv('NEXTCLOUD_APP_PASSWORD')
-  const targetUrl = `${webdavUrl}/${path}`
   const auth = btoa(`${username}:${appPassword}`)
+  const directoryPath = path.split('/').slice(0, -1).join('/')
+  await ensureNextcloudDirectory(directoryPath)
+  const targetUrl = buildWebDavUrl(webdavUrl, path)
 
   const response = await fetch(targetUrl, {
     method: 'PUT',
@@ -122,6 +129,29 @@ const uploadCertificateToNextcloud = async (path: string, bytes: Uint8Array) => 
   }
 
   return path
+}
+
+const ensureNextcloudDirectory = async (path: string) => {
+  if (!path) return
+
+  const webdavUrl = requiredEnv('NEXTCLOUD_WEBDAV_URL').replace(/\/$/, '')
+  const username = requiredEnv('NEXTCLOUD_USERNAME')
+  const appPassword = requiredEnv('NEXTCLOUD_APP_PASSWORD')
+  const auth = btoa(`${username}:${appPassword}`)
+  const segments = path.split('/').filter(Boolean)
+  let currentPath = ''
+
+  for (const segment of segments) {
+    currentPath = currentPath ? `${currentPath}/${segment}` : segment
+    const response = await fetch(buildWebDavUrl(webdavUrl, currentPath), {
+      method: 'MKCOL',
+      headers: { Authorization: `Basic ${auth}` },
+    })
+
+    if (![201, 405].includes(response.status)) {
+      throw new Error(`Nextcloud directory creation failed (${response.status})`)
+    }
+  }
 }
 
 const renderCertificateEmail = (fullName: string, certificateUrl: string, validationUrl: string) => `<!doctype html>

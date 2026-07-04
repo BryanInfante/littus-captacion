@@ -110,6 +110,8 @@ Assert-Contains $issueFunction "npm:pdf-lib" "La función debe generar PDF sin C
 Assert-Contains $issueFunction "npm:qrcode" "La función debe generar QR con librería edge-compatible."
 Assert-Contains $issueFunction 'renderCertificatePdf' "La función debe tener seam de render PDF."
 Assert-Contains $issueFunction 'uploadCertificateToNextcloud' "La función debe tener seam de upload WebDAV."
+Assert-Contains $issueFunction 'ensureNextcloudDirectory' "La función debe crear carpetas WebDAV antes de subir el PDF."
+Assert-Order $issueFunction 'await ensureNextcloudDirectory(directoryPath)' "method: 'PUT'" "La función debe crear la carpeta Nextcloud antes del PUT del PDF."
 Assert-Contains $issueFunction 'sendCertificateEmail' "La función debe enviar correo solo después del upload."
 Assert-Contains $issueFunction 'Idempotency-Key' "El correo debe usar idempotency key."
 Assert-Contains $issueFunction 'certificate_status' "La función debe actualizar estados de certificado."
