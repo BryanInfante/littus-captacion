@@ -205,7 +205,7 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .course-next { overflow: hidden; padding: clamp(var(--space-3xl), 8vw, var(--space-4xl)) 0; background: radial-gradient(ellipse 65% 55% at 84% 36%, rgba(0,174,239,.18), transparent 72%), linear-gradient(180deg, var(--eccia-bg), var(--eccia-bg-soft)); }
 .course-next__layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); gap: clamp(var(--space-2xl), 6vw, var(--space-4xl)); align-items: center; }
 .course-next__media { position: relative; min-height: 520px; margin: 0; overflow: hidden; border: 1px solid var(--eccia-border-strong); border-radius: var(--eccia-layout-radius); background: var(--eccia-bg-soft); box-shadow: 0 28px 80px rgba(0,0,0,.28); }
-.course-next__media::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(10,14,19,.06) 30%, rgba(10,14,19,.38) 70%, rgba(10,14,19,.82) 100%); }
+.course-next__media::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.08) 0%, rgba(0,0,0,.34) 52%, rgba(0,0,0,.82) 100%); }
 .course-next__media img { display: block; width: 100%; height: 100%; min-height: 520px; object-fit: cover; object-position: center; }
 .course-next__copy > p:not(.section-eyebrow) { color: var(--eccia-text-soft); }
 .course-next__discount { display: grid; gap: var(--space-2xs); margin-top: var(--space-lg); padding: var(--space-md); border: 1px solid rgba(0,174,239,.42); border-radius: var(--eccia-layout-radius); background: var(--eccia-accent-soft); }

@@ -59,7 +59,7 @@ Assert-Contains $html 'Entrenamiento de Ultrasonido Nivel I' "La página debe in
 Assert-Contains $html 'src="src/curso_ut.webp"' "La sección de siguiente paso debe usar la imagen del curso proporcionada."
 Assert-Contains $html 'Descargar brochure' "La sección de siguiente paso debe tener CTA de brochure."
 Assert-Contains $html 'descargas/brochure-ultrasonido-nivel-i.pdf' "El brochure debe apuntar a un archivo descargable."
-Assert-Contains $html 'href="https://wa.me/59399976669"' "La sección debe enlazar a WhatsApp para solicitar más información."
+Assert-Contains $html 'href="https://wa.me/593999766694"' "La sección debe enlazar al WhatsApp correcto para solicitar más información."
 Assert-Contains $html '<footer aria-label="Información de ECCIA">' "La página debe incluir footer."
 Assert-Contains $html 'class="footer-logo"' "El footer debe reutilizar el logo institucional."
 
@@ -83,6 +83,7 @@ Assert-Contains $styles '.resource-card__icon' "Faltan estilos para íconos de r
 Assert-Contains $styles '.course-next' "Faltan estilos para la sección de siguiente paso."
 Assert-Contains $styles '.course-next__discount' "Faltan estilos para destacar el descuento del 5%."
 Assert-Contains $styles '.course-next__media::after' "La imagen profesional debe tener overlay."
+Assert-Contains $styles 'rgba(0,0,0,.82)' "El overlay de la imagen del curso debe terminar en negro degradado."
 Assert-Contains $styles '.course-next__actions' "Faltan estilos para los CTAs del siguiente paso."
 
 Assert-Contains $migration 'create table if not exists public.eccia_masterclass_certificados' "La migración debe crear la tabla."
