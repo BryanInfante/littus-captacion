@@ -195,6 +195,101 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .course-next__media img { display: block; width: 100%; height: 100%; min-height: 520px; object-fit: cover; object-position: center; }
 .course-next__copy > p:not(.section-eyebrow) { color: var(--eccia-text-soft); }
 .course-next__actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-xl); }
+.validation-page {
+  min-height: 100svh;
+  background:
+    radial-gradient(ellipse 70% 55% at 78% 16%, var(--eccia-accent-glow), transparent 68%),
+    linear-gradient(180deg, rgba(255,255,255,.025), transparent 34%),
+    var(--eccia-bg);
+}
+.validation-shell {
+  width: min(calc(100% - 2rem), 760px);
+  min-height: 100svh;
+  margin-inline: auto;
+  padding: clamp(var(--space-2xl), 7vw, var(--space-4xl)) 0;
+  display: grid;
+  align-content: center;
+  gap: var(--space-xl);
+}
+.validation-logo {
+  display: block;
+  block-size: clamp(56px, 8vw, 82px);
+  inline-size: auto;
+}
+.validation-card {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(var(--space-xl), 5vw, var(--space-3xl));
+  border: 1px solid var(--eccia-border);
+  border-radius: var(--eccia-layout-radius);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)),
+    var(--eccia-surface);
+  box-shadow: 0 24px 64px rgba(0,0,0,.24);
+}
+.validation-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -38% 44%;
+  height: 220px;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(201,209,217,.16) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(ellipse at center, #000 0 42%, transparent 72%);
+  opacity: .55;
+}
+.validation-card > * { position: relative; z-index: 1; }
+.validation-card h1 {
+  margin-bottom: var(--space-sm);
+  font-size: clamp(2rem, 6vw, 3.25rem);
+}
+.validation-card > p:not(.section-eyebrow) {
+  max-width: 58ch;
+  color: var(--eccia-text-soft);
+}
+.validation-form { margin-top: var(--space-xl); }
+.validation-form label {
+  color: var(--eccia-text-soft);
+  font-size: .8125rem;
+  font-weight: 700;
+}
+.validation-form__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+}
+.validation-result {
+  display: grid;
+  gap: var(--space-2xs);
+  min-height: 72px;
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid var(--eccia-border);
+  border-radius: var(--eccia-layout-radius);
+  background: rgba(255,255,255,.025);
+  color: var(--eccia-text-soft);
+}
+.validation-result strong {
+  color: var(--eccia-text);
+  font-size: 1.05rem;
+}
+.validation-result span { display: block; }
+.validation-result[data-state="valid"] {
+  border-color: rgba(63,185,80,.55);
+  background: rgba(63,185,80,.08);
+}
+.validation-result[data-state="valid"] strong { color: var(--eccia-success); }
+.validation-result[data-state="invalid"],
+.validation-result[data-state="error"] {
+  border-color: rgba(248,81,73,.55);
+  background: rgba(248,81,73,.08);
+}
+.validation-result[data-state="invalid"] strong,
+.validation-result[data-state="error"] strong { color: var(--eccia-error); }
+.validation-result[data-state="loading"] {
+  border-color: rgba(0,174,239,.45);
+  background: var(--eccia-accent-soft);
+}
 .mobile-cta { display: none; }
 @media (max-width: 900px) {
   .hero-editorial, .split-layout, .faq-layout, .speaker-layout, .footer-grid, .claim-layout, .course-next__layout { grid-template-columns: 1fr; }
@@ -239,6 +334,8 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
   .authority-media, .authority-media img { min-height: 300px; }
   .course-next__media, .course-next__media img { min-height: 320px; }
   .course-next__actions .btn-primary, .course-next__actions .btn-secondary { width: 100%; }
+  .validation-form__row { grid-template-columns: 1fr; }
+  .validation-form__row .btn-primary { width: 100%; }
   .authority-action .btn-primary { width: 100%; }
   .footer-socials ul { grid-template-columns: 1fr; }
   body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }

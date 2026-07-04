@@ -1,9 +1,9 @@
-const form = document.querySelector("#certificado-form");
+﻿const form = document.querySelector("#certificado-form");
 const status = document.querySelector(".form-status");
 
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
-const CERTIFICATE_CLAIMS_ENDPOINT =
-  "https://qfbhyzynpyqqcpuuibod.supabase.co/rest/v1/eccia_masterclass_certificados";
+const ISSUE_CERTIFICATE_ENDPOINT =
+  "https://qfbhyzynpyqqcpuuibod.supabase.co/functions/v1/issue-certificate";
 
 const showStatus = (state, title, message) => {
   status.dataset.state = state;
@@ -27,39 +27,39 @@ form?.addEventListener("submit", async (event) => {
   };
 
   submitButton.disabled = true;
-  submitButton.textContent = "Registrando...";
+  submitButton.textContent = "Generando...";
   form.setAttribute("aria-busy", "true");
   status.hidden = true;
 
   try {
-    const response = await fetch(CERTIFICATE_CLAIMS_ENDPOINT, {
+    const response = await fetch(ISSUE_CERTIFICATE_ENDPOINT, {
       method: "POST",
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
         Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
         "Content-Type": "application/json",
-        Prefer: "return=minimal",
       },
       body: JSON.stringify(claim),
     });
 
+    const result = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `Supabase respondió con estado ${response.status}.`);
+      throw new Error(result.error || result.message || `Supabase respondió con estado ${response.status}.`);
     }
 
     form.reset();
     showStatus(
       "success",
-      "Nombre registrado",
-      "Tu nombre completo fue guardado para la entrega de regalos y certificado.",
+      result.status === "already_issued" ? "Certificado ya generado" : "Certificado solicitado",
+      "Revisa tu correo: enviaremos el enlace de descarga y validación del certificado.",
     );
   } catch (error) {
-    console.error("No se pudo registrar el nombre para certificado.", error);
+    console.error("No se pudo solicitar el certificado.", error);
     showStatus(
       "error",
-      "No pudimos registrar tu nombre",
-      "Revisa tu conexión e intenta nuevamente en unos minutos.",
+      "No pudimos generar tu certificado",
+      error.message || "Revisa tu conexión e intenta nuevamente en unos minutos.",
     );
   } finally {
     form.removeAttribute("aria-busy");

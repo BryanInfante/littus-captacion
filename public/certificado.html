@@ -1,0 +1,354 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Plantilla de certificado ECCIA para Ultrasonido Industrial Nivel I." />
+    <title>Certificado de asistencia | ECCIA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="brand/tokens.css" />
+    <style>
+      @page { size: A4 landscape; margin: 0; }
+
+      * { box-sizing: border-box; }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #d7dee4;
+        color: #0a0e13;
+        font-family: var(--font-body);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .certificate {
+        position: relative;
+        width: 297mm;
+        height: 210mm;
+        overflow: hidden;
+        background: #ffffff;
+        box-shadow: 0 30px 90px rgba(7, 22, 38, 0.24);
+      }
+
+      .top-rule {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 3;
+        width: 100%;
+        height: 3mm;
+        background: linear-gradient(90deg, #0a0e13 0%, var(--eccia-accent) 100%);
+      }
+
+      .corner-shape {
+        position: absolute;
+        right: -34mm;
+        bottom: -28mm;
+        z-index: 0;
+        width: 130mm;
+        height: 130mm;
+      }
+
+      .verification-qr {
+        display: grid;
+        justify-items: center;
+        gap: 1mm;
+        width: 24mm;
+        margin-top: 4mm;
+        margin-left: auto;
+        padding: 1.8mm;
+        border: 1px solid #e7eaed;
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .verification-qr img {
+        display: block;
+        width: 16mm;
+        height: 16mm;
+        object-fit: contain;
+      }
+
+      .verification-qr strong {
+        color: #0a0e13;
+        font-size: 6.8pt;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        line-height: 1.15;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      .verification-qr span {
+        color: #526173;
+        font-size: 6.3pt;
+        font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .certificate__content {
+        position: relative;
+        z-index: 2;
+        height: 100%;
+        padding: 12mm 22mm 14mm;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+
+      .certificate__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .brand-logo {
+        display: block;
+        height: 30mm;
+        width: auto;
+        object-fit: contain;
+        transform: translateY(-12px);
+      }
+
+      .header-tag {
+        color: var(--eccia-muted);
+        font-size: 8pt;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .certificate__main {
+        display: grid;
+        align-content: center;
+        justify-items: start;
+        max-width: 178mm;
+        text-align: left;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 3mm;
+        margin: 0 0 5mm;
+        color: var(--eccia-accent);
+        font-size: 9.5pt;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 8mm;
+        height: 2px;
+        background: #0a0e13;
+      }
+
+      h1 {
+        max-width: 176mm;
+        margin: 0;
+        color: #0a0e13;
+        font-family: var(--font-display);
+        font-size: 32pt;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.06;
+      }
+
+      .awarded-to {
+        margin: 9mm 0 2.5mm;
+        color: var(--eccia-subtle);
+        font-size: 11pt;
+        font-weight: 500;
+      }
+
+      .recipient {
+        margin: 0;
+        color: #0a0e13;
+        font-family: var(--font-display);
+        font-size: 27pt;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.12;
+      }
+
+      .recipient-underline {
+        width: 44mm;
+        height: 3px;
+        margin: 4mm 0 0;
+        background: linear-gradient(90deg, var(--eccia-accent) 0%, #0a0e13 100%);
+      }
+
+      .description {
+        max-width: 154mm;
+        margin: 6.5mm 0 0;
+        color: #526173;
+        font-size: 11.5pt;
+        line-height: 1.6;
+      }
+
+      .details {
+        display: flex;
+        gap: 16mm;
+        margin-top: 8mm;
+      }
+
+      .detail {
+        display: grid;
+        gap: 1mm;
+      }
+
+      .detail span {
+        color: var(--eccia-muted);
+        font-size: 7.6pt;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .detail strong {
+        color: #0a0e13;
+        font-family: var(--font-display);
+        font-size: 13pt;
+        font-weight: 800;
+      }
+
+      .certificate__footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18mm;
+        align-items: end;
+        min-height: 50mm;
+      }
+
+      .signature {
+        display: grid;
+        justify-items: start;
+        gap: 1.2mm;
+        color: #526173;
+        text-align: left;
+      }
+
+      .signature__space {
+        display: block;
+        padding-top: 18mm;
+      }
+
+      .signature__line {
+        width: 72mm;
+        height: 2px;
+        margin-bottom: 4mm;
+        background: #0a0e13;
+      }
+
+      .signature strong {
+        color: #0a0e13;
+        font-family: var(--font-display);
+        font-size: 12.5pt;
+        font-weight: 800;
+        line-height: 1.25;
+      }
+
+      .signature span {
+        color: #526173;
+        font-family: var(--font-detail);
+        font-size: 8.8pt;
+        line-height: 1.3;
+      }
+
+      .signature__role {
+        color: var(--eccia-accent);
+        font-weight: 700;
+      }
+
+      .signature__meta {
+        display: grid;
+        align-content: start;
+        min-height: 11mm;
+      }
+
+      @media print {
+        body { display: block; padding: 0; background: #fff; }
+        .certificate { width: 297mm; height: 210mm; box-shadow: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <article class="certificate" aria-label="Certificado de asistencia ECCIA">
+      <div class="top-rule" aria-hidden="true"></div>
+      <svg class="corner-shape" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="100" cy="100" r="98" fill="none" stroke="#e7eaed" stroke-width="1.4" />
+        <circle cx="100" cy="100" r="72" fill="none" stroke="#e7eaed" stroke-width="1.4" />
+        <path d="M40 118 Q 62 62 100 118 Q 138 174 160 118" fill="none" stroke="#00AEEF" stroke-width="3" stroke-linecap="round" opacity="0.24" />
+      </svg>
+
+      <div class="certificate__content">
+        <header class="certificate__header">
+          <img class="brand-logo" src="brand/assets/03 logo_encabezado_derecha.png" alt="ECCIA, Littus Group America" width="300" height="112" />
+          <div class="certificate__meta">
+            <span class="header-tag">Littus Group America - ECCIA</span>
+            <aside class="verification-qr" aria-label="Validación del certificado">
+              <img src="{{qr_code_data_uri}}" alt="Código QR de validación del certificado" />
+              <strong>Validación del certificado</strong>
+              <span>Escanea para validar</span>
+              <span>Código: {{codigo_certificado}}</span>
+            </aside>
+          </div>
+        </header>
+
+        <main class="certificate__main">
+          <p class="eyebrow">Certificado de asistencia</p>
+          <h1>Curso de Ultrasonido Industrial Nivel I</h1>
+          <p class="awarded-to">otorgado a</p>
+          <p class="recipient">{{nombre_completo}}</p>
+          <div class="recipient-underline" aria-hidden="true"></div>
+          <p class="description">
+            Por su participación en el curso de Ultrasonido Industrial Nivel I, con enfoque en los fundamentos del ultrasonido y la interpretación del Scan-A.
+          </p>
+          <div class="details" aria-label="Duración y fecha">
+            <div class="detail">
+              <span>Duración</span>
+              <strong>2h</strong>
+            </div>
+            <div class="detail">
+              <span>Fecha</span>
+              <strong>03 de julio de 2026</strong>
+            </div>
+          </div>
+        </main>
+
+        <footer class="certificate__footer">
+          <div class="signature">
+            <span class="signature__space" aria-hidden="true">
+              <span class="signature__line"></span>
+            </span>
+            <strong>Ing. Edison Mena</strong>
+            <span class="signature__meta">
+              <span class="signature__role">Gerente Técnico Ecuador</span>
+            </span>
+          </div>
+          <div class="signature">
+            <span class="signature__space" aria-hidden="true">
+              <span class="signature__line"></span>
+            </span>
+            <strong>Ing. Marco Aucancela</strong>
+            <span class="signature__meta">
+              <span class="signature__role">Gerente Regional</span>
+            </span>
+          </div>
+        </footer>
+      </div>
+    </article>
+  </body>
+</html>

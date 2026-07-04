@@ -39,8 +39,8 @@ export const renderConfirmationEmail = (fullName: string) => {
             <p style="margin:0 0 20px">Hola ${firstName},</p>
             <p style="margin:0 0 20px">Registramos correctamente tu participación en <strong>Domina la lectura del Scan A</strong>.</p>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;border:1px solid #D9DEE3;border-radius:8px"><tr><td style="padding:20px 22px">
-              <p style="margin:0 0 8px"><strong>Fecha:</strong> 02 de julio</p>
-              <p style="margin:0 0 8px"><strong>Horario:</strong> 18h00 a 20h00</p>
+                          <p style="margin:0 0 8px"><strong>Fecha:</strong> 03 de julio</p>
+                          <p style="margin:0 0 8px"><strong>Horario:</strong> 15h00 a 17h00</p>
               <p style="margin:0 0 8px"><strong>Modalidad:</strong> Online y en directo</p>
               <p style="margin:0"><strong>Incluye:</strong> Certificado de participación</p>
             </td></tr></table>

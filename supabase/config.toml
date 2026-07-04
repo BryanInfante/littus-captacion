@@ -1,0 +1,8 @@
+﻿[functions.issue-certificate]
+verify_jwt = false
+
+[functions.validate-certificate]
+verify_jwt = false
+
+[functions.download-certificate]
+verify_jwt = false

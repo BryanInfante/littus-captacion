@@ -1,0 +1,88 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Validar certificado ECCIA por código de verificación." />
+    <title>Validar certificado | ECCIA</title>
+    <link rel="icon" href="brand/assets/logo.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="brand/tokens.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="validation-page">
+    <main class="validation-shell" aria-labelledby="validation-title">
+      <img class="validation-logo" src="brand/assets/logo-dark2.png" alt="ECCIA, Littus Group America" width="300" height="112" />
+      <section class="validation-card" id="validar-certificado">
+        <p class="section-eyebrow">Validación de certificado</p>
+        <h1 id="validation-title">Validar certificado ECCIA</h1>
+        <p>Consulta el código del QR para confirmar si el certificado fue emitido por ECCIA.</p>
+
+        <form class="validation-form" id="validation-form">
+          <label for="code">Código de certificado</label>
+          <div class="validation-form__row">
+            <input class="input" id="code" name="code" type="text" autocomplete="off" placeholder="ECCIA-UT1-XXXXXXXX" required />
+            <button class="btn-primary" type="submit">Validar</button>
+          </div>
+        </form>
+
+        <div class="validation-result" id="validation-result" role="status" tabindex="-1">
+          Ingresa un código o escanea el QR del certificado.
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.querySelector('#validation-form')
+      const input = document.querySelector('#code')
+      const result = document.querySelector('#validation-result')
+
+      const params = new URLSearchParams(window.location.search)
+      const initialCode = params.get('code')
+      if (initialCode) input.value = initialCode
+
+      const renderResult = (message, state = 'idle') => {
+        result.dataset.state = state
+        result.innerHTML = message
+        result.focus()
+      }
+
+      const validateCode = async (code) => {
+        renderResult('Validando certificado...', 'loading')
+        const response = await fetch(`https://qfbhyzynpyqqcpuuibod.supabase.co/functions/v1/validate-certificate?code=${encodeURIComponent(code)}`)
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data.error || 'No se pudo validar el certificado.')
+        }
+
+        if (!data.valid) {
+          renderResult('<strong>Certificado no encontrado</strong><span>Verifica el código o solicita ayuda a ECCIA.</span>', 'invalid')
+          return
+        }
+
+        renderResult(`
+          <strong>Certificado válido</strong>
+          <span>${data.nombre_completo}</span>
+          <span>Curso de Ultrasonido Industrial Nivel I</span>
+          <span>Código: ${data.codigo_certificado}</span>
+        `, 'valid')
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const code = input.value.trim().toUpperCase()
+        if (!code) return
+        try {
+          await validateCode(code)
+        } catch (error) {
+          renderResult(`<strong>No pudimos validar</strong><span>${error.message}</span>`, 'error')
+        }
+      })
+
+      if (initialCode) form.requestSubmit()
+    </script>
+  </body>
+</html>
