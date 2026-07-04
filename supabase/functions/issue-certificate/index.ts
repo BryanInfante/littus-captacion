@@ -87,6 +87,65 @@ const centerTextUnderQr = (page: ReturnType<PDFDocument['addPage']>, text: strin
   })
 }
 
+const MM_TO_PT = 72 / 25.4
+const htmlMm = (value: number) => value * MM_TO_PT
+
+const drawTextAt = (page: ReturnType<PDFDocument['addPage']>, text: string, params: {
+  x: number
+  y: number
+  size: number
+  font: Awaited<ReturnType<PDFDocument['embedFont']>>
+  color: ReturnType<typeof rgb>
+  characterSpacing?: number
+}) => {
+  page.drawText(text, {
+    x: params.x,
+    y: params.y,
+    size: params.size,
+    font: params.font,
+    color: params.color,
+    characterSpacing: params.characterSpacing,
+  })
+}
+
+const drawWrappedText = (page: ReturnType<PDFDocument['addPage']>, text: string, params: {
+  x: number
+  y: number
+  maxWidth: number
+  size: number
+  lineHeight: number
+  font: Awaited<ReturnType<PDFDocument['embedFont']>>
+  color: ReturnType<typeof rgb>
+}) => {
+  const words = text.split(/\s+/)
+  const lines: string[] = []
+  let line = ''
+
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word
+    if (params.font.widthOfTextAtSize(next, params.size) <= params.maxWidth) {
+      line = next
+    } else {
+      if (line) lines.push(line)
+      line = word
+    }
+  }
+
+  if (line) lines.push(line)
+
+  lines.forEach((lineText, index) => {
+    page.drawText(lineText, {
+      x: params.x,
+      y: params.y - index * params.lineHeight,
+      size: params.size,
+      font: params.font,
+      color: params.color,
+    })
+  })
+
+  return lines.length
+}
+
 export const renderCertificatePdf = async (params: {
   fullName: string
   certificateCode: string
@@ -101,43 +160,125 @@ export const renderCertificatePdf = async (params: {
   const cyan = rgb(0, 174 / 255, 239 / 255)
   const black = rgb(0.04, 0.06, 0.08)
   const muted = rgb(0.32, 0.38, 0.45)
+  const lightBorder = rgb(0.91, 0.93, 0.94)
+  const white = rgb(1, 1, 1)
+
+  const layout = {
+    pageWidth: 842,
+    pageHeight: 595,
+    topRuleHeight: htmlMm(3),
+    contentX: htmlMm(22),
+    contentTop: htmlMm(12),
+    contentBottom: htmlMm(14),
+    logoHeight: htmlMm(30),
+    logoShiftY: 12,
+    qrCardSize: htmlMm(24),
+    qrCardPadding: htmlMm(1.8),
+    qrImageSize: htmlMm(16),
+    mainTop: 196,
+    signatureSpaceHeight: htmlMm(18),
+    signatureLineWidth: htmlMm(72),
+    cornerSize: htmlMm(130),
+  }
 
   const logo = await pdf.embedPng(params.logoBytes)
-  page.drawRectangle({ x: 0, y: 585, width: 842, height: 10, color: cyan })
-  page.drawImage(logo, { x: 60, y: 444, width: 214, height: 80 })
-  page.drawText('LITTUS GROUP AMERICA - ECCIA', { x: 560, y: 510, size: 9, font: bold, color: black })
-  page.drawText('CERTIFICADO DE ASISTENCIA', { x: 64, y: 405, size: 10, font: bold, color: cyan, characterSpacing: 2 })
-  page.drawLine({ start: { x: 64, y: 392 }, end: { x: 100, y: 392 }, thickness: 2, color: black })
-  page.drawText('Seminario de Ultrasonido', { x: 64, y: 350, size: 31, font: bold, color: black })
-  page.drawText('Industrial Nivel I', { x: 64, y: 314, size: 31, font: bold, color: black })
-  page.drawText('otorgado a', { x: 64, y: 270, size: 11, font, color: muted })
-  page.drawText(params.fullName, { x: 64, y: 235, size: 28, font: bold, color: black })
-  page.drawLine({ start: { x: 64, y: 219 }, end: { x: 220, y: 219 }, thickness: 3, color: cyan })
-  page.drawText('Por su participación en el seminario de Ultrasonido Industrial Nivel I, con enfoque en', { x: 64, y: 182, size: 12, font, color: muted })
-  page.drawText('los fundamentos del ultrasonido y la interpretación del Scan-A.', { x: 64, y: 164, size: 12, font, color: muted })
-  page.drawText('DURACIÓN', { x: 64, y: 120, size: 8, font: bold, color: muted })
-  page.drawText('2h', { x: 64, y: 102, size: 13, font: bold, color: black })
-  page.drawText('FECHA', { x: 160, y: 120, size: 8, font: bold, color: muted })
-  page.drawText('03 de julio de 2026', { x: 160, y: 102, size: 13, font: bold, color: black })
+  const logoWidth = layout.logoHeight * (logo.width / logo.height)
 
-  page.drawLine({ start: { x: 64, y: 52 }, end: { x: 260, y: 52 }, thickness: 1.5, color: black })
-  page.drawText('Ing. Edison Mena', { x: 64, y: 29, size: 12, font: bold, color: black })
-  page.drawText('Gerente Técnico Ecuador', { x: 64, y: 15, size: 8, font, color: muted })
+  page.drawRectangle({ x: 0, y: 0, width: layout.pageWidth, height: layout.pageHeight, color: white })
+  page.drawRectangle({ x: 0, y: layout.pageHeight - layout.topRuleHeight, width: layout.pageWidth, height: layout.topRuleHeight, color: black })
+  page.drawRectangle({ x: layout.pageWidth * 0.5, y: layout.pageHeight - layout.topRuleHeight, width: layout.pageWidth * 0.5, height: layout.topRuleHeight, color: cyan, opacity: 0.9 })
 
-  page.drawLine({ start: { x: 410, y: 52 }, end: { x: 606, y: 52 }, thickness: 1.5, color: black })
-  page.drawText('Ing. Marco Aucancela', { x: 410, y: 29, size: 12, font: bold, color: black })
-  page.drawText('Gerente Regional', { x: 410, y: 15, size: 8, font, color: muted })
+  const cornerCenterX = layout.pageWidth - htmlMm(34) + layout.cornerSize / 2
+  const cornerCenterY = -htmlMm(28) + layout.cornerSize / 2
+  page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: layout.cornerSize * 0.49, yScale: layout.cornerSize * 0.49, borderColor: lightBorder, borderWidth: 1.4 })
+  page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: layout.cornerSize * 0.36, yScale: layout.cornerSize * 0.36, borderColor: lightBorder, borderWidth: 1.4 })
+  page.drawSvgPath('M 40 118 Q 62 62 100 118 Q 138 174 160 118', {
+    x: layout.pageWidth - htmlMm(34) + 10,
+    y: 16,
+    scale: layout.cornerSize / 200,
+    borderColor: rgb(0.70, 0.91, 0.98),
+    borderWidth: 3,
+  })
+
+  page.drawImage(logo, {
+    x: layout.contentX,
+    y: layout.pageHeight - layout.contentTop - layout.logoHeight + layout.logoShiftY,
+    width: logoWidth,
+    height: layout.logoHeight,
+  })
 
   const qrBase64 = params.qrCodeDataUri.split(',')[1]
   const qrBytes = Uint8Array.from(atob(qrBase64), (char) => char.charCodeAt(0))
   const qr = await pdf.embedPng(qrBytes)
-  const qrX = 664
-  const qrY = 358
-  const qrSize = 104
-  const qrCenterX = qrX + qrSize / 2
-  page.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize })
-  centerTextUnderQr(page, 'Validación del certificado', { centerX: qrCenterX, y: 338, size: 8, font: bold, color: black })
-  centerTextUnderQr(page, params.certificateCode, { centerX: qrCenterX, y: 324, size: 7, font, color: muted })
+  const qrCardX = layout.pageWidth - layout.contentX - layout.qrCardSize
+  const qrCardY = layout.pageHeight - layout.contentTop - htmlMm(4) - layout.qrCardSize
+  const qrX = qrCardX + (layout.qrCardSize - layout.qrImageSize) / 2
+  const qrY = qrCardY + layout.qrCardSize - layout.qrCardPadding - layout.qrImageSize
+  const qrCenterX = qrCardX + layout.qrCardSize / 2
+
+  drawTextAt(page, 'LITTUS GROUP AMERICA - ECCIA', {
+    x: qrCardX - htmlMm(35),
+    y: layout.pageHeight - layout.contentTop - 5,
+    size: 8,
+    font: bold,
+    color: muted,
+    characterSpacing: 1.25,
+  })
+
+  page.drawRectangle({
+    x: qrCardX,
+    y: qrCardY,
+    width: layout.qrCardSize,
+    height: layout.qrCardSize,
+    color: white,
+    opacity: 0.92,
+    borderColor: lightBorder,
+    borderWidth: 1,
+  })
+  page.drawImage(qr, { x: qrX, y: qrY, width: layout.qrImageSize, height: layout.qrImageSize })
+  centerTextUnderQr(page, 'VALIDACIÓN DEL', { centerX: qrCenterX, y: qrY - 10, size: 5.7, font: bold, color: black })
+  centerTextUnderQr(page, 'CERTIFICADO', { centerX: qrCenterX, y: qrY - 17, size: 5.7, font: bold, color: black })
+  centerTextUnderQr(page, 'Escanea para validar', { centerX: qrCenterX, y: qrY - 25, size: 5.4, font, color: muted })
+  centerTextUnderQr(page, `Código: ${params.certificateCode}`, { centerX: qrCenterX, y: qrY - 33, size: 5.1, font, color: muted })
+
+  const mainX = layout.contentX
+  const eyebrowY = layout.pageHeight - layout.mainTop
+  page.drawLine({ start: { x: mainX, y: eyebrowY + 5 }, end: { x: mainX + htmlMm(8), y: eyebrowY + 5 }, thickness: 2, color: black })
+  drawTextAt(page, 'CERTIFICADO DE ASISTENCIA', { x: mainX + htmlMm(11), y: eyebrowY, size: 9.5, font: bold, color: cyan, characterSpacing: 2 })
+
+  drawTextAt(page, 'Seminario de Ultrasonido', { x: mainX, y: eyebrowY - 49, size: 32, font: bold, color: black })
+  drawTextAt(page, 'Industrial Nivel I', { x: mainX, y: eyebrowY - 86, size: 32, font: bold, color: black })
+  drawTextAt(page, 'otorgado a', { x: mainX, y: eyebrowY - 127, size: 11, font, color: muted })
+
+  const nameSize = params.fullName.length > 34 ? 22 : params.fullName.length > 26 ? 25 : 27
+  drawTextAt(page, params.fullName, { x: mainX, y: eyebrowY - 163, size: nameSize, font: bold, color: black })
+  page.drawRectangle({ x: mainX, y: eyebrowY - 176, width: htmlMm(44), height: 3, color: cyan })
+  page.drawRectangle({ x: mainX + htmlMm(28), y: eyebrowY - 176, width: htmlMm(16), height: 3, color: black, opacity: 0.85 })
+
+  drawWrappedText(
+    page,
+    'Por su participación en el seminario de Ultrasonido Industrial Nivel I, con enfoque en los fundamentos del ultrasonido y la interpretación del Scan-A.',
+    { x: mainX, y: eyebrowY - 212, maxWidth: htmlMm(154), size: 11.5, lineHeight: 18, font, color: muted },
+  )
+
+  const detailY = eyebrowY - 279
+  drawTextAt(page, 'DURACIÓN', { x: mainX, y: detailY, size: 7.6, font: bold, color: muted, characterSpacing: 1.2 })
+  drawTextAt(page, '2h', { x: mainX, y: detailY - 20, size: 13, font: bold, color: black })
+  drawTextAt(page, 'FECHA', { x: mainX + htmlMm(32), y: detailY, size: 7.6, font: bold, color: muted, characterSpacing: 1.2 })
+  drawTextAt(page, '03 de julio de 2026', { x: mainX + htmlMm(32), y: detailY - 20, size: 13, font: bold, color: black })
+
+  const footerY = layout.contentBottom
+  const signatureLineY = footerY + 62
+  const signatureLeftX = layout.contentX
+  const signatureRightX = layout.contentX + htmlMm(90)
+  const drawSignature = (x: number, name: string, role: string) => {
+    page.drawLine({ start: { x, y: signatureLineY + layout.signatureSpaceHeight - layout.signatureSpaceHeight }, end: { x: x + layout.signatureLineWidth, y: signatureLineY }, thickness: 1.5, color: black })
+    drawTextAt(page, name, { x, y: signatureLineY - 26, size: 12.5, font: bold, color: black })
+    drawTextAt(page, role, { x, y: signatureLineY - 43, size: 8.8, font: bold, color: cyan })
+  }
+
+  drawSignature(signatureLeftX, 'Ing. Edison Mena', 'Gerente Técnico Ecuador')
+  drawSignature(signatureRightX, 'Ing. Marco Aucancela', 'Gerente Regional')
 
   return pdf.save()
 }
