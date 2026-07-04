@@ -280,11 +280,46 @@
 
       @media print {
         body { display: block; padding: 0; background: #fff; }
+        .print-actions { display: none !important; }
         .certificate { width: 297mm; height: 210mm; box-shadow: none; }
+      }
+
+      .print-actions {
+        position: fixed;
+        z-index: 10;
+        right: 24px;
+        bottom: 24px;
+        display: flex;
+        gap: 10px;
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      .print-actions button,
+      .print-actions a {
+        min-height: 42px;
+        padding: 0 16px;
+        border: 1px solid #1E2329;
+        border-radius: 8px;
+        background: #0A0E13;
+        color: #F0F6FC;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .print-actions button {
+        border-color: #00AEEF;
+        background: #00AEEF;
+        color: #061018;
       }
     </style>
   </head>
   <body>
+    <nav class="print-actions" aria-label="Acciones del certificado">
+      <button type="button" id="print-certificate">Imprimir / guardar PDF</button>
+      <a href="validar-certificado.html" id="validate-link">Validar</a>
+    </nav>
+
     <article class="certificate" aria-label="Certificado de asistencia ECCIA">
       <div class="top-rule" aria-hidden="true"></div>
       <svg class="corner-shape" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -299,10 +334,10 @@
           <div class="certificate__meta">
             <span class="header-tag">Littus Group America - ECCIA</span>
             <aside class="verification-qr" aria-label="Validación del certificado">
-              <img src="{{qr_code_data_uri}}" alt="Código QR de validación del certificado" />
+              <img id="qr-code" src="{{qr_code_data_uri}}" alt="Código QR de validación del certificado" />
               <strong>Validación del certificado</strong>
               <span>Escanea para validar</span>
-              <span>Código: {{codigo_certificado}}</span>
+              <span>Código: <span id="certificate-code">{{codigo_certificado}}</span></span>
             </aside>
           </div>
         </header>
@@ -311,7 +346,7 @@
           <p class="eyebrow">Certificado de asistencia</p>
           <h1>Seminario de Ultrasonido Industrial Nivel I</h1>
           <p class="awarded-to">otorgado a</p>
-          <p class="recipient">{{nombre_completo}}</p>
+          <p class="recipient" id="recipient-name">{{nombre_completo}}</p>
           <div class="recipient-underline" aria-hidden="true"></div>
           <p class="description">
             Por su participación en el seminario de Ultrasonido Industrial Nivel I, con enfoque en los fundamentos del ultrasonido y la interpretación del Scan-A.
@@ -350,5 +385,35 @@
         </footer>
       </div>
     </article>
+    <script>
+      const code = new URLSearchParams(window.location.search).get('code')?.trim().toUpperCase()
+      const recipient = document.querySelector('#recipient-name')
+      const certificateCode = document.querySelector('#certificate-code')
+      const qrCode = document.querySelector('#qr-code')
+      const validateLink = document.querySelector('#validate-link')
+      const printButton = document.querySelector('#print-certificate')
+
+      const setText = (node, value) => {
+        if (node && value) node.textContent = value
+      }
+
+      const loadCertificate = async () => {
+        if (!code) return
+
+        const validationUrl = `${window.location.origin}/validar-certificado.html?code=${encodeURIComponent(code)}`
+        validateLink.href = validationUrl
+        qrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(validationUrl)}`
+
+        const response = await fetch(`https://qfbhyzynpyqqcpuuibod.supabase.co/functions/v1/validate-certificate?code=${encodeURIComponent(code)}`)
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok || !data.valid) return
+        setText(recipient, data.nombre_completo)
+        setText(certificateCode, data.codigo_certificado)
+      }
+
+      printButton.addEventListener('click', () => window.print())
+      loadCertificate()
+    </script>
   </body>
 </html>
