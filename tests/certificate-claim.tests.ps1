@@ -83,7 +83,9 @@ Assert-Contains $styles '.resource-card__icon' "Faltan estilos para íconos de r
 Assert-Contains $styles '.course-next' "Faltan estilos para la sección de siguiente paso."
 Assert-Contains $styles '.course-next__discount' "Faltan estilos para destacar el descuento del 5%."
 Assert-Contains $styles '.course-next__media::after' "La imagen profesional debe tener overlay."
-Assert-Contains $styles 'rgba(0,0,0,.82)' "El overlay de la imagen del curso debe terminar en negro degradado."
+Assert-Contains $styles 'course-next__media::after { content: ""; position: absolute; z-index: 1;' "El overlay de la imagen del curso debe quedar encima de la imagen."
+Assert-Contains $styles '.course-next__media img { position: relative; z-index: 0;' "La imagen del curso debe quedar debajo del overlay."
+Assert-Contains $styles 'rgba(0,0,0,.88)' "El overlay de la imagen del curso debe terminar en negro degradado visible."
 Assert-Contains $styles '.course-next__actions' "Faltan estilos para los CTAs del siguiente paso."
 
 Assert-Contains $migration 'create table if not exists public.eccia_masterclass_certificados' "La migración debe crear la tabla."
