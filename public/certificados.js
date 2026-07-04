@@ -1,5 +1,6 @@
 ﻿const form = document.querySelector("#certificado-form");
 const status = document.querySelector(".form-status");
+const spotlights = document.querySelectorAll("[data-spotlight]");
 
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
 const ISSUE_CERTIFICATE_ENDPOINT =
@@ -67,3 +68,15 @@ form?.addEventListener("submit", async (event) => {
     submitButton.innerHTML = originalButtonContent;
   }
 });
+
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+if (!reduceMotion.matches) {
+  spotlights.forEach((spotlight) => {
+    spotlight.addEventListener("pointermove", (event) => {
+      const rect = spotlight.getBoundingClientRect();
+      spotlight.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+      spotlight.style.setProperty("--my", `${event.clientY - rect.top}px`);
+    });
+  });
+}

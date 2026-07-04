@@ -35,20 +35,21 @@
     </header>
 
     <main id="contenido-principal" class="claim-main" tabindex="-1">
-      <section class="container claim-layout" aria-labelledby="claim-title">
+      <section class="claim-hero spotlight" data-spotlight aria-labelledby="claim-title">
+        <div class="container claim-layout">
         <div class="claim-copy">
           <p class="section-eyebrow">Entrega de regalos y certificados</p>
-          <h1 id="claim-title">Confirma tu nombre completo</h1>
+          <h1 id="claim-title">Certificado de asistencia</h1>
           <p>
-            Usaremos este dato para registrar la entrega de recursos y preparar
-            tu certificado de participación en la
+            Completa tus datos para emitir tu certificado de asistencia y
+            acceder a los recursos preparados para la
             <strong>Masterclass Ultrasonido Industrial - Interpretación del Scan-A</strong>.
           </p>
 
           <div class="claim-summary" aria-label="Datos de la masterclass">
-            <p><strong>Evento:</strong> Masterclass en vivo</p>
+            <p><strong>Evento:</strong> Masterclass finalizada</p>
             <p><strong>Datos solicitados:</strong> nombre completo y correo de inscripción</p>
-            <p><strong>Uso:</strong> regalos y certificado</p>
+            <p><strong>Entrega:</strong> certificado de asistencia y materiales de apoyo</p>
           </div>
         </div>
 
@@ -105,7 +106,7 @@
             </div>
 
             <button class="btn-primary submit-button" type="submit">
-              Registrar mi nombre
+              Obtener mi certificado
             </button>
 
             <p class="form-note" id="certificate-note">
@@ -122,6 +123,7 @@
             hidden
           ></div>
         </aside>
+        </div>
       </section>
 
       <section class="section section-alt" id="recursos" aria-labelledby="resources-title">
@@ -137,6 +139,9 @@
 
           <div class="resource-grid" aria-label="Recursos descargables">
             <article class="resource-card">
+              <span class="resource-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 13h6M10 17h4" /></svg>
+              </span>
               <span class="resource-card__index">01</span>
               <h3>Glosario de términos</h3>
               <p>
@@ -149,6 +154,9 @@
             </article>
 
             <article class="resource-card">
+              <span class="resource-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5Z" /><path d="M8 7h6M8 11h7M8 15h5" /></svg>
+              </span>
               <span class="resource-card__index">02</span>
               <h3>Guía de interpretación del Scan A</h3>
               <p>
@@ -167,10 +175,10 @@
         <div class="container course-next__layout">
           <figure class="course-next__media">
             <img
-              src="src/portada.webp"
-              alt="Participantes de una formación técnica de Littus Group America con sus certificados"
-              width="1452"
-              height="1086"
+              src="src/curso_ut.webp"
+              alt="Entrenamiento de Ultrasonido Industrial Nivel I de ECCIA"
+              width="1200"
+              height="900"
               loading="lazy"
             />
           </figure>
@@ -183,6 +191,10 @@
               siguiente paso es entrenar con una ruta formal para fortalecer tu
               criterio técnico y avanzar hacia una aplicación profesional.
             </p>
+            <div class="course-next__discount" aria-label="Beneficio para asistentes">
+              <strong>5% de descuento</strong>
+              <span>Beneficio exclusivo para quienes estuvieron en la masterclass.</span>
+            </div>
             <div class="course-next__actions">
               <a class="btn-primary" href="descargas/brochure-ultrasonido-nivel-i.pdf" download>
                 Descargar brochure
