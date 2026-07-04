@@ -66,3 +66,57 @@ export const renderConfirmationEmail = (fullName: string) => {
   </body>
 </html>`
 }
+
+const WORKSHOP_STREAM_URL = 'https://youtube.com/live/yW3OQFl76kg?feature=share'
+const REMINDER_EVENT_NAME = 'Masterclass Ultrasonido Industrial - Interpretación del Scan-A'
+
+export const renderWorkshopReminderEmail = (fullName: string) => {
+  const firstName = escapeHtml(fullName.trim().split(/\s+/)[0] || 'profesional')
+
+  return `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>Tu masterclass inicia en 30 minutos</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f3f5f7;color:#111318;font-family:Arial,Helvetica,sans-serif">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Ten listo tu acceso: la masterclass de ECCIA inicia en 30 minutos.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f3f5f7">
+      <tr><td align="center" style="padding:32px 16px">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;overflow:hidden;border:1px solid #d9dee3;border-radius:8px;background:#fff">
+          <tr><td style="padding:24px 32px;background:#0A0E13">
+            <img src="https://preinscripcion.littusgroup.com/brand/assets/logo-dark.png" width="190" alt="ECCIA, división de Littus Group America" style="display:block;width:190px;max-width:100%;height:auto;border:0" />
+          </td></tr>
+          <tr><td style="padding:40px 32px 16px">
+            <p style="margin:0 0 12px;color:#00AEEF;font-size:12px;font-weight:700;line-height:1.4;letter-spacing:1.5px;text-transform:uppercase">Recordatorio operativo</p>
+            <h1 style="margin:0;color:#111318;font-size:30px;font-weight:700;line-height:1.2;letter-spacing:-.6px">Tu masterclass inicia en 30 minutos</h1>
+          </td></tr>
+          <tr><td style="padding:16px 32px 40px;color:#2D333B;font-size:16px;line-height:1.7">
+            <p style="margin:0 0 20px">Hola ${firstName},</p>
+            <p style="margin:0 0 20px">Te recordamos que <strong>${REMINDER_EVENT_NAME}</strong> inicia en 30 minutos.</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;border:1px solid #D9DEE3;border-radius:8px"><tr><td style="padding:20px 22px">
+              <p style="margin:0 0 8px"><strong>Horario:</strong> 15h00 a 17h00</p>
+              <p style="margin:0"><strong>Modalidad:</strong> Online y en directo por YouTube</p>
+            </td></tr></table>
+            <p style="margin:0 0 16px">Ingresa desde el siguiente botón:</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px">
+              <tr><td>
+                <a href="${WORKSHOP_STREAM_URL}" target="_blank" rel="noopener noreferrer" style="display:block;padding:14px 20px;border-radius:8px;background:#00AEEF;color:#061018;font-weight:700;line-height:1.4;text-align:center;text-decoration:none">Ingresar a la transmisión</a>
+              </td></tr>
+            </table>
+            <p style="margin:0 0 20px">Te recomendamos conectarte unos minutos antes para verificar tu audio y conexión.</p>
+            <p style="margin:0">Si necesitas ayuda con tu acceso, responde directamente a este correo.</p>
+          </td></tr>
+          <tr><td style="padding:28px 32px;border-top:1px solid #1E2329;background:#0A0E13">
+            <p style="margin:0 0 8px;color:#F0F6FC;font-size:13px;font-weight:700;line-height:1.5">ECCIA · Littus Group America</p>
+            <p style="margin:0;color:#C9D1D9;font-size:12px;line-height:1.6">Este es un mensaje operativo relacionado con tu inscripción a la masterclass.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`
+}

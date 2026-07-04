@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Registro operativo para entrega de regalos y certificados de la Masterclass Ultrasonido Industrial - Interpretación del Scan-A."
+    />
+    <title>Entrega de regalos y certificados | ECCIA</title>
+    <link rel="icon" href="brand/assets/logo.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Lato:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="brand/tokens.css" />
+    <link rel="stylesheet" href="brand/components.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="claim-page">
+    <a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
+
+    <header class="claim-header" aria-label="ECCIA">
+      <div class="container claim-header__inner">
+        <img
+          class="brand-logo"
+          src="brand/assets/logo-dark.png"
+          alt="ECCIA, división de Littus Group America"
+          width="300"
+          height="120"
+        />
+      </div>
+    </header>
+
+    <main id="contenido-principal" class="claim-main" tabindex="-1">
+      <section class="container claim-layout" aria-labelledby="claim-title">
+        <div class="claim-copy">
+          <p class="section-eyebrow">Entrega de regalos y certificados</p>
+          <h1 id="claim-title">Confirma tu nombre completo</h1>
+          <p>
+            Usaremos este dato para registrar la entrega de recursos y preparar
+            tu certificado de participación en la
+            <strong>Masterclass Ultrasonido Industrial - Interpretación del Scan-A</strong>.
+          </p>
+
+          <div class="claim-summary" aria-label="Datos de la masterclass">
+            <p><strong>Evento:</strong> Masterclass en vivo</p>
+            <p><strong>Datos solicitados:</strong> nombre completo y correo de inscripción</p>
+            <p><strong>Uso:</strong> regalos y certificado</p>
+          </div>
+        </div>
+
+        <aside class="claim-card" aria-labelledby="certificate-form-title">
+          <p class="form-kicker">Registro operativo</p>
+          <h2 id="certificate-form-title">Nombre para certificado</h2>
+          <p>
+            Escríbelo como debe aparecer en tu certificado y usa el mismo correo
+            con el que te inscribiste a la masterclass.
+          </p>
+
+          <form id="certificado-form" aria-describedby="certificate-note" novalidate>
+            <div class="field">
+              <label for="nombre_completo">
+                Nombre completo
+                <span class="required-mark" aria-hidden="true">*</span>
+              </label>
+              <input
+                class="input"
+                id="nombre_completo"
+                name="nombre_completo"
+                type="text"
+                autocomplete="name"
+                minlength="5"
+                maxlength="160"
+                required
+                placeholder="Ej. María Fernanda López"
+                aria-describedby="nombre-completo-help"
+              />
+              <p class="field-help" id="nombre-completo-help">
+                Usa tus nombres y apellidos completos, sin abreviaturas.
+              </p>
+            </div>
+
+            <div class="field">
+              <label for="correo">
+                Correo de inscripción
+                <span class="required-mark" aria-hidden="true">*</span>
+              </label>
+              <input
+                class="input"
+                id="correo"
+                name="correo"
+                type="email"
+                autocomplete="email"
+                maxlength="254"
+                required
+                placeholder="correo@ejemplo.com"
+                aria-describedby="correo-help"
+              />
+              <p class="field-help" id="correo-help">
+                Debe ser el mismo correo con el que te inscribiste a la masterclass.
+              </p>
+            </div>
+
+            <button class="btn-primary submit-button" type="submit">
+              Registrar mi nombre
+            </button>
+
+            <p class="form-note" id="certificate-note">
+              Este formulario recoge tu nombre completo y correo de inscripción
+              para gestión operativa de regalos y certificado.
+            </p>
+          </form>
+
+          <div
+            class="form-status"
+            role="status"
+            aria-live="polite"
+            tabindex="-1"
+            hidden
+          ></div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="certificados.js" defer></script>
+  </body>
+</html>

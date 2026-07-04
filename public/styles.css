@@ -169,14 +169,29 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .registration-modal__actions a { width: 100%; min-height: 48px; text-align: center; }
 .registration-modal[open] { animation: modal-enter 180ms ease-out; }
 @keyframes modal-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.claim-page { min-height: 100svh; background: radial-gradient(ellipse 70% 55% at 12% 24%, var(--eccia-accent-glow), transparent 68%), var(--eccia-bg); }
+.claim-header { border-bottom: 1px solid var(--eccia-border); background: rgba(10,14,19,.9); }
+.claim-header__inner { min-height: 88px; display: flex; align-items: center; }
+.claim-header .brand-logo { block-size: 68px; inline-size: auto; }
+.claim-main { padding: clamp(112px, 14vw, 160px) 0 var(--space-4xl); }
+.claim-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: clamp(var(--space-2xl), 7vw, var(--space-4xl)); align-items: center; }
+.claim-copy { max-width: 740px; }
+.claim-copy > p:not(.section-eyebrow) { color: var(--eccia-text-soft); font-size: clamp(1.05rem, 2vw, 1.2rem); }
+.claim-summary { display: grid; gap: var(--space-xs); max-width: 520px; margin-top: var(--space-xl); padding: var(--space-lg); border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: rgba(255,255,255,.025); }
+.claim-summary p { margin: 0; color: var(--eccia-text-soft); font-size: .9rem; }
+.claim-summary strong { color: var(--eccia-text); }
+.claim-card { padding: var(--space-xl); border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: var(--eccia-surface); box-shadow: 0 24px 64px rgba(0,0,0,.2); }
+.claim-card h2 { margin-bottom: var(--space-xs); font-size: 1.75rem; }
+.claim-card > p:not(.form-kicker) { color: var(--eccia-muted); }
 .mobile-cta { display: none; }
 @media (max-width: 900px) {
-  .hero-editorial, .split-layout, .faq-layout, .speaker-layout, .footer-grid { grid-template-columns: 1fr; }
+  .hero-editorial, .split-layout, .faq-layout, .speaker-layout, .footer-grid, .claim-layout { grid-template-columns: 1fr; }
   .hero-editorial, .split-layout, .faq-layout, .speaker-layout { gap: var(--space-3xl); }
   .hero { min-height: auto; }
   .registration-rail { padding: var(--space-xl) 0 0; }
   .registration-rail::before { margin-bottom: var(--space-lg); }
   .registration-card { position: relative; top: auto; max-width: 680px; }
+  .claim-card { max-width: 680px; }
   .hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .instructor-intro { grid-template-columns: 1fr; gap: var(--space-md); }
   .instructor-intro .section-eyebrow { grid-column: auto; margin-bottom: 0; }
@@ -190,6 +205,7 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 @media (max-width: 680px) {
   .header-inner { min-height: 76px; }
   .header-inner .brand-logo { block-size: 40px; }
+  .claim-header .brand-logo { block-size: 44px; }
   .header-cta { display: none; }
   .hero { padding: 118px 0 var(--space-3xl); }
   .hero-title-lockup { margin-top: var(--space-lg); }

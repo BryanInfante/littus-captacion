@@ -10,6 +10,7 @@ $resendSyncPath = Join-Path $PSScriptRoot "..\supabase\functions\sync-resend-con
 $confirmationEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-registration-confirmation.html"
 $confirmationFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\index.ts"
 $confirmationTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\template.ts"
+$reminderFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-workshop-reminder\index.ts"
 
 if (-not (Test-Path -LiteralPath $indexPath)) {
     throw "Falta public/index.html"
@@ -46,6 +47,11 @@ $confirmationFunction = if (Test-Path -LiteralPath $confirmationFunctionPath) {
 }
 $confirmationTemplate = if (Test-Path -LiteralPath $confirmationTemplatePath) {
     Get-Content -LiteralPath $confirmationTemplatePath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$reminderFunction = if (Test-Path -LiteralPath $reminderFunctionPath) {
+    Get-Content -LiteralPath $reminderFunctionPath -Raw -Encoding UTF8
 } else {
     ""
 }
@@ -354,5 +360,22 @@ Assert-True ($confirmationTemplate.Contains('href="https://cursos.littusgroup.co
 Assert-True ($confirmationTemplate.Contains('Visitar el aula virtual')) "El template TS debe identificar claramente el acceso al aula virtual."
 Assert-True (-not $confirmationTemplate.Contains('cuando esté disponible')) "El template TS no debe conservar el texto obsoleto sobre el acceso."
 Assert-True (-not $confirmationTemplate.Contains('marketing_consent')) "El template operativo no debe depender del consentimiento comercial."
+Assert-True ($confirmationTemplate.Contains('renderWorkshopReminderEmail')) "El template TS debe reutilizar la marca para el recordatorio operativo."
+Assert-True ($confirmationTemplate.Contains('https://youtube.com/live/yW3OQFl76kg?feature=share')) "El recordatorio debe usar el enlace de transmisión aprobado."
+Assert-True ($confirmationTemplate.Contains('Tu masterclass inicia en 30 minutos')) "El recordatorio debe tener el asunto operativo aprobado."
+Assert-True ($confirmationTemplate.Contains('Masterclass Ultrasonido Industrial - Interpretación del Scan-A')) "El recordatorio debe usar el nombre final aprobado del evento."
+Assert-True (-not $confirmationTemplate.Contains('Tu taller técnico inicia en 30 minutos')) "El recordatorio no debe conservar la denominación anterior de taller técnico."
+Assert-True (Test-Path -LiteralPath $reminderFunctionPath) "Falta la Edge Function para enviar el recordatorio operativo."
+Assert-True ($reminderFunction.Contains("renderWorkshopReminderEmail")) "El recordatorio debe reutilizar el template transaccional ECCIA."
+Assert-True ($reminderFunction.Contains(".from(TABLE_NAME)")) "El recordatorio debe leer los inscritos desde Supabase."
+Assert-True ($reminderFunction.Contains(".select('id,nombre,correo")) "El recordatorio debe consultar los correos de todos los inscritos."
+Assert-True (-not $reminderFunction.Contains("marketing_consent")) "El recordatorio operativo no debe filtrar por consentimiento comercial."
+Assert-True ($reminderFunction.Contains("mode !== 'send'")) "El recordatorio debe mostrar vista previa sin enviar por defecto."
+Assert-True ($reminderFunction.Contains("approval_phrase")) "El envío real debe requerir aprobación explícita."
+Assert-True ($reminderFunction.Contains("workshop-reminder-30min/")) "El recordatorio debe usar idempotencia por inscripción."
+Assert-True ($reminderFunction.Contains("'Idempotency-Key'")) "El recordatorio debe enviar clave de idempotencia a Resend."
+Assert-True ($reminderFunction.Contains("email_type', value: 'workshop_reminder_30min'")) "El recordatorio debe etiquetarse como operativo en Resend."
+Assert-True (-not $reminderFunction.Contains('/contacts')) "El recordatorio operativo no debe crear ni modificar Contacts."
+Assert-True (-not $reminderFunction.Contains('RESEND_UNSUBSCRIBE_URL')) "El recordatorio operativo no debe incluir baja promocional."
 
 Write-Output "Landing checks: OK"
