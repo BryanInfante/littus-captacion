@@ -9,6 +9,9 @@ supabase/.temp/
 # Certificados generados localmente para pruebas
 output/
 
+# Firmas reales de certificados: se sirven vía Nextcloud (WebDAV), nunca públicas
+public/src/firmas/
+
 # Dependencias y salidas generadas si se agregan herramientas en el futuro
 node_modules/
 dist/

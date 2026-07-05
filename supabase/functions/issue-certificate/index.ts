@@ -86,6 +86,25 @@ const fetchBrandLogo = async (baseUrl: string) => {
   return new Uint8Array(await response.arrayBuffer())
 }
 
+// Signatures are real handwritten signatures of company officers, so unlike
+// the logo they must never be public (no GitHub Pages path, no anonymous
+// URL). They live in the same private Nextcloud storage as the generated
+// certificates and are fetched over authenticated WebDAV at render time.
+const SIGNATURE_MENA_PATH = 'firmas/firma_mena.png'
+const SIGNATURE_AUCANCELA_PATH = 'firmas/firma_aucancela.png'
+
+const fetchNextcloudFile = async (path: string) => {
+  const webdavUrl = requiredEnv('NEXTCLOUD_WEBDAV_URL').replace(/\/$/, '')
+  const username = requiredEnv('NEXTCLOUD_USERNAME')
+  const appPassword = requiredEnv('NEXTCLOUD_APP_PASSWORD')
+  const auth = btoa(`${username}:${appPassword}`)
+  const response = await fetch(buildWebDavUrl(webdavUrl, path), {
+    headers: { Authorization: `Basic ${auth}` },
+  })
+  if (!response.ok) throw new Error(`Nextcloud file fetch failed (${response.status}): ${path}`)
+  return new Uint8Array(await response.arrayBuffer())
+}
+
 const centerTextUnderQr = (page: ReturnType<PDFDocument['addPage']>, text: string, params: {
   centerX: number
   y: number
@@ -213,6 +232,8 @@ export const renderCertificatePdf = async (params: {
   validationUrl: string
   qrCodeDataUri: string
   logoBytes: Uint8Array
+  signatureMenaBytes: Uint8Array
+  signatureAucancelaBytes: Uint8Array
 }) => {
   const pdf = await PDFDocument.create()
   pdf.registerFontkit(fontkit)
@@ -255,6 +276,8 @@ export const renderCertificatePdf = async (params: {
 
   const logo = await pdf.embedPng(params.logoBytes)
   const logoWidth = layout.logoHeight * (logo.width / logo.height)
+  const signatureMena = await pdf.embedPng(params.signatureMenaBytes)
+  const signatureAucancela = await pdf.embedPng(params.signatureAucancelaBytes)
 
   page.drawRectangle({ x: 0, y: 0, width: layout.pageWidth, height: layout.pageHeight, color: white })
   drawTopRuleGradient(page, { y: layout.pageHeight - layout.topRuleHeight, width: layout.pageWidth, height: layout.topRuleHeight })
@@ -359,14 +382,22 @@ export const renderCertificatePdf = async (params: {
   const signatureLineY = footerY + 42
   const signatureLeftX = layout.contentX
   const signatureRightX = layout.contentX + htmlMm(90)
-  const drawSignature = (x: number, name: string, role: string) => {
-    page.drawLine({ start: { x, y: signatureLineY + layout.signatureSpaceHeight - layout.signatureSpaceHeight }, end: { x: x + layout.signatureLineWidth, y: signatureLineY }, thickness: 1.5, color: black })
+  const drawSignature = (x: number, name: string, role: string, signatureImage: typeof signatureMena) => {
+    const imageHeight = layout.signatureSpaceHeight
+    const imageWidth = imageHeight * (signatureImage.width / signatureImage.height)
+    page.drawImage(signatureImage, {
+      x: x + (layout.signatureLineWidth - imageWidth) / 2,
+      y: signatureLineY + 4,
+      width: imageWidth,
+      height: imageHeight,
+    })
+    page.drawLine({ start: { x, y: signatureLineY }, end: { x: x + layout.signatureLineWidth, y: signatureLineY }, thickness: 1.5, color: black })
     drawTextAt(page, name, { x, y: signatureLineY - 26, size: 12.5, font: titleFont, color: black })
     drawTextAt(page, role, { x, y: signatureLineY - 43, size: 8.8, font: bodySemiBoldFont, color: cyan })
   }
 
-  drawSignature(signatureLeftX, 'Ing. Edison Mena', 'Gerente Técnico Ecuador')
-  drawSignature(signatureRightX, 'Ing. Marco Aucancela', 'Gerente Regional')
+  drawSignature(signatureLeftX, 'Ing. Edison Mena', 'Gerente Técnico Ecuador', signatureMena)
+  drawSignature(signatureRightX, 'Ing. Marco Aucancela', 'Gerente Regional', signatureAucancela)
 
   return pdf.save()
 }
@@ -667,8 +698,20 @@ Deno.serve(async (request) => {
     if (updateError || !renderingClaim) return jsonResponse({ error: 'No se pudo registrar el certificado.' }, 500)
     claim = renderingClaim
     try {
-      const logoBytes = await fetchBrandLogo(baseUrl)
-      const pdfBytes = await renderCertificatePdf({ fullName, certificateCode, validationUrl, qrCodeDataUri, logoBytes })
+      const [logoBytes, signatureMenaBytes, signatureAucancelaBytes] = await Promise.all([
+        fetchBrandLogo(baseUrl),
+        fetchNextcloudFile(SIGNATURE_MENA_PATH),
+        fetchNextcloudFile(SIGNATURE_AUCANCELA_PATH),
+      ])
+      const pdfBytes = await renderCertificatePdf({
+        fullName,
+        certificateCode,
+        validationUrl,
+        qrCodeDataUri,
+        logoBytes,
+        signatureMenaBytes,
+        signatureAucancelaBytes,
+      })
       const nextcloudPath = `masterclass-ultrasonido-nivel-i/2026/${certificateCode}.pdf`
       await uploadCertificateToNextcloud(nextcloudPath, pdfBytes)
 
