@@ -178,6 +178,10 @@ Assert-Contains $issueFunction "status: 'pending'" "issue-certificate debe respo
 Assert-Order $issueFunction "claim.certificate_status === 'rendering' && !createdClaim" "const pdfBytes = await stampCertificate" "El claim rendering de otra invocación debe cortar antes de renderizar PDF."
 Assert-Order $issueFunction "claim.certificate_status === 'rendering' && !createdClaim" "await uploadCertificateToNextcloud" "El claim rendering de otra invocación debe cortar antes de subir PDF."
 Assert-Order $issueFunction "claim.certificate_status === 'rendering' && !createdClaim" "await sendCertificateEmail" "El claim rendering de otra invocación debe cortar antes de enviar correo."
+Assert-Contains $issueFunction 'certificate_rendering_started_at' "issue-certificate debe registrar cuándo empezó el intento de renderizado en curso."
+Assert-Contains $issueFunction 'const RENDERING_STALE_MS' "issue-certificate debe definir un umbral de antigüedad para detectar renders atascados."
+Assert-Contains $issueFunction 'const isRenderingStale' "issue-certificate debe tener una función que determine si un rendering está atascado."
+Assert-Contains $issueFunction "!isRenderingStale(claim.certificate_rendering_started_at)" "Un claim en rendering solo debe responder pending si el renderizado no lleva atascado más que el umbral."
 
 Assert-Contains $downloadFunction 'NEXTCLOUD_WEBDAV_URL' "download-certificate debe leer WebDAV desde secrets server-side."
 Assert-Contains $downloadFunction 'NEXTCLOUD_USERNAME' "download-certificate debe leer usuario Nextcloud desde secrets server-side."

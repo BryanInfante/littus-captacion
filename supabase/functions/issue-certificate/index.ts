@@ -59,6 +59,17 @@ const requiredEnv = (name: string) => {
 const normalizeEmail = (value: string) => value.trim().toLowerCase()
 const normalizeName = (value: string) => value.trim().replace(/\s+/g, ' ')
 
+// A healthy render+upload+email cycle takes well under 10s in production
+// logs. If a claim has been sitting in 'rendering' longer than this, the
+// previous attempt almost certainly crashed at the platform level (its
+// try/catch never ran, so certificate_status was never demoted to
+// 'failed') and would otherwise stay stuck in 'pending' forever. Treat it
+// as stale and let the request fall through to retry instead of blocking.
+const RENDERING_STALE_MS = 2 * 60 * 1000
+
+const isRenderingStale = (renderingStartedAt: string | null) =>
+  !renderingStartedAt || Date.now() - new Date(renderingStartedAt).getTime() > RENDERING_STALE_MS
+
 const generateCertificateCode = () => {
   const bytes = new Uint8Array(8)
   crypto.getRandomValues(bytes)
@@ -676,6 +687,7 @@ Deno.serve(async (request) => {
           codigo_certificado: certificateCode,
           validation_url: validationUrl,
           certificate_status: 'rendering',
+          certificate_rendering_started_at: new Date().toISOString(),
           certificate_attempts: 1,
           certificate_error: null,
         })
@@ -702,7 +714,7 @@ Deno.serve(async (request) => {
 
     if (!claim) return jsonResponse({ error: 'No se pudo registrar el certificado.' }, 500)
 
-    if (claim.certificate_status === 'rendering' && !createdClaim) {
+    if (claim.certificate_status === 'rendering' && !createdClaim && !isRenderingStale(claim.certificate_rendering_started_at)) {
       const pendingCode = claim.codigo_certificado
       return jsonResponse({
         status: 'pending',
@@ -729,6 +741,7 @@ Deno.serve(async (request) => {
       nombre_completo: fullName,
       registration_id: registration.id,
       certificate_status: 'rendering',
+      certificate_rendering_started_at: new Date().toISOString(),
       certificate_attempts: (claim.certificate_attempts ?? 0) + 1,
       certificate_error: null,
     }
