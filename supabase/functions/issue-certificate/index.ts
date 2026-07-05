@@ -455,6 +455,12 @@ const sendCertificateEmail = async (params: {
 
   const body = await response.json().catch(() => ({}))
   if (response.status === 409) return `resend-idempotency-conflict/${params.certificateCode}`
+  // Resend's free plan caps sending at 100 emails/day (429 once the quota is
+  // hit). The PDF is already rendered and uploaded to Nextcloud by the time
+  // this runs, so this must NOT be treated like a hard failure — the caller
+  // checks for this sentinel and keeps the claim at 'uploaded' (certificate
+  // still valid and downloadable) instead of demoting it to 'failed'.
+  if (response.status === 429) return `resend-rate-limited/${params.certificateCode}`
   if (!response.ok || typeof body.id !== 'string') {
     throw new Error(`Resend rejected certificate email (${response.status})`)
   }
@@ -609,6 +615,25 @@ Deno.serve(async (request) => {
       }).eq('id', claim.id)
 
       const emailId = await sendCertificateEmail({ email, fullName, certificateCode, certificateUrl, validationUrl })
+
+      if (emailId.startsWith('resend-rate-limited/')) {
+        // Certificate stays 'uploaded' (already set above) — it's valid and
+        // downloadable right now. Only the email didn't go out. Recording the
+        // reason in certificate_error is informational only; it does not
+        // change certificate_status, so a later retry from the same person
+        // skips straight to "already_issued" with a working download link
+        // instead of re-rendering the PDF.
+        await supabaseAdmin.from(CLAIMS_TABLE).update({
+          certificate_error: 'Email pendiente: se alcanzó el límite diario de envíos de Resend.',
+        }).eq('id', claim.id)
+
+        return jsonResponse({
+          status: 'issued_email_delayed',
+          codigo_certificado: certificateCode,
+          validation_url: validationUrl,
+          certificate_url: certificateUrl,
+        })
+      }
 
       await supabaseAdmin.from(CLAIMS_TABLE).update({
         certificate_resend_email_id: emailId,

@@ -146,6 +146,10 @@ Assert-Order $issueFunction 'await ensureNextcloudDirectory(directoryPath)' "met
 Assert-Contains $issueFunction 'sendCertificateEmail' "La función debe enviar correo solo después del upload."
 Assert-Contains $issueFunction 'Idempotency-Key' "El correo debe usar idempotency key."
 Assert-Contains $issueFunction 'response.status === 409' "Resend 409 por idempotency key repetida no debe invalidar un PDF ya subido."
+Assert-Contains $issueFunction 'response.status === 429' "Resend 429 (límite diario de 100 emails) debe manejarse sin invalidar un PDF ya subido."
+Assert-Contains $issueFunction "resend-rate-limited/" "La función debe distinguir el 429 de Resend de un error genérico."
+Assert-Contains $issueFunction "status: 'issued_email_delayed'" "Cuando Resend está limitado, la respuesta debe indicar que el certificado está listo aunque el correo no haya salido."
+Assert-Order $issueFunction "emailId.startsWith('resend-rate-limited/')" "certificate_status: 'emailed'," "La función debe chequear el 429 de Resend antes de marcar el certificado como 'emailed'."
 Assert-Contains $issueFunction 'certificate_status' "La función debe actualizar estados de certificado."
 Assert-Contains $issueFunction 'validation_url' "La función debe persistir URL de validación."
 Assert-Contains $issueFunction 'buildDownloadCertificateUrl' "La función debe construir enlace público mediante download-certificate."
@@ -209,6 +213,7 @@ Assert-Contains $certificateTemplate '{{qr_code_data_uri}}' "El template debe co
 Assert-Contains $certificateTemplate '{{codigo_certificado}}' "El template debe conservar placeholder de código."
 
 Assert-Contains $clientScript 'issue-certificate' "El cliente debe llamar la Edge Function de emisión."
+Assert-Contains $clientScript 'issued_email_delayed' "El cliente debe mostrar el enlace de descarga directo cuando Resend está limitado y el correo no puede enviarse."
 Assert-NotContains $clientScript 'eccia_masterclass_certificados' "El cliente ya no debe insertar directo en la tabla."
 Assert-NotContains $validationPage 'SUPABASE_SERVICE_ROLE_KEY' "La página pública no debe exponer service role key."
 Assert-NotContains $validationPage 'SUPABASE_SECRET_KEYS' "La página pública no debe exponer secretos Supabase."

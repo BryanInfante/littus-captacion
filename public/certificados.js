@@ -50,11 +50,20 @@ form?.addEventListener("submit", async (event) => {
     }
 
     form.reset();
-    showStatus(
-      "success",
-      result.status === "already_issued" ? "Certificado ya generado" : "Certificado solicitado",
-      "Revisa tu correo: enviaremos el enlace de descarga y validación del certificado.",
-    );
+
+    if (result.status === "issued_email_delayed") {
+      showStatus(
+        "success",
+        "Certificado listo",
+        `Por alta demanda de hoy no pudimos enviarte el correo. Descárgalo directo desde este enlace: <a href="${result.certificate_url}" target="_blank" rel="noopener">${result.certificate_url}</a>`,
+      );
+    } else {
+      showStatus(
+        "success",
+        result.status === "already_issued" ? "Certificado ya generado" : "Certificado solicitado",
+        "Revisa tu correo: enviaremos el enlace de descarga y validación del certificado.",
+      );
+    }
   } catch (error) {
     console.error("No se pudo solicitar el certificado.", error);
     showStatus(
