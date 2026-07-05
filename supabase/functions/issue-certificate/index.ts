@@ -237,6 +237,7 @@ export const renderCertificatePdf = async (params: {
     qrCardSize: htmlMm(43),
     qrCardPadding: htmlMm(3),
     qrImageSize: htmlMm(31),
+    qrCaptionBottomPadding: htmlMm(3),
     mainTop: 184 - htmlMm(12.5),
     signatureSpaceHeight: htmlMm(18),
     signatureLineWidth: htmlMm(72),
@@ -277,6 +278,12 @@ export const renderCertificatePdf = async (params: {
   const qrX = qrCardX + (layout.qrCardSize - layout.qrImageSize) / 2
   const qrY = qrCardY + layout.qrCardSize - layout.qrCardPadding - layout.qrImageSize
   const qrCenterX = qrCardX + layout.qrCardSize / 2
+  // The card must enclose the QR image plus all four caption lines below it
+  // (the last one drawn at `qrY - 52`). Sizing the card to `qrCardSize` alone
+  // left the caption spilling past the border, so the card grows downward
+  // from the same top edge to fit the full caption block with real padding.
+  const qrCardBottomY = qrY - 52 - layout.qrCaptionBottomPadding
+  const qrCardHeight = qrCardY + layout.qrCardSize - qrCardBottomY
 
   drawRightAlignedText(page, 'LITTUS GROUP AMERICA - ECCIA', {
     rightX: layout.pageWidth - htmlMm(4),
@@ -289,9 +296,9 @@ export const renderCertificatePdf = async (params: {
 
   page.drawRectangle({
     x: qrCardX,
-    y: qrCardY,
+    y: qrCardBottomY,
     width: layout.qrCardSize,
-    height: layout.qrCardSize,
+    height: qrCardHeight,
     color: white,
     opacity: 0.92,
     borderColor: lightBorder,
