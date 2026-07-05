@@ -129,7 +129,7 @@ form?.addEventListener("submit", async (event) => {
       showStatus(
         "success",
         "Certificado listo",
-        "Por alta demanda de hoy no pudimos enviarte el correo todavía. Descárgalo directo abajo.",
+        "Por alta demanda de hoy no pudimos enviarte el correo todavía. Descárgalo directo desde la ventana que se abrió.",
       );
       openCertificateModal({
         certificateUrl: result.certificate_url,
@@ -147,7 +147,7 @@ form?.addEventListener("submit", async (event) => {
         certificateUrl: result.certificate_url,
         title: result.status === "already_issued" ? "Tu certificado ya estaba generado" : "Tu certificado fue enviado",
         description: "Te enviamos el certificado a tu correo.",
-        note: "Revisa tu bandeja de entrada o la carpeta de spam — a veces llega ahí. También puedes descargarlo directo abajo.",
+        note: "Revisa tu bandeja de entrada o la carpeta de spam — a veces llega ahí. También puedes descargarlo con el botón de arriba.",
       });
     } else {
       showStatus(
