@@ -146,6 +146,32 @@ const drawWrappedText = (page: ReturnType<PDFDocument['addPage']>, text: string,
   return lines.length
 }
 
+const drawTopRuleGradient = (page: ReturnType<PDFDocument['addPage']>, params: {
+  y: number
+  width: number
+  height: number
+}) => {
+  const steps = 96
+  const start = { r: 0.04, g: 0.06, b: 0.08 }
+  const end = { r: 0, g: 174 / 255, b: 239 / 255 }
+  const stepWidth = params.width / steps
+
+  for (let index = 0; index < steps; index += 1) {
+    const t = index / (steps - 1)
+    page.drawRectangle({
+      x: index * stepWidth,
+      y: params.y,
+      width: stepWidth + 0.5,
+      height: params.height,
+      color: rgb(
+        start.r + (end.r - start.r) * t,
+        start.g + (end.g - start.g) * t,
+        start.b + (end.b - start.b) * t,
+      ),
+    })
+  }
+}
+
 export const renderCertificatePdf = async (params: {
   fullName: string
   certificateCode: string
@@ -172,9 +198,9 @@ export const renderCertificatePdf = async (params: {
     contentBottom: htmlMm(14),
     logoHeight: htmlMm(30),
     logoShiftY: 12,
-    qrCardSize: htmlMm(24),
-    qrCardPadding: htmlMm(1.8),
-    qrImageSize: htmlMm(16),
+    qrCardSize: htmlMm(34),
+    qrCardPadding: htmlMm(2.6),
+    qrImageSize: htmlMm(23),
     mainTop: 196,
     signatureSpaceHeight: htmlMm(18),
     signatureLineWidth: htmlMm(72),
@@ -185,19 +211,19 @@ export const renderCertificatePdf = async (params: {
   const logoWidth = layout.logoHeight * (logo.width / logo.height)
 
   page.drawRectangle({ x: 0, y: 0, width: layout.pageWidth, height: layout.pageHeight, color: white })
-  page.drawRectangle({ x: 0, y: layout.pageHeight - layout.topRuleHeight, width: layout.pageWidth, height: layout.topRuleHeight, color: black })
-  page.drawRectangle({ x: layout.pageWidth * 0.5, y: layout.pageHeight - layout.topRuleHeight, width: layout.pageWidth * 0.5, height: layout.topRuleHeight, color: cyan, opacity: 0.9 })
+  drawTopRuleGradient(page, { y: layout.pageHeight - layout.topRuleHeight, width: layout.pageWidth, height: layout.topRuleHeight })
 
-  const cornerCenterX = layout.pageWidth - htmlMm(34) + layout.cornerSize / 2
-  const cornerCenterY = -htmlMm(28) + layout.cornerSize / 2
-  page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: layout.cornerSize * 0.49, yScale: layout.cornerSize * 0.49, borderColor: lightBorder, borderWidth: 1.4 })
-  page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: layout.cornerSize * 0.36, yScale: layout.cornerSize * 0.36, borderColor: lightBorder, borderWidth: 1.4 })
+  const cornerCenterX = layout.pageWidth - htmlMm(25)
+  const cornerCenterY = htmlMm(42)
+  page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: htmlMm(72), yScale: htmlMm(72), borderColor: lightBorder, borderWidth: 2.2 })
+  page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: htmlMm(54), yScale: htmlMm(54), borderColor: lightBorder, borderWidth: 2.2 })
+  page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: htmlMm(36), yScale: htmlMm(36), borderColor: rgb(0.95, 0.96, 0.97), borderWidth: 1.2 })
   page.drawSvgPath('M 40 118 Q 62 62 100 118 Q 138 174 160 118', {
-    x: layout.pageWidth - htmlMm(34) + 10,
-    y: 16,
-    scale: layout.cornerSize / 200,
-    borderColor: rgb(0.70, 0.91, 0.98),
-    borderWidth: 3,
+    x: layout.pageWidth - htmlMm(75),
+    y: htmlMm(15),
+    scale: 1.6,
+    borderColor: rgb(0.58, 0.85, 0.95),
+    borderWidth: 4,
   })
 
   page.drawImage(logo, {
@@ -236,10 +262,10 @@ export const renderCertificatePdf = async (params: {
     borderWidth: 1,
   })
   page.drawImage(qr, { x: qrX, y: qrY, width: layout.qrImageSize, height: layout.qrImageSize })
-  centerTextUnderQr(page, 'VALIDACIÓN DEL', { centerX: qrCenterX, y: qrY - 10, size: 5.7, font: bold, color: black })
-  centerTextUnderQr(page, 'CERTIFICADO', { centerX: qrCenterX, y: qrY - 17, size: 5.7, font: bold, color: black })
-  centerTextUnderQr(page, 'Escanea para validar', { centerX: qrCenterX, y: qrY - 25, size: 5.4, font, color: muted })
-  centerTextUnderQr(page, `Código: ${params.certificateCode}`, { centerX: qrCenterX, y: qrY - 33, size: 5.1, font, color: muted })
+  centerTextUnderQr(page, 'VALIDACIÓN DEL', { centerX: qrCenterX, y: qrY - 12, size: 6.6, font: bold, color: black })
+  centerTextUnderQr(page, 'CERTIFICADO', { centerX: qrCenterX, y: qrY - 20, size: 6.6, font: bold, color: black })
+  centerTextUnderQr(page, 'Escanea para validar', { centerX: qrCenterX, y: qrY - 30, size: 6.1, font, color: muted })
+  centerTextUnderQr(page, `Código: ${params.certificateCode}`, { centerX: qrCenterX, y: qrY - 39, size: 5.6, font, color: muted })
 
   const mainX = layout.contentX
   const eyebrowY = layout.pageHeight - layout.mainTop
@@ -261,14 +287,14 @@ export const renderCertificatePdf = async (params: {
     { x: mainX, y: eyebrowY - 212, maxWidth: htmlMm(154), size: 11.5, lineHeight: 18, font, color: muted },
   )
 
-  const detailY = eyebrowY - 279
+  const detailY = eyebrowY - 250
   drawTextAt(page, 'DURACIÓN', { x: mainX, y: detailY, size: 7.6, font: bold, color: muted, characterSpacing: 1.2 })
   drawTextAt(page, '2h', { x: mainX, y: detailY - 20, size: 13, font: bold, color: black })
   drawTextAt(page, 'FECHA', { x: mainX + htmlMm(32), y: detailY, size: 7.6, font: bold, color: muted, characterSpacing: 1.2 })
   drawTextAt(page, '03 de julio de 2026', { x: mainX + htmlMm(32), y: detailY - 20, size: 13, font: bold, color: black })
 
   const footerY = layout.contentBottom
-  const signatureLineY = footerY + 62
+  const signatureLineY = footerY + 42
   const signatureLeftX = layout.contentX
   const signatureRightX = layout.contentX + htmlMm(90)
   const drawSignature = (x: number, name: string, role: string) => {
