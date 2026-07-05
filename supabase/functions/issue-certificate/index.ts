@@ -1,6 +1,7 @@
 ﻿import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib'
+import fontkit from 'npm:fontkit'
 import QRCode from 'npm:qrcode'
 
 const RESEND_API_URL = 'https://api.resend.com'
@@ -10,6 +11,15 @@ const MASTERCLASS_CODE = 'ultrasonido-industrial-scan-a'
 const FROM = 'ECCIA <gestioneccia@mail.littusgroup.com>'
 const REPLY_TO = 'formanager@littusgroup.com'
 const EVENT_TITLE = 'Seminario de Ultrasonido Industrial Nivel I'
+const SPACE_GROTESK_BOLD_URL = 'https://github.com/google/fonts/raw/main/ofl/spacegrotesk/SpaceGrotesk-Bold.ttf'
+const INTER_REGULAR_URL = 'https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf'
+const INTER_SEMIBOLD_URL = 'https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf'
+
+const fetchFontBytes = async (url: string) => {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Font fetch failed (${response.status})`)
+  return new Uint8Array(await response.arrayBuffer())
+}
 
 type IssueRequest = {
   nombre_completo?: string
@@ -146,6 +156,25 @@ const drawWrappedText = (page: ReturnType<PDFDocument['addPage']>, text: string,
   return lines.length
 }
 
+const drawRightAlignedText = (page: ReturnType<PDFDocument['addPage']>, text: string, params: {
+  rightX: number
+  y: number
+  size: number
+  font: Awaited<ReturnType<PDFDocument['embedFont']>>
+  color: ReturnType<typeof rgb>
+  characterSpacing?: number
+}) => {
+  const width = params.font.widthOfTextAtSize(text, params.size)
+  page.drawText(text, {
+    x: params.rightX - width,
+    y: params.y,
+    size: params.size,
+    font: params.font,
+    color: params.color,
+    characterSpacing: params.characterSpacing,
+  })
+}
+
 const drawTopRuleGradient = (page: ReturnType<PDFDocument['addPage']>, params: {
   y: number
   width: number
@@ -180,9 +209,16 @@ export const renderCertificatePdf = async (params: {
   logoBytes: Uint8Array
 }) => {
   const pdf = await PDFDocument.create()
+  pdf.registerFontkit(fontkit)
   const page = pdf.addPage([842, 595])
-  const font = await pdf.embedFont(StandardFonts.Helvetica)
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
+  const [titleFontBytes, bodyFontBytes, bodySemiBoldFontBytes] = await Promise.all([
+    fetchFontBytes(SPACE_GROTESK_BOLD_URL),
+    fetchFontBytes(INTER_REGULAR_URL),
+    fetchFontBytes(INTER_SEMIBOLD_URL),
+  ])
+  const titleFont = await pdf.embedFont(titleFontBytes, { subset: true })
+  const bodyFont = await pdf.embedFont(bodyFontBytes, { subset: true })
+  const bodySemiBoldFont = await pdf.embedFont(bodySemiBoldFontBytes, { subset: true })
   const cyan = rgb(0, 174 / 255, 239 / 255)
   const black = rgb(0.04, 0.06, 0.08)
   const muted = rgb(0.32, 0.38, 0.45)
@@ -198,10 +234,10 @@ export const renderCertificatePdf = async (params: {
     contentBottom: htmlMm(14),
     logoHeight: htmlMm(30),
     logoShiftY: 12,
-    qrCardSize: htmlMm(34),
-    qrCardPadding: htmlMm(2.6),
-    qrImageSize: htmlMm(23),
-    mainTop: 196,
+    qrCardSize: htmlMm(43),
+    qrCardPadding: htmlMm(3),
+    qrImageSize: htmlMm(31),
+    mainTop: 184 - htmlMm(12.5),
     signatureSpaceHeight: htmlMm(18),
     signatureLineWidth: htmlMm(72),
     cornerSize: htmlMm(130),
@@ -237,16 +273,16 @@ export const renderCertificatePdf = async (params: {
   const qrBytes = Uint8Array.from(atob(qrBase64), (char) => char.charCodeAt(0))
   const qr = await pdf.embedPng(qrBytes)
   const qrCardX = layout.pageWidth - layout.contentX - layout.qrCardSize
-  const qrCardY = layout.pageHeight - layout.contentTop - htmlMm(4) - layout.qrCardSize
+  const qrCardY = layout.pageHeight - layout.contentTop - htmlMm(10) - layout.qrCardSize
   const qrX = qrCardX + (layout.qrCardSize - layout.qrImageSize) / 2
   const qrY = qrCardY + layout.qrCardSize - layout.qrCardPadding - layout.qrImageSize
   const qrCenterX = qrCardX + layout.qrCardSize / 2
 
-  drawTextAt(page, 'LITTUS GROUP AMERICA - ECCIA', {
-    x: qrCardX - htmlMm(35),
-    y: layout.pageHeight - layout.contentTop - 5,
+  drawRightAlignedText(page, 'LITTUS GROUP AMERICA - ECCIA', {
+    rightX: layout.pageWidth - htmlMm(4),
+    y: qrCardY + layout.qrCardSize + 8,
     size: 8,
-    font: bold,
+    font: bodySemiBoldFont,
     color: muted,
     characterSpacing: 1.25,
   })
@@ -262,36 +298,36 @@ export const renderCertificatePdf = async (params: {
     borderWidth: 1,
   })
   page.drawImage(qr, { x: qrX, y: qrY, width: layout.qrImageSize, height: layout.qrImageSize })
-  centerTextUnderQr(page, 'VALIDACIÓN DEL', { centerX: qrCenterX, y: qrY - 12, size: 6.6, font: bold, color: black })
-  centerTextUnderQr(page, 'CERTIFICADO', { centerX: qrCenterX, y: qrY - 20, size: 6.6, font: bold, color: black })
-  centerTextUnderQr(page, 'Escanea para validar', { centerX: qrCenterX, y: qrY - 30, size: 6.1, font, color: muted })
-  centerTextUnderQr(page, `Código: ${params.certificateCode}`, { centerX: qrCenterX, y: qrY - 39, size: 5.6, font, color: muted })
+  centerTextUnderQr(page, 'VALIDACIÓN DEL', { centerX: qrCenterX, y: qrY - 22, size: 6.6, font: bodySemiBoldFont, color: black })
+  centerTextUnderQr(page, 'CERTIFICADO', { centerX: qrCenterX, y: qrY - 30, size: 6.6, font: bodySemiBoldFont, color: black })
+  centerTextUnderQr(page, 'Escanea para validar', { centerX: qrCenterX, y: qrY - 42, size: 6.1, font: bodyFont, color: muted })
+  centerTextUnderQr(page, `Código: ${params.certificateCode}`, { centerX: qrCenterX, y: qrY - 52, size: 5.6, font: bodyFont, color: muted })
 
   const mainX = layout.contentX
   const eyebrowY = layout.pageHeight - layout.mainTop
   page.drawLine({ start: { x: mainX, y: eyebrowY + 5 }, end: { x: mainX + htmlMm(8), y: eyebrowY + 5 }, thickness: 2, color: black })
-  drawTextAt(page, 'CERTIFICADO DE ASISTENCIA', { x: mainX + htmlMm(11), y: eyebrowY, size: 9.5, font: bold, color: cyan, characterSpacing: 2 })
+  drawTextAt(page, 'CERTIFICADO DE ASISTENCIA', { x: mainX + htmlMm(11), y: eyebrowY, size: 9.5, font: bodySemiBoldFont, color: cyan, characterSpacing: 2 })
 
-  drawTextAt(page, 'Seminario de Ultrasonido', { x: mainX, y: eyebrowY - 49, size: 32, font: bold, color: black })
-  drawTextAt(page, 'Industrial Nivel I', { x: mainX, y: eyebrowY - 86, size: 32, font: bold, color: black })
-  drawTextAt(page, 'otorgado a', { x: mainX, y: eyebrowY - 127, size: 11, font, color: muted })
+  drawTextAt(page, 'Seminario de Ultrasonido', { x: mainX, y: eyebrowY - 49, size: 32, font: titleFont, color: black })
+  drawTextAt(page, 'Industrial Nivel I', { x: mainX, y: eyebrowY - 86, size: 32, font: titleFont, color: black })
+  drawTextAt(page, 'otorgado a', { x: mainX, y: eyebrowY - 127, size: 11, font: bodyFont, color: muted })
 
   const nameSize = params.fullName.length > 34 ? 22 : params.fullName.length > 26 ? 25 : 27
-  drawTextAt(page, params.fullName, { x: mainX, y: eyebrowY - 163, size: nameSize, font: bold, color: black })
+  drawTextAt(page, params.fullName, { x: mainX, y: eyebrowY - 163, size: nameSize, font: titleFont, color: black })
   page.drawRectangle({ x: mainX, y: eyebrowY - 176, width: htmlMm(44), height: 3, color: cyan })
   page.drawRectangle({ x: mainX + htmlMm(28), y: eyebrowY - 176, width: htmlMm(16), height: 3, color: black, opacity: 0.85 })
 
   drawWrappedText(
     page,
     'Por su participación en el seminario de Ultrasonido Industrial Nivel I, con enfoque en los fundamentos del ultrasonido y la interpretación del Scan-A.',
-    { x: mainX, y: eyebrowY - 212, maxWidth: htmlMm(154), size: 11.5, lineHeight: 18, font, color: muted },
+    { x: mainX, y: eyebrowY - 212, maxWidth: htmlMm(154), size: 11.5, lineHeight: 18, font: bodyFont, color: muted },
   )
 
   const detailY = eyebrowY - 250
-  drawTextAt(page, 'DURACIÓN', { x: mainX, y: detailY, size: 7.6, font: bold, color: muted, characterSpacing: 1.2 })
-  drawTextAt(page, '2h', { x: mainX, y: detailY - 20, size: 13, font: bold, color: black })
-  drawTextAt(page, 'FECHA', { x: mainX + htmlMm(32), y: detailY, size: 7.6, font: bold, color: muted, characterSpacing: 1.2 })
-  drawTextAt(page, '03 de julio de 2026', { x: mainX + htmlMm(32), y: detailY - 20, size: 13, font: bold, color: black })
+  drawTextAt(page, 'DURACIÓN', { x: mainX, y: detailY, size: 7.6, font: bodySemiBoldFont, color: muted, characterSpacing: 1.2 })
+  drawTextAt(page, '2h', { x: mainX, y: detailY - 20, size: 13, font: titleFont, color: black })
+  drawTextAt(page, 'FECHA', { x: mainX + htmlMm(32), y: detailY, size: 7.6, font: bodySemiBoldFont, color: muted, characterSpacing: 1.2 })
+  drawTextAt(page, '03 de julio de 2026', { x: mainX + htmlMm(32), y: detailY - 20, size: 13, font: titleFont, color: black })
 
   const footerY = layout.contentBottom
   const signatureLineY = footerY + 42
@@ -299,8 +335,8 @@ export const renderCertificatePdf = async (params: {
   const signatureRightX = layout.contentX + htmlMm(90)
   const drawSignature = (x: number, name: string, role: string) => {
     page.drawLine({ start: { x, y: signatureLineY + layout.signatureSpaceHeight - layout.signatureSpaceHeight }, end: { x: x + layout.signatureLineWidth, y: signatureLineY }, thickness: 1.5, color: black })
-    drawTextAt(page, name, { x, y: signatureLineY - 26, size: 12.5, font: bold, color: black })
-    drawTextAt(page, role, { x, y: signatureLineY - 43, size: 8.8, font: bold, color: cyan })
+    drawTextAt(page, name, { x, y: signatureLineY - 26, size: 12.5, font: titleFont, color: black })
+    drawTextAt(page, role, { x, y: signatureLineY - 43, size: 8.8, font: bodySemiBoldFont, color: cyan })
   }
 
   drawSignature(signatureLeftX, 'Ing. Edison Mena', 'Gerente Técnico Ecuador')
@@ -569,5 +605,9 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: 'La función no está configurada.' }, 500)
   }
 })
+
+
+
+
 
 
