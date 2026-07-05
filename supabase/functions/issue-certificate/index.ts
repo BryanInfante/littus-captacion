@@ -1,6 +1,6 @@
 ﻿import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib'
+import { PDFDocument, StandardFonts, rgb, LineCapStyle } from 'npm:pdf-lib'
 import fontkit from 'npm:@pdf-lib/fontkit'
 import QRCode from 'npm:qrcode'
 
@@ -264,12 +264,22 @@ export const renderCertificatePdf = async (params: {
   page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: htmlMm(72), yScale: htmlMm(72), borderColor: lightBorder, borderWidth: 2.2 })
   page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: htmlMm(54), yScale: htmlMm(54), borderColor: lightBorder, borderWidth: 2.2 })
   page.drawEllipse({ x: cornerCenterX, y: cornerCenterY, xScale: htmlMm(36), yScale: htmlMm(36), borderColor: rgb(0.95, 0.96, 0.97), borderWidth: 1.2 })
+  // drawSvgPath anchors the path's local (0,0) at (x, y) and SUBTRACTS local y
+  // (SVG y grows downward) — the previous x/y/scale here were guessed and put
+  // most of the wave off-page, so it never appeared. This derives x/y from the
+  // path's own local center (100, 118) so the wave lands centered on the same
+  // point as the decorative circles above, fully on the page.
+  const cornerWaveScale = htmlMm(0.46)
+  const cornerWaveLocalCenterX = 100
+  const cornerWaveLocalCenterY = 118
   page.drawSvgPath('M 40 118 Q 62 62 100 118 Q 138 174 160 118', {
-    x: layout.pageWidth - htmlMm(75),
-    y: htmlMm(15),
-    scale: 1.6,
-    borderColor: rgb(0.58, 0.85, 0.95),
-    borderWidth: 4,
+    x: cornerCenterX - cornerWaveLocalCenterX * cornerWaveScale,
+    y: cornerCenterY + cornerWaveLocalCenterY * cornerWaveScale,
+    scale: cornerWaveScale,
+    borderColor: cyan,
+    borderWidth: 5,
+    borderOpacity: 0.35,
+    borderLineCap: LineCapStyle.Round,
   })
 
   page.drawImage(logo, {
@@ -295,7 +305,7 @@ export const renderCertificatePdf = async (params: {
   const qrCardHeight = qrCardY + layout.qrCardSize - qrCardBottomY
 
   drawRightAlignedText(page, 'LITTUS GROUP AMERICA - ECCIA', {
-    rightX: layout.pageWidth - htmlMm(4),
+    rightX: layout.pageWidth - layout.contentX,
     y: qrCardY + layout.qrCardSize + 8,
     size: 8,
     font: bodySemiBoldFont,
@@ -339,7 +349,7 @@ export const renderCertificatePdf = async (params: {
     { x: mainX, y: eyebrowY - 212, maxWidth: htmlMm(154), size: 11.5, lineHeight: 18, font: bodyFont, color: muted },
   )
 
-  const detailY = eyebrowY - 250
+  const detailY = eyebrowY - 264
   drawTextAt(page, 'DURACIÓN', { x: mainX, y: detailY, size: 7.6, font: bodySemiBoldFont, color: muted, characterSpacing: 1.2 })
   drawTextAt(page, '2h', { x: mainX, y: detailY - 20, size: 13, font: titleFont, color: black })
   drawTextAt(page, 'FECHA', { x: mainX + htmlMm(32), y: detailY, size: 7.6, font: bodySemiBoldFont, color: muted, characterSpacing: 1.2 })
