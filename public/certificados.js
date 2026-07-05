@@ -120,7 +120,11 @@ form?.addEventListener("submit", async (event) => {
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(result.error || result.message || `Supabase respondió con estado ${response.status}.`);
+      // Only trust `result.error` — it's our own function's contract field.
+      // A platform-level failure (e.g. WORKER_RESOURCE_LIMIT) responds with
+      // Supabase's own {code, message} shape instead, and that `message` is
+      // raw infra text that must never reach the user directly.
+      throw new Error(result.error || "No se pudo completar la solicitud. Vuelve a intentarlo en unos minutos.");
     }
 
     form.reset();
