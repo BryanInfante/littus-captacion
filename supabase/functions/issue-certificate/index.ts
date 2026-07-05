@@ -235,7 +235,6 @@ export const renderCertificatePdf = async (params: {
   signatureMenaBytes: Uint8Array
   signatureAucancelaBytes: Uint8Array
 }) => {
-  console.error('DIAG render-start')
   const pdf = await PDFDocument.create()
   pdf.registerFontkit(fontkit)
   const page = pdf.addPage([842, 595])
@@ -244,16 +243,12 @@ export const renderCertificatePdf = async (params: {
     fetchFontBytes(INTER_REGULAR_URL),
     fetchFontBytes(INTER_SEMIBOLD_URL),
   ])
-  console.error(`DIAG fonts-fetched title=${titleFontBytes.byteLength} body=${bodyFontBytes.byteLength} semibold=${bodySemiBoldFontBytes.byteLength}`)
   const titleFont = await pdf.embedFont(titleFontBytes, { subset: true })
-  console.error('DIAG title-font-embedded')
   // Inter must NOT be subset: pdf-lib/@pdf-lib/fontkit's subsetter drops most
   // of its glyphs (confirmed by testing with subset: true vs false), leaving
   // certificates missing most lowercase letters. Space Grotesk subsets fine.
   const bodyFont = await pdf.embedFont(bodyFontBytes, { subset: false })
-  console.error('DIAG body-font-embedded')
   const bodySemiBoldFont = await pdf.embedFont(bodySemiBoldFontBytes, { subset: false })
-  console.error('DIAG semibold-font-embedded')
   const cyan = rgb(0, 174 / 255, 239 / 255)
   const black = rgb(0.04, 0.06, 0.08)
   const muted = rgb(0.32, 0.38, 0.45)
@@ -279,14 +274,10 @@ export const renderCertificatePdf = async (params: {
     cornerSize: htmlMm(130),
   }
 
-  console.error(`DIAG before-embed-images logoBytes=${params.logoBytes.byteLength} menaBytes=${params.signatureMenaBytes.byteLength} aucancelaBytes=${params.signatureAucancelaBytes.byteLength}`)
   const logo = await pdf.embedPng(params.logoBytes)
-  console.error('DIAG logo-embedded')
   const logoWidth = layout.logoHeight * (logo.width / logo.height)
   const signatureMena = await pdf.embedPng(params.signatureMenaBytes)
-  console.error('DIAG mena-embedded')
   const signatureAucancela = await pdf.embedPng(params.signatureAucancelaBytes)
-  console.error('DIAG aucancela-embedded')
 
   page.drawRectangle({ x: 0, y: 0, width: layout.pageWidth, height: layout.pageHeight, color: white })
   drawTopRuleGradient(page, { y: layout.pageHeight - layout.topRuleHeight, width: layout.pageWidth, height: layout.topRuleHeight })
@@ -707,13 +698,11 @@ Deno.serve(async (request) => {
     if (updateError || !renderingClaim) return jsonResponse({ error: 'No se pudo registrar el certificado.' }, 500)
     claim = renderingClaim
     try {
-      console.error('DIAG before-fetch-assets')
       const [logoBytes, signatureMenaBytes, signatureAucancelaBytes] = await Promise.all([
         fetchBrandLogo(baseUrl),
         fetchNextcloudFile(SIGNATURE_MENA_PATH),
         fetchNextcloudFile(SIGNATURE_AUCANCELA_PATH),
       ])
-      console.error(`DIAG after-fetch-assets logo=${logoBytes.byteLength} mena=${signatureMenaBytes.byteLength} aucancela=${signatureAucancelaBytes.byteLength}`)
       const pdfBytes = await renderCertificatePdf({
         fullName,
         certificateCode,
