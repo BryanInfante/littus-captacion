@@ -195,14 +195,17 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .claim-card { padding: var(--space-xl); border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: var(--eccia-surface); box-shadow: 0 24px 64px rgba(0,0,0,.2); }
 .claim-card h2 { margin-bottom: var(--space-xs); font-size: 1.75rem; }
 .claim-card > p:not(.form-kicker) { color: var(--eccia-muted); }
-.resource-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-lg); }
-.resource-card { display: grid; align-content: start; gap: var(--space-md); min-height: 300px; padding: var(--space-xl); border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: linear-gradient(180deg, rgba(0,174,239,.045), transparent 38%), var(--eccia-surface); }
-.resource-card__meta { display: flex; align-items: center; gap: var(--space-sm); }
-.resource-card__icon { display: inline-grid; place-items: center; flex: none; width: 48px; height: 48px; border: 1px solid var(--eccia-border-strong); border-radius: var(--eccia-layout-radius); background: var(--eccia-accent-soft); color: var(--eccia-accent); }
-.resource-card__icon svg { width: 24px; height: 24px; }
-.resource-card__index { color: var(--eccia-accent); font-family: var(--font-body); font-size: .8125rem; font-weight: 700; letter-spacing: .08em; }
-.resource-card p { color: var(--eccia-text-soft); }
-.resource-card .btn-secondary { align-self: end; justify-self: stretch; margin-top: auto; }
+.gift-feature { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 1.2fr); gap: clamp(var(--space-2xl), 6vw, var(--space-4xl)); align-items: center; }
+.gift-feature + .gift-feature { margin-top: clamp(var(--space-3xl), 8vw, var(--space-4xl)); }
+.gift-feature--reverse .gift-feature__media { order: 2; }
+/* The cover art is a dark poster on a dark page background, so the frame
+   needs its own border + radial cyan glow behind the image or the whole
+   thing visually disappears into the section background. */
+.gift-feature__media { margin: 0; display: grid; place-items: center; padding: var(--space-2xl); border: 1px solid rgba(0,174,239,.32); border-radius: var(--eccia-layout-radius); background: radial-gradient(ellipse 70% 65% at 50% 32%, rgba(0,174,239,.16), transparent 72%), var(--eccia-bg-soft); box-shadow: 0 28px 80px rgba(0,0,0,.35); }
+.gift-feature__media img { display: block; width: 100%; max-width: 240px; height: auto; border-radius: calc(var(--eccia-layout-radius) - 4px); box-shadow: 0 0 0 1px rgba(0,174,239,.24), 0 24px 60px rgba(0,0,0,.5); }
+.gift-feature__index { margin: 0 0 var(--space-xs); color: var(--eccia-accent); font-family: var(--font-body); font-size: .8125rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.gift-feature__copy > p:not(.gift-feature__index) { color: var(--eccia-text-soft); }
+.gift-feature .btn-primary { display: inline-flex; margin-top: var(--space-lg); }
 .course-next { overflow: hidden; padding: clamp(var(--space-3xl), 8vw, var(--space-4xl)) 0; background: radial-gradient(ellipse 65% 55% at 84% 36%, rgba(0,174,239,.18), transparent 72%), linear-gradient(180deg, var(--eccia-bg), var(--eccia-bg-soft)); }
 .course-next__layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); gap: clamp(var(--space-2xl), 6vw, var(--space-4xl)); align-items: center; }
 .course-next__media { position: relative; min-height: 520px; margin: 0; overflow: hidden; border: 1px solid var(--eccia-border-strong); border-radius: var(--eccia-layout-radius); background: var(--eccia-bg-soft); box-shadow: 0 28px 80px rgba(0,0,0,.28); }
@@ -310,7 +313,9 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 }
 .mobile-cta { display: none; }
 @media (max-width: 900px) {
-  .hero-editorial, .split-layout, .faq-layout, .speaker-layout, .footer-grid, .claim-layout, .course-next__layout { grid-template-columns: 1fr; }
+  .hero-editorial, .split-layout, .faq-layout, .speaker-layout, .footer-grid, .claim-layout, .course-next__layout, .gift-feature { grid-template-columns: 1fr; }
+  .gift-feature--reverse .gift-feature__media { order: initial; }
+  .gift-feature__media img { max-width: 200px; }
   .hero-editorial, .split-layout, .faq-layout, .speaker-layout { gap: var(--space-3xl); }
   .hero { min-height: auto; }
   .registration-rail { padding: var(--space-xl) 0 0; }
