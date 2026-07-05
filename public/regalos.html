@@ -247,6 +247,35 @@
       </div>
     </footer>
 
+    <dialog
+      class="registration-modal"
+      id="certificate-ready-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="certificate-ready-title"
+      aria-describedby="certificate-ready-description"
+    >
+      <div class="registration-modal__dialog">
+        <button class="registration-modal__close" type="button" data-certificate-modal-close aria-label="Cerrar aviso">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+        <p class="section-eyebrow">Certificado listo</p>
+        <h2 id="certificate-ready-title">Tu certificado está listo</h2>
+        <p id="certificate-ready-description">
+          Ya podés descargarlo directamente desde este enlace.
+        </p>
+        <div class="registration-modal__actions">
+          <a class="btn-primary" data-certificate-download-link href="#" target="_blank" rel="noopener noreferrer">
+            Descargar certificado
+          </a>
+        </div>
+        <p class="form-note">
+          También te lo enviaremos a tu correo. Revisa tu bandeja de entrada o
+          spam — puede tardar hasta 48 horas en llegar.
+        </p>
+      </div>
+    </dialog>
+
     <script src="certificados.js" defer></script>
   </body>
 </html>

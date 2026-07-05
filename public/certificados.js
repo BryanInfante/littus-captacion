@@ -1,6 +1,10 @@
 ﻿const form = document.querySelector("#certificado-form");
 const status = document.querySelector(".form-status");
 const spotlights = document.querySelectorAll("[data-spotlight]");
+const certificateModal = document.querySelector("#certificate-ready-modal");
+const certificateModalCloseButton = certificateModal?.querySelector("[data-certificate-modal-close]");
+const certificateDownloadLink = certificateModal?.querySelector("[data-certificate-download-link]");
+let previouslyFocusedElement = null;
 
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
 const ISSUE_CERTIFICATE_ENDPOINT =
@@ -12,6 +16,64 @@ const showStatus = (state, title, message) => {
   status.innerHTML = `<strong>${title}</strong>${message}`;
   status.focus();
 };
+
+const getCertificateModalFocusableElements = () =>
+  [...certificateModal.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+
+const openCertificateModal = (certificateUrl) => {
+  if (!certificateModal?.showModal) {
+    return;
+  }
+
+  if (certificateDownloadLink) {
+    certificateDownloadLink.href = certificateUrl;
+  }
+
+  previouslyFocusedElement = document.activeElement;
+  certificateModal.showModal();
+  certificateDownloadLink?.focus();
+};
+
+const closeCertificateModal = () => {
+  certificateModal?.close();
+};
+
+certificateModalCloseButton?.addEventListener("click", closeCertificateModal);
+
+certificateModal?.addEventListener("click", (event) => {
+  if (event.target === certificateModal) {
+    closeCertificateModal();
+  }
+});
+
+certificateModal?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeCertificateModal();
+    return;
+  }
+
+  if (event.key !== "Tab") {
+    return;
+  }
+
+  const focusableElements = getCertificateModalFocusableElements();
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+});
+
+certificateModal?.addEventListener("close", () => {
+  previouslyFocusedElement?.focus();
+  previouslyFocusedElement = null;
+});
 
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -55,8 +117,9 @@ form?.addEventListener("submit", async (event) => {
       showStatus(
         "success",
         "Certificado listo",
-        `Por alta demanda de hoy no pudimos enviarte el correo. Descárgalo directo desde este enlace: <a href="${result.certificate_url}" target="_blank" rel="noopener">${result.certificate_url}</a>`,
+        "Por alta demanda de hoy no pudimos enviarte el correo todavía. Descárgalo directo abajo.",
       );
+      openCertificateModal(result.certificate_url);
     } else {
       showStatus(
         "success",
