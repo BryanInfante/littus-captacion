@@ -4,6 +4,9 @@ const spotlights = document.querySelectorAll("[data-spotlight]");
 const certificateModal = document.querySelector("#certificate-ready-modal");
 const certificateModalCloseButton = certificateModal?.querySelector("[data-certificate-modal-close]");
 const certificateDownloadLink = certificateModal?.querySelector("[data-certificate-download-link]");
+const certificateModalTitle = certificateModal?.querySelector("#certificate-ready-title");
+const certificateModalDescription = certificateModal?.querySelector("#certificate-ready-description");
+const certificateModalNote = certificateModal?.querySelector("[data-certificate-modal-note]");
 let previouslyFocusedElement = null;
 
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
@@ -20,13 +23,22 @@ const showStatus = (state, title, message) => {
 const getCertificateModalFocusableElements = () =>
   [...certificateModal.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
 
-const openCertificateModal = (certificateUrl) => {
+const openCertificateModal = ({ certificateUrl, title, description, note }) => {
   if (!certificateModal?.showModal) {
     return;
   }
 
   if (certificateDownloadLink) {
     certificateDownloadLink.href = certificateUrl;
+  }
+  if (certificateModalTitle) {
+    certificateModalTitle.textContent = title;
+  }
+  if (certificateModalDescription) {
+    certificateModalDescription.textContent = description;
+  }
+  if (certificateModalNote) {
+    certificateModalNote.textContent = note;
   }
 
   previouslyFocusedElement = document.activeElement;
@@ -119,12 +131,29 @@ form?.addEventListener("submit", async (event) => {
         "Certificado listo",
         "Por alta demanda de hoy no pudimos enviarte el correo todavía. Descárgalo directo abajo.",
       );
-      openCertificateModal(result.certificate_url);
+      openCertificateModal({
+        certificateUrl: result.certificate_url,
+        title: "Tu certificado está listo",
+        description: "Por alta demanda de hoy no pudimos enviarte el correo todavía.",
+        note: "Igual te lo enviaremos por correo en cuanto se libere el cupo diario. Revisa tu bandeja de entrada o spam — puede tardar hasta 48 horas en llegar.",
+      });
+    } else if (result.status === "issued" || result.status === "already_issued") {
+      showStatus(
+        "success",
+        result.status === "already_issued" ? "Certificado ya generado" : "Certificado enviado",
+        "Revisa tu correo: te enviamos el enlace de descarga y validación del certificado.",
+      );
+      openCertificateModal({
+        certificateUrl: result.certificate_url,
+        title: result.status === "already_issued" ? "Tu certificado ya estaba generado" : "Tu certificado fue enviado",
+        description: "Te enviamos el certificado a tu correo.",
+        note: "Revisa tu bandeja de entrada o la carpeta de spam — a veces llega ahí. También puedes descargarlo directo abajo.",
+      });
     } else {
       showStatus(
         "success",
-        result.status === "already_issued" ? "Certificado ya generado" : "Certificado solicitado",
-        "Revisa tu correo: enviaremos el enlace de descarga y validación del certificado.",
+        "Certificado solicitado",
+        "En unos minutos recibirás el enlace de descarga y validación por correo.",
       );
     }
   } catch (error) {

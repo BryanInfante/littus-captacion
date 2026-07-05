@@ -214,6 +214,8 @@ Assert-Contains $certificateTemplate '{{codigo_certificado}}' "El template debe 
 
 Assert-Contains $clientScript 'issue-certificate' "El cliente debe llamar la Edge Function de emisión."
 Assert-Contains $clientScript 'issued_email_delayed' "El cliente debe mostrar el enlace de descarga directo cuando Resend está limitado y el correo no puede enviarse."
+Assert-Contains $clientScript 'openCertificateModal' "El cliente debe abrir un modal de confirmación con el certificado."
+Assert-Contains $clientScript 'result.status === "issued" || result.status === "already_issued"' "El modal de confirmación debe mostrarse también cuando el correo sí se envió, para recordar revisar spam."
 Assert-NotContains $clientScript 'eccia_masterclass_certificados' "El cliente ya no debe insertar directo en la tabla."
 Assert-NotContains $validationPage 'SUPABASE_SERVICE_ROLE_KEY' "La página pública no debe exponer service role key."
 Assert-NotContains $validationPage 'SUPABASE_SECRET_KEYS' "La página pública no debe exponer secretos Supabase."
