@@ -419,14 +419,80 @@ const ensureNextcloudDirectory = async (path: string) => {
   }
 }
 
-const renderCertificateEmail = (fullName: string, certificateUrl: string, validationUrl: string) => `<!doctype html>
-<html lang="es"><body style="font-family:Arial,sans-serif;color:#111318">
-  <h1>Tu certificado está listo</h1>
-  <p>Hola ${fullName.split(/\s+/)[0] || 'profesional'},</p>
-  <p>Tu certificado de asistencia al ${EVENT_TITLE.toLowerCase()} ya fue generado.</p>
-  <p><a href="${certificateUrl}">Descargar certificado</a></p>
-  <p><a href="${validationUrl}">Validar certificado</a></p>
-</body></html>`
+const escapeHtml = (value: string) =>
+  value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+      })[character] ?? character,
+  )
+
+// Matches the visual system used by send-registration-confirmation and
+// send-workshop-reminder (dark header with logo, cyan eyebrow, bordered detail
+// card, cyan primary CTA, dark footer) so all ECCIA transactional emails read
+// as one product. This is an operational email (sent regardless of marketing
+// consent) — it must stay a thank-you/delivery note, not a promotional pitch
+// for other courses or offers; those only go out through the Resend
+// segment/topic for contacts who opted in (see EMAIL_OPERATIONS.md).
+const renderCertificateEmail = (fullName: string, certificateUrl: string, validationUrl: string, certificateCode: string) => {
+  const firstName = escapeHtml(fullName.trim().split(/\s+/)[0] || 'profesional')
+  const safeFullName = escapeHtml(fullName)
+  const safeCode = escapeHtml(certificateCode)
+
+  return `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>Tu certificado ECCIA está listo</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f3f5f7;color:#111318;font-family:Arial,Helvetica,sans-serif">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Gracias por participar en el ${EVENT_TITLE}. Tu certificado de asistencia ya está disponible.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f3f5f7">
+      <tr><td align="center" style="padding:32px 16px">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;overflow:hidden;border:1px solid #d9dee3;border-radius:8px;background:#fff">
+          <tr><td style="padding:24px 32px;background:#0A0E13">
+            <img src="https://preinscripcion.littusgroup.com/brand/assets/logo-dark.png" width="190" alt="ECCIA, división de Littus Group America" style="display:block;width:190px;max-width:100%;height:auto;border:0" />
+          </td></tr>
+          <tr><td style="padding:40px 32px 16px">
+            <p style="margin:0 0 12px;color:#00AEEF;font-size:12px;font-weight:700;line-height:1.4;letter-spacing:1.5px;text-transform:uppercase">Certificado de asistencia</p>
+            <h1 style="margin:0;color:#111318;font-size:30px;font-weight:700;line-height:1.2;letter-spacing:-.6px">¡Gracias por acompañarnos, ${firstName}!</h1>
+          </td></tr>
+          <tr><td style="padding:16px 32px 40px;color:#2D333B;font-size:16px;line-height:1.7">
+            <p style="margin:0 0 20px">Fue un gusto contar con tu participación en el <strong>${EVENT_TITLE}</strong>. Esperamos que los fundamentos del ultrasonido y la interpretación del Scan-A te sean de mucha utilidad en tu día a día.</p>
+            <p style="margin:0 0 20px">Tu certificado ya está listo a nombre de <strong>${safeFullName}</strong>:</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px;border:1px solid #D9DEE3;border-radius:8px"><tr><td style="padding:20px 22px">
+              <p style="margin:0 0 8px"><strong>Duración:</strong> 2h</p>
+              <p style="margin:0 0 8px"><strong>Fecha:</strong> 03 de julio de 2026</p>
+              <p style="margin:0"><strong>Código:</strong> ${safeCode}</p>
+            </td></tr></table>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px">
+              <tr><td style="padding:0 0 12px">
+                <a href="${certificateUrl}" target="_blank" rel="noopener noreferrer" style="display:block;padding:14px 20px;border-radius:8px;background:#00AEEF;color:#061018;font-weight:700;line-height:1.4;text-align:center;text-decoration:none">Descargar certificado</a>
+              </td></tr>
+              <tr><td>
+                <a href="${validationUrl}" target="_blank" rel="noopener noreferrer" style="display:block;padding:13px 20px;border:1px solid #2D333B;border-radius:8px;color:#111318;font-weight:700;line-height:1.4;text-align:center;text-decoration:none">Validar certificado</a>
+              </td></tr>
+            </table>
+            <p style="margin:0">Si necesitas ayuda con tu certificado, responde directamente a este correo.</p>
+          </td></tr>
+          <tr><td style="padding:28px 32px;border-top:1px solid #1E2329;background:#0A0E13">
+            <p style="margin:0 0 8px;color:#F0F6FC;font-size:13px;font-weight:700;line-height:1.5">ECCIA · Littus Group America</p>
+            <p style="margin:0;color:#C9D1D9;font-size:12px;line-height:1.6">Este es un mensaje operativo relacionado con tu certificado de asistencia.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`
+}
 
 const sendCertificateEmail = async (params: {
   email: string
@@ -447,8 +513,8 @@ const sendCertificateEmail = async (params: {
       from: FROM,
       to: [params.email],
       reply_to: REPLY_TO,
-      subject: 'Tu certificado ECCIA está listo',
-      html: renderCertificateEmail(params.fullName, params.certificateUrl, params.validationUrl),
+      subject: '¡Gracias por participar! Tu certificado ECCIA está listo',
+      html: renderCertificateEmail(params.fullName, params.certificateUrl, params.validationUrl, params.certificateCode),
       tags: [{ name: 'email_type', value: 'certificate_delivery' }],
     }),
   })
