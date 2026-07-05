@@ -12,6 +12,9 @@ let previouslyFocusedElement = null;
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
 const ISSUE_CERTIFICATE_ENDPOINT =
   "https://qfbhyzynpyqqcpuuibod.supabase.co/functions/v1/issue-certificate";
+const SUPPORT_EMAIL = "formanager@littusgroup.com";
+const SUPPORT_EMAIL_RETRY_THRESHOLD = 3;
+let failedCertificateAttempts = 0;
 
 const showStatus = (state, title, message) => {
   status.dataset.state = state;
@@ -128,6 +131,7 @@ form?.addEventListener("submit", async (event) => {
     }
 
     form.reset();
+    failedCertificateAttempts = 0;
 
     if (result.status === "issued_email_delayed") {
       showStatus(
@@ -162,11 +166,13 @@ form?.addEventListener("submit", async (event) => {
     }
   } catch (error) {
     console.error("No se pudo solicitar el certificado.", error);
-    showStatus(
-      "error",
-      "No pudimos generar tu certificado",
-      error.message || "Revisa tu conexión e intenta nuevamente en unos minutos.",
-    );
+    failedCertificateAttempts += 1;
+    const baseMessage = error.message || "Revisa tu conexión e intenta nuevamente en unos minutos.";
+    const supportHint =
+      failedCertificateAttempts >= SUPPORT_EMAIL_RETRY_THRESHOLD
+        ? ` Si ya lo intentaste varias veces sin éxito, escríbenos a <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> y te ayudamos directamente.`
+        : "";
+    showStatus("error", "No pudimos generar tu certificado", baseMessage + supportHint);
   } finally {
     form.removeAttribute("aria-busy");
     submitButton.disabled = false;
