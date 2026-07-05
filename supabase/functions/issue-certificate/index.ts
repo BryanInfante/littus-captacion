@@ -30,7 +30,16 @@ const fetchFontBytes = async (url: string) => {
 type IssueRequest = {
   nombre_completo?: string
   correo?: string
+  // TEMPORARY: one-off maintenance trigger to (re)build the static
+  // certificate template after changing the signature images or the
+  // template layout. Remove this field and the branch that checks it in
+  // Deno.serve once the template has been rebuilt.
+  admin_build_template_token?: string
 }
+
+// TEMPORARY: random one-off token, not meant to be long-lived. Remove this
+// constant together with the admin_build_template_token branch below.
+const ADMIN_BUILD_TEMPLATE_TOKEN = '9aae5748d15e2e8ec6435f53b0b1b81f112e277a834abbb6'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,6 +101,15 @@ const fetchBrandLogo = async (baseUrl: string) => {
 // certificates and are fetched over authenticated WebDAV at render time.
 const SIGNATURE_MENA_PATH = 'firmas/firma_mena.png'
 const SIGNATURE_AUCANCELA_PATH = 'firmas/firma_aucancela.png'
+
+// The base template (logo, signatures, decorations, and every static label
+// already baked in) is built once via ADMIN_BUILD_TEMPLATE_TOKEN and stored
+// here. Per-request rendering only loads this and stamps the 3 fields that
+// actually vary (name, QR, certificate code) — it no longer re-embeds the
+// logo, both signature PNGs, and two full non-subsetted Inter fonts on every
+// single issuance, which was pushing the Edge Function's compute budget over
+// the edge intermittently (WORKER_RESOURCE_LIMIT, HTTP 546).
+const CERTIFICATE_TEMPLATE_PATH = 'templates/certificate-base.pdf'
 
 const fetchNextcloudFile = async (path: string) => {
   const webdavUrl = requiredEnv('NEXTCLOUD_WEBDAV_URL').replace(/\/$/, '')
@@ -226,11 +244,31 @@ const drawTopRuleGradient = (page: ReturnType<PDFDocument['addPage']>, params: {
   }
 }
 
-export const renderCertificatePdf = async (params: {
-  fullName: string
-  certificateCode: string
-  validationUrl: string
-  qrCodeDataUri: string
+const buildLayout = () => ({
+  pageWidth: 842,
+  pageHeight: 595,
+  topRuleHeight: htmlMm(3),
+  contentX: htmlMm(22),
+  contentTop: htmlMm(12),
+  contentBottom: htmlMm(14),
+  logoHeight: htmlMm(30),
+  logoShiftY: 12,
+  qrCardSize: htmlMm(43),
+  qrCardPadding: htmlMm(3),
+  qrImageSize: htmlMm(31),
+  qrCaptionBottomPadding: htmlMm(3),
+  mainTop: 184 - htmlMm(12.5),
+  signatureSpaceHeight: htmlMm(18),
+  signatureLineWidth: htmlMm(72),
+  cornerSize: htmlMm(130),
+})
+
+// Builds everything that is IDENTICAL across every certificate of this event
+// (logo, decorations, signature images, and every static label) into a base
+// PDF. Run once via the ADMIN_BUILD_TEMPLATE_TOKEN maintenance path and
+// stored in Nextcloud — `stampCertificate` loads it and only draws the 3
+// fields that actually vary per person (name, QR, certificate code).
+export const buildCertificateTemplate = async (params: {
   logoBytes: Uint8Array
   signatureMenaBytes: Uint8Array
   signatureAucancelaBytes: Uint8Array
@@ -255,24 +293,7 @@ export const renderCertificatePdf = async (params: {
   const lightBorder = rgb(0.91, 0.93, 0.94)
   const white = rgb(1, 1, 1)
 
-  const layout = {
-    pageWidth: 842,
-    pageHeight: 595,
-    topRuleHeight: htmlMm(3),
-    contentX: htmlMm(22),
-    contentTop: htmlMm(12),
-    contentBottom: htmlMm(14),
-    logoHeight: htmlMm(30),
-    logoShiftY: 12,
-    qrCardSize: htmlMm(43),
-    qrCardPadding: htmlMm(3),
-    qrImageSize: htmlMm(31),
-    qrCaptionBottomPadding: htmlMm(3),
-    mainTop: 184 - htmlMm(12.5),
-    signatureSpaceHeight: htmlMm(18),
-    signatureLineWidth: htmlMm(72),
-    cornerSize: htmlMm(130),
-  }
+  const layout = buildLayout()
 
   const logo = await pdf.embedPng(params.logoBytes)
   const logoWidth = layout.logoHeight * (logo.width / logo.height)
@@ -312,12 +333,11 @@ export const renderCertificatePdf = async (params: {
     height: layout.logoHeight,
   })
 
-  const qrBase64 = params.qrCodeDataUri.split(',')[1]
-  const qrBytes = Uint8Array.from(atob(qrBase64), (char) => char.charCodeAt(0))
-  const qr = await pdf.embedPng(qrBytes)
+  // QR card background/border and its static captions are baked in here; the
+  // actual QR bitmap and the "Código: X" line vary per person and are drawn
+  // later by `stampCertificate` directly on top of this same card area.
   const qrCardX = layout.pageWidth - layout.contentX - layout.qrCardSize
   const qrCardY = layout.pageHeight - layout.contentTop - htmlMm(10) - layout.qrCardSize
-  const qrX = qrCardX + (layout.qrCardSize - layout.qrImageSize) / 2
   const qrY = qrCardY + layout.qrCardSize - layout.qrCardPadding - layout.qrImageSize
   const qrCenterX = qrCardX + layout.qrCardSize / 2
   // The card must enclose the QR image plus all four caption lines below it
@@ -346,11 +366,9 @@ export const renderCertificatePdf = async (params: {
     borderColor: lightBorder,
     borderWidth: 1,
   })
-  page.drawImage(qr, { x: qrX, y: qrY, width: layout.qrImageSize, height: layout.qrImageSize })
   centerTextUnderQr(page, 'VALIDACIÓN DEL', { centerX: qrCenterX, y: qrY - 22, size: 6.6, font: bodySemiBoldFont, color: black })
   centerTextUnderQr(page, 'CERTIFICADO', { centerX: qrCenterX, y: qrY - 30, size: 6.6, font: bodySemiBoldFont, color: black })
   centerTextUnderQr(page, 'Escanea para validar', { centerX: qrCenterX, y: qrY - 42, size: 6.1, font: bodyFont, color: muted })
-  centerTextUnderQr(page, `Código: ${params.certificateCode}`, { centerX: qrCenterX, y: qrY - 52, size: 5.6, font: bodyFont, color: muted })
 
   const mainX = layout.contentX
   const eyebrowY = layout.pageHeight - layout.mainTop
@@ -361,8 +379,10 @@ export const renderCertificatePdf = async (params: {
   drawTextAt(page, 'Industrial Nivel I', { x: mainX, y: eyebrowY - 86, size: 32, font: titleFont, color: black })
   drawTextAt(page, 'otorgado a', { x: mainX, y: eyebrowY - 127, size: 11, font: bodyFont, color: muted })
 
-  const nameSize = params.fullName.length > 34 ? 22 : params.fullName.length > 26 ? 25 : 27
-  drawTextAt(page, params.fullName, { x: mainX, y: eyebrowY - 163, size: nameSize, font: titleFont, color: black })
+  // The name itself is dynamic (content + size) and is drawn later by
+  // `stampCertificate` at the same `eyebrowY - 163` baseline. The divider
+  // rectangles below it are at a fixed position regardless of the name, so
+  // they stay part of the static template.
   page.drawRectangle({ x: mainX, y: eyebrowY - 176, width: htmlMm(44), height: 3, color: cyan })
   page.drawRectangle({ x: mainX + htmlMm(28), y: eyebrowY - 176, width: htmlMm(16), height: 3, color: black, opacity: 0.85 })
 
@@ -398,6 +418,46 @@ export const renderCertificatePdf = async (params: {
 
   drawSignature(signatureLeftX, 'Ing. Edison Mena', 'Gerente Técnico Ecuador', signatureMena)
   drawSignature(signatureRightX, 'Ing. Marco Aucancela', 'Gerente Regional', signatureAucancela)
+
+  return pdf.save()
+}
+
+// Loads the pre-built template (see `buildCertificateTemplate`) and stamps
+// only the 3 fields that vary per person: name, QR image, and the
+// certificate code caption under it. Reuses `titleFont` (already needed for
+// the name) for the code caption too, so this path never re-embeds the
+// logo, signatures, or the two full Inter font files.
+export const stampCertificate = async (params: {
+  templateBytes: Uint8Array
+  fullName: string
+  certificateCode: string
+  qrCodeDataUri: string
+}) => {
+  const pdf = await PDFDocument.load(params.templateBytes)
+  pdf.registerFontkit(fontkit)
+  const page = pdf.getPage(0)
+  const black = rgb(0.04, 0.06, 0.08)
+  const muted = rgb(0.32, 0.38, 0.45)
+  const layout = buildLayout()
+
+  const titleFontBytes = await fetchFontBytes(SPACE_GROTESK_BOLD_URL)
+  const titleFont = await pdf.embedFont(titleFontBytes, { subset: true })
+
+  const mainX = layout.contentX
+  const eyebrowY = layout.pageHeight - layout.mainTop
+  const nameSize = params.fullName.length > 34 ? 22 : params.fullName.length > 26 ? 25 : 27
+  drawTextAt(page, params.fullName, { x: mainX, y: eyebrowY - 163, size: nameSize, font: titleFont, color: black })
+
+  const qrBase64 = params.qrCodeDataUri.split(',')[1]
+  const qrBytes = Uint8Array.from(atob(qrBase64), (char) => char.charCodeAt(0))
+  const qr = await pdf.embedPng(qrBytes)
+  const qrCardX = layout.pageWidth - layout.contentX - layout.qrCardSize
+  const qrCardY = layout.pageHeight - layout.contentTop - htmlMm(10) - layout.qrCardSize
+  const qrX = qrCardX + (layout.qrCardSize - layout.qrImageSize) / 2
+  const qrY = qrCardY + layout.qrCardSize - layout.qrCardPadding - layout.qrImageSize
+  const qrCenterX = qrCardX + layout.qrCardSize / 2
+  page.drawImage(qr, { x: qrX, y: qrY, width: layout.qrImageSize, height: layout.qrImageSize })
+  centerTextUnderQr(page, `Código: ${params.certificateCode}`, { centerX: qrCenterX, y: qrY - 52, size: 5.6, font: titleFont, color: muted })
 
   return pdf.save()
 }
@@ -575,6 +635,21 @@ Deno.serve(async (request) => {
     if (!supabaseSecretKey) return jsonResponse({ error: 'La función no está configurada.' }, 500)
 
     const payload = (await request.json().catch(() => null)) as IssueRequest | null
+
+    // TEMPORARY: see ADMIN_BUILD_TEMPLATE_TOKEN above — remove this branch
+    // once the static template has been (re)built.
+    if (payload?.admin_build_template_token === ADMIN_BUILD_TEMPLATE_TOKEN) {
+      const [logoBytes, signatureMenaBytes, signatureAucancelaBytes] = await Promise.all([
+        fetchBrandLogo(requiredEnv('CERTIFICATE_PUBLIC_BASE_URL')),
+        fetchNextcloudFile(SIGNATURE_MENA_PATH),
+        fetchNextcloudFile(SIGNATURE_AUCANCELA_PATH),
+      ])
+      const templateBytes = await buildCertificateTemplate({ logoBytes, signatureMenaBytes, signatureAucancelaBytes })
+      const uploadTemplate = uploadCertificateToNextcloud
+      await uploadTemplate(CERTIFICATE_TEMPLATE_PATH, templateBytes)
+      return jsonResponse({ status: 'template_built', bytes: templateBytes.byteLength })
+    }
+
     if (!payload?.nombre_completo || !payload?.correo) return jsonResponse({ error: 'Solicitud inválida.' }, 400)
 
     const fullName = normalizeName(payload.nombre_completo)
@@ -698,19 +773,12 @@ Deno.serve(async (request) => {
     if (updateError || !renderingClaim) return jsonResponse({ error: 'No se pudo registrar el certificado.' }, 500)
     claim = renderingClaim
     try {
-      const [logoBytes, signatureMenaBytes, signatureAucancelaBytes] = await Promise.all([
-        fetchBrandLogo(baseUrl),
-        fetchNextcloudFile(SIGNATURE_MENA_PATH),
-        fetchNextcloudFile(SIGNATURE_AUCANCELA_PATH),
-      ])
-      const pdfBytes = await renderCertificatePdf({
+      const templateBytes = await fetchNextcloudFile(CERTIFICATE_TEMPLATE_PATH)
+      const pdfBytes = await stampCertificate({
+        templateBytes,
         fullName,
         certificateCode,
-        validationUrl,
         qrCodeDataUri,
-        logoBytes,
-        signatureMenaBytes,
-        signatureAucancelaBytes,
       })
       const nextcloudPath = `masterclass-ultrasonido-nivel-i/2026/${certificateCode}.pdf`
       await uploadCertificateToNextcloud(nextcloudPath, pdfBytes)
