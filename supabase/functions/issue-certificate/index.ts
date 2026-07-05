@@ -1,7 +1,7 @@
 ﻿import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib'
-import fontkit from 'npm:fontkit'
+import fontkit from 'npm:@pdf-lib/fontkit'
 import QRCode from 'npm:qrcode'
 
 const RESEND_API_URL = 'https://api.resend.com'
@@ -11,9 +11,15 @@ const MASTERCLASS_CODE = 'ultrasonido-industrial-scan-a'
 const FROM = 'ECCIA <gestioneccia@mail.littusgroup.com>'
 const REPLY_TO = 'formanager@littusgroup.com'
 const EVENT_TITLE = 'Seminario de Ultrasonido Industrial Nivel I'
-const SPACE_GROTESK_BOLD_URL = 'https://github.com/google/fonts/raw/main/ofl/spacegrotesk/SpaceGrotesk-Bold.ttf'
-const INTER_REGULAR_URL = 'https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf'
-const INTER_SEMIBOLD_URL = 'https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf'
+// Static per-weight instances served directly by Google Fonts' CDN (not the
+// variable-font files from the google/fonts source repo). Needed because
+// pdf-lib/@pdf-lib/fontkit's glyph subsetting silently drops most of Inter's
+// glyphs when subsetting its variable font; embedding a static weight avoids
+// that specific glyph-table bug, and these URLs are stable production assets
+// (the same ones browsers fetch), unlike the source repo's file layout.
+const SPACE_GROTESK_BOLD_URL = 'https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj4PVksjNsdjTQ.ttf'
+const INTER_REGULAR_URL = 'https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZhrj72A.ttf'
+const INTER_SEMIBOLD_URL = 'https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYMZhrj72A.ttf'
 
 const fetchFontBytes = async (url: string) => {
   const response = await fetch(url)
@@ -217,8 +223,11 @@ export const renderCertificatePdf = async (params: {
     fetchFontBytes(INTER_SEMIBOLD_URL),
   ])
   const titleFont = await pdf.embedFont(titleFontBytes, { subset: true })
-  const bodyFont = await pdf.embedFont(bodyFontBytes, { subset: true })
-  const bodySemiBoldFont = await pdf.embedFont(bodySemiBoldFontBytes, { subset: true })
+  // Inter must NOT be subset: pdf-lib/@pdf-lib/fontkit's subsetter drops most
+  // of its glyphs (confirmed by testing with subset: true vs false), leaving
+  // certificates missing most lowercase letters. Space Grotesk subsets fine.
+  const bodyFont = await pdf.embedFont(bodyFontBytes, { subset: false })
+  const bodySemiBoldFont = await pdf.embedFont(bodySemiBoldFontBytes, { subset: false })
   const cyan = rgb(0, 174 / 255, 239 / 255)
   const black = rgb(0.04, 0.06, 0.08)
   const muted = rgb(0.32, 0.38, 0.45)
