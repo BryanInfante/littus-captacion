@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Certificado ECCIA para Ultrasonido Industrial Nivel I." />
+    <title>Certificado de asistencia | ECCIA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --ink: #0d1520;
+        --slate: #55636f;
+        --slate-light: #93a0ac;
+        --navy: #0a1a2b;
+        --teal: #00b6e8;
+        --lime: #b7e14a;
+        --paper: #ffffff;
+        --hairline: #e7eaed;
+      }
+
+      @page { size: A4 landscape; margin: 0; }
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: #d7dee4;
+        color: var(--ink);
+        font-family: "Inter", sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .certificate {
+        position: relative;
+        width: 297mm;
+        height: 210mm;
+        overflow: hidden;
+        background: var(--paper);
+        box-shadow: 0 30px 90px rgba(7, 22, 38, 0.24);
+      }
+
+      /* Acento geométrico esquina inferior derecha */
+      .corner-shape {
+        position: absolute;
+        right: -18mm;
+        bottom: -28mm;
+        width: 130mm;
+        height: 130mm;
+        z-index: 0;
+      }
+
+      .top-rule {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3mm;
+        background: linear-gradient(90deg, var(--navy) 0%, var(--teal) 55%, var(--lime) 100%);
+        z-index: 3;
+      }
+
+      .certificate__content {
+        position: relative;
+        z-index: 2;
+        height: 100%;
+        padding: 14mm 22mm 14mm;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+
+      .certificate__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand-mark {
+        display: flex;
+        align-items: center;
+        gap: 3.5mm;
+      }
+      .brand-mark__icon { width: 10.5mm; height: 10.5mm; flex-shrink: 0; }
+      .brand-mark__text { display: grid; line-height: 1.1; }
+      .brand-mark__text strong {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 12pt;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .brand-mark__text span {
+        font-size: 7.2pt;
+        font-weight: 600;
+        color: var(--teal);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .header-tag {
+        color: var(--slate-light);
+        font-size: 8pt;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .certificate__main {
+        display: grid;
+        align-content: center;
+        justify-items: start;
+        text-align: left;
+        max-width: 175mm;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 3mm;
+        margin: 0 0 5mm;
+        color: var(--teal);
+        font-size: 9.5pt;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 8mm;
+        height: 2px;
+        background: var(--navy);
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--navy);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 32pt;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.06;
+      }
+
+      .awarded-to {
+        margin: 9mm 0 2.5mm;
+        color: var(--slate);
+        font-size: 11pt;
+        font-weight: 500;
+      }
+
+      .recipient {
+        margin: 0;
+        color: var(--navy);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 27pt;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.12;
+      }
+
+      .recipient-underline {
+        width: 42mm;
+        height: 3px;
+        margin: 4mm 0 0;
+        background: linear-gradient(90deg, var(--teal) 0%, var(--lime) 100%);
+      }
+
+      .description {
+        max-width: 152mm;
+        margin: 6.5mm 0 0;
+        color: var(--slate);
+        font-size: 11.5pt;
+        line-height: 1.6;
+      }
+
+      .details {
+        display: flex;
+        gap: 16mm;
+        margin-top: 8mm;
+      }
+      .detail { display: grid; gap: 1mm; }
+      .detail span {
+        color: var(--slate-light);
+        font-size: 7.6pt;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .detail strong {
+        color: var(--navy);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 13pt;
+        font-weight: 700;
+      }
+
+      .certificate__footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14mm;
+        align-items: end;
+        min-height: 30mm;
+      }
+
+      .signature {
+        display: grid;
+        justify-items: start;
+        gap: 1.2mm;
+        color: var(--slate);
+        text-align: left;
+      }
+
+      .signature__line {
+        width: 62mm;
+        height: 2px;
+        margin-bottom: 4mm;
+        background: var(--navy);
+      }
+
+      .signature strong {
+        color: var(--navy);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 12.5pt;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .signature__role {
+        display: block;
+        color: var(--teal);
+        font-size: 8.8pt;
+        font-weight: 600;
+      }
+      .signature span.reg {
+        color: var(--slate-light);
+        font-size: 8.3pt;
+      }
+
+      @media print {
+        body { display: block; padding: 0; background: #fff; }
+        .certificate { width: 297mm; height: 210mm; box-shadow: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <article class="certificate" aria-label="Certificado de asistencia ECCIA">
+      <div class="top-rule" aria-hidden="true"></div>
+      <svg class="corner-shape" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="100" cy="100" r="98" fill="none" stroke="#e7eaed" stroke-width="1.4"/>
+        <circle cx="100" cy="100" r="72" fill="none" stroke="#e7eaed" stroke-width="1.4"/>
+        <path d="M40 118 Q 62 62 100 118 Q 138 174 160 118" fill="none" stroke="#00B6E8" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+      </svg>
+
+      <div class="certificate__content">
+        <header class="certificate__header">
+          <div class="brand-mark">
+            <svg class="brand-mark__icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="50" cy="50" r="47" fill="none" stroke="#00B6E8" stroke-width="4"/>
+              <path d="M26 55 Q 36 28 50 55 Q 64 82 74 55" fill="none" stroke="#0A1A2B" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <div class="brand-mark__text">
+              <strong>ECCIA</strong>
+              <span>Littus Group America</span>
+            </div>
+          </div>
+          <span class="header-tag">Ecuador</span>
+        </header>
+
+        <main class="certificate__main">
+          <p class="eyebrow">Certificado de asistencia</p>
+          <h1>Curso de Ultrasonido Industrial Nivel I</h1>
+          <p class="awarded-to">otorgado a</p>
+          <p class="recipient">{{nombre_completo}}</p>
+          <div class="recipient-underline" aria-hidden="true"></div>
+          <p class="description">
+            Por su participación en el curso de Ultrasonido Industrial Nivel I, con enfoque en los fundamentos del ultrasonido y la interpretación del Scan-A.
+          </p>
+          <div class="details" aria-label="Duración y fecha">
+            <div class="detail">
+              <span>Duración</span>
+              <strong>2 horas</strong>
+            </div>
+            <div class="detail">
+              <span>Fecha</span>
+              <strong>03 de julio de 2026</strong>
+            </div>
+          </div>
+        </main>
+
+        <footer class="certificate__footer">
+          <div class="signature">
+            <span class="signature__line" aria-hidden="true"></span>
+            <strong>Ing. Edison Mena</strong>
+            <span class="signature__role">Gerente Técnico Ecuador</span>
+          </div>
+          <div class="signature">
+            <span class="signature__line" aria-hidden="true"></span>
+            <strong>Ing. Marco Aucancela</strong>
+            <span class="signature__role">Inspector ASNT Nivel III</span>
+            <span class="reg">Registro 175531</span>
+          </div>
+        </footer>
+      </div>
+    </article>
+  </body>
+</html>
