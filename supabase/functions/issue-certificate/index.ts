@@ -30,16 +30,7 @@ const fetchFontBytes = async (url: string) => {
 type IssueRequest = {
   nombre_completo?: string
   correo?: string
-  // TEMPORARY: one-off maintenance trigger to (re)build the static
-  // certificate template after changing the signature images or the
-  // template layout. Remove this field and the branch that checks it in
-  // Deno.serve once the template has been rebuilt.
-  admin_build_template_token?: string
 }
-
-// TEMPORARY: random one-off token, not meant to be long-lived. Remove this
-// constant together with the admin_build_template_token branch below.
-const ADMIN_BUILD_TEMPLATE_TOKEN = '9aae5748d15e2e8ec6435f53b0b1b81f112e277a834abbb6'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -103,7 +94,7 @@ const SIGNATURE_MENA_PATH = 'firmas/firma_mena.png'
 const SIGNATURE_AUCANCELA_PATH = 'firmas/firma_aucancela.png'
 
 // The base template (logo, signatures, decorations, and every static label
-// already baked in) is built once via ADMIN_BUILD_TEMPLATE_TOKEN and stored
+// already baked in) is built once via buildCertificateTemplate and stored
 // here. Per-request rendering only loads this and stamps the 3 fields that
 // actually vary (name, QR, certificate code) — it no longer re-embeds the
 // logo, both signature PNGs, and two full non-subsetted Inter fonts on every
@@ -265,8 +256,8 @@ const buildLayout = () => ({
 
 // Builds everything that is IDENTICAL across every certificate of this event
 // (logo, decorations, signature images, and every static label) into a base
-// PDF. Run once via the ADMIN_BUILD_TEMPLATE_TOKEN maintenance path and
-// stored in Nextcloud — `stampCertificate` loads it and only draws the 3
+// PDF. Run once as a one-off maintenance call and stored in Nextcloud —
+// `stampCertificate` loads it and only draws the 3
 // fields that actually vary per person (name, QR, certificate code).
 export const buildCertificateTemplate = async (params: {
   logoBytes: Uint8Array
@@ -635,21 +626,6 @@ Deno.serve(async (request) => {
     if (!supabaseSecretKey) return jsonResponse({ error: 'La función no está configurada.' }, 500)
 
     const payload = (await request.json().catch(() => null)) as IssueRequest | null
-
-    // TEMPORARY: see ADMIN_BUILD_TEMPLATE_TOKEN above — remove this branch
-    // once the static template has been (re)built.
-    if (payload?.admin_build_template_token === ADMIN_BUILD_TEMPLATE_TOKEN) {
-      const [logoBytes, signatureMenaBytes, signatureAucancelaBytes] = await Promise.all([
-        fetchBrandLogo(requiredEnv('CERTIFICATE_PUBLIC_BASE_URL')),
-        fetchNextcloudFile(SIGNATURE_MENA_PATH),
-        fetchNextcloudFile(SIGNATURE_AUCANCELA_PATH),
-      ])
-      const templateBytes = await buildCertificateTemplate({ logoBytes, signatureMenaBytes, signatureAucancelaBytes })
-      const uploadTemplate = uploadCertificateToNextcloud
-      await uploadTemplate(CERTIFICATE_TEMPLATE_PATH, templateBytes)
-      return jsonResponse({ status: 'template_built', bytes: templateBytes.byteLength })
-    }
-
     if (!payload?.nombre_completo || !payload?.correo) return jsonResponse({ error: 'Solicitud inválida.' }, 400)
 
     const fullName = normalizeName(payload.nombre_completo)
