@@ -80,3 +80,30 @@ consentimiento opcional.
 La confirmación usa una clave de idempotencia vinculada al identificador de la
 inscripción y registra en Supabase el ID de Resend, la fecha de envío y el
 último error. No usa Contacts, Segments, Topics ni enlaces de baja promocional.
+
+## Funciones temporales desplegadas (pendientes de borrar)
+
+Para el lanzamiento del curso **UT Nivel I** (asunto "Lanzamiento curso de
+Ultrasonido Nivel I") se desplegaron dos Edge Functions de un solo uso vía el
+MCP de Supabase. El MCP puede desplegar funciones pero **no borrarlas**, así que
+quedaron en el proyecto remoto y **ya fueron deshabilitadas** (redeplegadas como
+stubs que devuelven `410 Gone`; ya no leen `RESEND_API_KEY` ni envían nada).
+
+| Función | Uso original | Estado |
+| --- | --- | --- |
+| `send-ut1-test` | Envío de una copia de prueba del correo al dueño del proyecto. | Deshabilitada (410) |
+| `send-ut1-broadcast` | Creó y envió el broadcast a `segment_id` del segmento de consentimiento vía la Resend Broadcasts API. | Deshabilitada (410) |
+
+El envío promocional real se hace con la **Resend Broadcasts API**
+(`POST /broadcasts` con `segment_id`, luego `POST /broadcasts/{id}/send`), nunca
+con el endpoint crudo `/emails`: solo los Broadcasts resuelven
+`{{{RESEND_UNSUBSCRIBE_URL}}}` y `{{{contact.first_name}}}`, y `segment_id`
+garantiza alcanzar solo a contactos con consentimiento. La plantilla usada vive
+en `emails/eccia-ut1-lanzamiento.html`.
+
+Bórralas de forma permanente con el CLI de Supabase:
+
+```bash
+supabase functions delete send-ut1-test --project-ref qfbhyzynpyqqcpuuibod
+supabase functions delete send-ut1-broadcast --project-ref qfbhyzynpyqqcpuuibod
+```
