@@ -224,6 +224,11 @@ Assert-Contains $validationPage 'data.event_title' "La validación pública debe
 Assert-NotContains $validationPage 'Seminario de Ultrasonido Industrial Nivel I' "La página no debe traer el nombre de ningún curso: viene de eccia_eventos. Un valor por defecto haría que un certificado de otro curso se validara con el título equivocado."
 Assert-Contains $validationPage 'Duración' "La validación pública debe mostrar duración."
 Assert-Contains $validationPage 'Fecha' "La validación pública debe mostrar fecha."
+Assert-Contains $validationPage '<footer' "La página de validación debe llevar el mismo footer que el resto del sitio."
+Assert-Contains $validationPage 'footer-inner' "El footer debe reutilizar la estructura existente, no una propia."
+Assert-Contains $validationPage 'Littus Group America' "La página es de cara al público: debe identificar a Littus Group America, no solo a la marca interna ECCIA."
+Assert-NotContains $validationPage 'Validar certificado ECCIA' "El título público no debe usar la marca interna ECCIA."
+Assert-NotContains $validationPage 'emitido por ECCIA' "La descripción pública debe atribuir la emisión a Littus Group America."
 Assert-NotContains $validationPage 'Curso de Ultrasonido Industrial Nivel I' "La validación pública no debe usar Curso como tipo de evento."
 
 Assert-Contains $certificateTemplate '{{qr_code_data_uri}}' "El template debe conservar placeholder de QR."
