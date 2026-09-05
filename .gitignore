@@ -20,6 +20,11 @@ certificates.csv
 __pycache__/
 *.pyc
 
+# QR de validación generados para certificados concretos. El código que
+# codifican es público, pero son artefactos por persona y no material del
+# repositorio; el repo además es público.
+certificados-qr/
+
 # Dependencias y salidas generadas si se agregan herramientas en el futuro
 node_modules/
 dist/
