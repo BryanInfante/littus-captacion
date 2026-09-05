@@ -63,12 +63,17 @@
           return
         }
 
+        // Sin valores por defecto: los datos del curso vienen de eccia_eventos y
+        // se omiten si faltan. Un curso equivocado en una validación es peor que
+        // uno ausente, porque tergiversa lo que la persona realmente cursó.
+        const linea = (texto) => (texto ? `<span>${texto}</span>` : '')
+
         renderResult(`
           <strong>Certificado válido</strong>
           <span>${data.nombre_completo}</span>
-          <span>${data.event_title || 'Seminario de Ultrasonido Industrial Nivel I'}</span>
-          <span>Duración: ${data.duration || '2h'}</span>
-          <span>Fecha: ${data.event_date || '03 de julio de 2026'}</span>
+          ${linea(data.event_title)}
+          ${linea(data.duration ? `Duración: ${data.duration}` : '')}
+          ${linea(data.event_date ? `Fecha: ${data.event_date}` : '')}
           <span>Código: ${data.codigo_certificado}</span>
         `, 'valid')
       }
