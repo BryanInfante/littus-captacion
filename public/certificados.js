@@ -9,9 +9,9 @@ const certificateModalDescription = certificateModal?.querySelector("#certificat
 const certificateModalNote = certificateModal?.querySelector("[data-certificate-modal-note]");
 let previouslyFocusedElement = null;
 
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_VrTz-gg1X787doh2KgvX3g_ESS7BzS-";
 const ISSUE_CERTIFICATE_ENDPOINT =
-  "https://qfbhyzynpyqqcpuuibod.supabase.co/functions/v1/issue-certificate";
+  "https://dkvuihkwuuocjjsscuso.supabase.co/functions/v1/issue-certificate";
 const SUPPORT_EMAIL = "formanager@littusgroup.com";
 const SUPPORT_EMAIL_RETRY_THRESHOLD = 3;
 let failedCertificateAttempts = 0;

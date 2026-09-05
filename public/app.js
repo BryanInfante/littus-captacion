@@ -6,9 +6,9 @@ const modalPrimaryAction = registrationModal?.querySelector("[data-modal-primary
 const modalCloseButton = registrationModal?.querySelector("[data-modal-close]");
 let previouslyFocusedElement = null;
 
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3Qth9SGoV8k8AwQw0hJtA_-faBod7E";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_VrTz-gg1X787doh2KgvX3g_ESS7BzS-";
 const REGISTRATIONS_ENDPOINT =
-  "https://qfbhyzynpyqqcpuuibod.supabase.co/rest/v1/eccia_taller_inscripciones";
+  "https://dkvuihkwuuocjjsscuso.supabase.co/rest/v1/eccia_taller_inscripciones";
 const META_PIXEL_ID = "896484926815497";
 const REGISTRATION_CLOSED = true;
 

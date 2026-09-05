@@ -1,8 +1,37 @@
-﻿[functions.issue-certificate]
+# Las seis Edge Functions de ECCIA van con verify_jwt = false. Ninguna recibe
+# un JWT de Supabase, y cada una hace su propia validación server-side.
+#
+# Declararlas TODAS acá no es cosmético: `supabase functions deploy` aplica
+# verify_jwt = true por defecto a lo que no esté listado. Las tres funciones de
+# correo las invoca pg_net desde los triggers de eccia_taller_inscripciones sin
+# header Authorization, así que con verify_jwt = true devolverían 401 y los
+# correos dejarían de salir EN SILENCIO: pg_net es asíncrono y descarta la
+# respuesta, de modo que la inscripción se guardaría igual y nadie se enteraría.
+
+# Llamadas anónimamente desde las páginas públicas (public/regalos.html y
+# public/validar-certificado.html) y desde los enlaces de los correos.
+
+[functions.issue-certificate]
 verify_jwt = false
 
 [functions.validate-certificate]
 verify_jwt = false
 
 [functions.download-certificate]
+verify_jwt = false
+
+# Invocadas por pg_net desde los triggers, sin Authorization.
+# Ver private.eccia_post_to_edge_function en la migración 20260904140000.
+
+[functions.send-registration-confirmation]
+verify_jwt = false
+
+[functions.sync-resend-contact]
+verify_jwt = false
+
+# Invocada a mano por un operador. Su protección no es el JWT sino el gate de
+# doble confirmación en el código: exige mode='send' más la frase exacta de
+# APPROVAL_PHRASE; sin eso solo devuelve un preview. No debilitar ese gate.
+
+[functions.send-workshop-reminder]
 verify_jwt = false

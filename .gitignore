@@ -12,6 +12,14 @@ output/
 # Firmas reales de certificados: se sirven vía Nextcloud (WebDAV), nunca públicas
 public/src/firmas/
 
+# Recuperación del wipe 2026-07-25 (ver RECOVERY.md): el CSV lleva nombres y
+# correos de participantes, nunca se commitea
+certificates.csv
+*.recovery.csv
+.recovery-venv/
+__pycache__/
+*.pyc
+
 # Dependencias y salidas generadas si se agregan herramientas en el futuro
 node_modules/
 dist/

@@ -1,4 +1,4 @@
-﻿alter table public.eccia_masterclass_certificados
+alter table public.eccia_masterclass_certificados
   add column if not exists codigo_certificado text,
   add column if not exists certificate_status text not null default 'pending',
   add column if not exists registration_id uuid references public.eccia_taller_inscripciones(id),
@@ -48,11 +48,10 @@ create index if not exists eccia_masterclass_certificados_status_idx
   on public.eccia_masterclass_certificados (certificate_status);
 
 comment on column public.eccia_masterclass_certificados.codigo_certificado is
-  'CÃ³digo pÃºblico, Ãºnico y no secuencial usado para validar el certificado.';
+  'Código público, único y no secuencial usado para validar el certificado.';
 comment on column public.eccia_masterclass_certificados.certificate_status is
-  'Estado operativo de emisiÃ³n del certificado.';
+  'Estado operativo de emisión del certificado.';
 comment on column public.eccia_masterclass_certificados.nextcloud_path is
   'Ruta WebDAV del PDF generado en Nextcloud.';
 comment on column public.eccia_masterclass_certificados.validation_url is
-  'URL pÃºblica codificada en el QR del certificado.';
-
+  'URL pública codificada en el QR del certificado.';

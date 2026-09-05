@@ -51,7 +51,7 @@
 
       const validateCode = async (code) => {
         renderResult('Validando certificado...', 'loading')
-        const response = await fetch(`https://qfbhyzynpyqqcpuuibod.supabase.co/functions/v1/validate-certificate?code=${encodeURIComponent(code)}`)
+        const response = await fetch(`https://dkvuihkwuuocjjsscuso.supabase.co/functions/v1/validate-certificate?code=${encodeURIComponent(code)}`)
         const data = await response.json().catch(() => ({}))
 
         if (!response.ok) {

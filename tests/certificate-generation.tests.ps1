@@ -209,6 +209,9 @@ Assert-Contains $supabaseConfig 'verify_jwt = false' "Las funciones públicas po
 Assert-ContainsBlock $supabaseConfig "[functions.validate-certificate]`nverify_jwt = false" "validate-certificate debe desactivar verificación JWT."
 Assert-ContainsBlock $supabaseConfig "[functions.download-certificate]`nverify_jwt = false" "download-certificate debe desactivar verificación JWT."
 Assert-ContainsBlock $supabaseConfig "[functions.issue-certificate]`nverify_jwt = false" "issue-certificate debe desactivar verificación JWT porque usa validación server-side propia."
+Assert-ContainsBlock $supabaseConfig "[functions.send-registration-confirmation]`nverify_jwt = false" "send-registration-confirmation la invoca pg_net sin Authorization: con verify_jwt = true devolvería 401 y los correos dejarían de salir en silencio."
+Assert-ContainsBlock $supabaseConfig "[functions.sync-resend-contact]`nverify_jwt = false" "sync-resend-contact la invoca pg_net sin Authorization: con verify_jwt = true devolvería 401 y la sincronización con Resend fallaría en silencio."
+Assert-ContainsBlock $supabaseConfig "[functions.send-workshop-reminder]`nverify_jwt = false" "send-workshop-reminder debe declararse en config.toml; su protección es el gate de APPROVAL_PHRASE, no el JWT."
 
 Assert-Contains $validationPage 'validar-certificado' "La página debe ser específica de validación."
 Assert-Contains $validationPage 'code=' "La página debe leer código desde URL."
