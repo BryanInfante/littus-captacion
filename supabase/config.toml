@@ -29,9 +29,19 @@ verify_jwt = false
 [functions.sync-resend-contact]
 verify_jwt = false
 
-# Invocada a mano por un operador. Su protección no es el JWT sino el gate de
-# doble confirmación en el código: exige mode='send' más la frase exacta de
-# APPROVAL_PHRASE; sin eso solo devuelve un preview. No debilitar ese gate.
+# Invocadas a mano por un operador. Su protección no es el JWT sino el gate de
+# doble confirmación en el código: exigen mode='send' más la frase exacta de
+# APPROVAL_PHRASE; sin eso solo devuelven un preview. No debilitar ese gate.
+#
+# Van con verify_jwt = false como el resto y no por comodidad: las claves nuevas
+# del proyecto (sb_publishable_/sb_secret_) no son JWT, así que verify_jwt = true
+# rechazaría la invocación del propio operador.
 
 [functions.send-workshop-reminder]
+verify_jwt = false
+
+# send-course-access además nunca devuelve una contraseña: el preview usa
+# credenciales de muestra y las reales viajan solo en el payload de envío.
+
+[functions.send-course-access]
 verify_jwt = false

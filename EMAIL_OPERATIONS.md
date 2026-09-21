@@ -81,6 +81,43 @@ La confirmación usa una clave de idempotencia vinculada al identificador de la
 inscripción y registra en Supabase el ID de Resend, la fecha de envío y el
 último error. No usa Contacts, Segments, Topics ni enlaces de baja promocional.
 
+## Accesos al aula virtual (`send-course-access`)
+
+Correo **operativo**: entrega las credenciales de `cursos.littusgroup.com` a los
+inscritos de un curso. Va a todos sin mirar `marketing_consent`, uno por uno con
+`POST /emails` e `Idempotency-Key`, nunca por Broadcasts.
+
+A diferencia de las funciones de un solo uso del lanzamiento UT1, esta es
+permanente y sirve para cualquier curso: el curso, el nombre y las credenciales
+viajan en el payload.
+
+Plantilla editable: `emails/eccia-end-vtptmt-acceso.html`. La copia que se envía
+vive en `supabase/functions/send-course-access/template.ts` porque una Edge
+Function no puede leer el repositorio en tiempo de ejecución; si cambias una,
+cambia la otra.
+
+Las contraseñas **no se guardan en la base ni en el repositorio**. Solo existen
+en el payload del envío. El `preview` usa credenciales de muestra y ninguna
+respuesta de la función devuelve una contraseña.
+
+Orden obligatorio:
+
+1. `mode: "preview"` — no envía nada. Devuelve cuántos inscritos hay y a quiénes
+   les falta credencial.
+2. `mode: "test"` + `test_email` — manda **una** copia con credenciales de
+   muestra, para revisar diseño, asunto y remitente.
+3. `mode: "send"` + `approval_phrase` — envía de verdad. Si a alguien de la lista
+   le falta usuario o contraseña, **no envía nada a nadie** y devuelve 409.
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/send-course-access" \
+  -H 'Content-Type: application/json' \
+  --data @payload.json
+```
+
+El `payload.json` lleva credenciales reales: mantenlo fuera del repositorio y
+bórralo después del envío.
+
 ## Funciones temporales desplegadas (pendientes de borrar)
 
 Para el lanzamiento del curso **UT Nivel I** (asunto "Lanzamiento curso de

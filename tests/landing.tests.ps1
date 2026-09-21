@@ -11,6 +11,11 @@ $confirmationEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-registration-c
 $confirmationFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\index.ts"
 $confirmationTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\template.ts"
 $reminderFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-workshop-reminder\index.ts"
+$courseAccessEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-end-vtptmt-acceso.html"
+$courseAccessFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-course-access\index.ts"
+$courseAccessTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-course-access\template.ts"
+$triggerScopeMigrationPath = Join-Path $PSScriptRoot "..\supabase\migrations\20260921190000_scope_registration_confirmation_trigger.sql"
+$functionsConfigPath = Join-Path $PSScriptRoot "..\supabase\config.toml"
 
 if (-not (Test-Path -LiteralPath $indexPath)) {
     throw "Falta public/index.html"
@@ -52,6 +57,31 @@ $confirmationTemplate = if (Test-Path -LiteralPath $confirmationTemplatePath) {
 }
 $reminderFunction = if (Test-Path -LiteralPath $reminderFunctionPath) {
     Get-Content -LiteralPath $reminderFunctionPath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$courseAccessEmail = if (Test-Path -LiteralPath $courseAccessEmailPath) {
+    Get-Content -LiteralPath $courseAccessEmailPath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$courseAccessFunction = if (Test-Path -LiteralPath $courseAccessFunctionPath) {
+    Get-Content -LiteralPath $courseAccessFunctionPath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$courseAccessTemplate = if (Test-Path -LiteralPath $courseAccessTemplatePath) {
+    Get-Content -LiteralPath $courseAccessTemplatePath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$triggerScopeMigration = if (Test-Path -LiteralPath $triggerScopeMigrationPath) {
+    Get-Content -LiteralPath $triggerScopeMigrationPath -Raw -Encoding UTF8
+} else {
+    ""
+}
+$functionsConfig = if (Test-Path -LiteralPath $functionsConfigPath) {
+    Get-Content -LiteralPath $functionsConfigPath -Raw -Encoding UTF8
 } else {
     ""
 }
@@ -382,5 +412,38 @@ Assert-True ($reminderFunction.Contains("'Idempotency-Key'")) "El recordatorio d
 Assert-True ($reminderFunction.Contains("email_type', value: 'workshop_reminder_30min'")) "El recordatorio debe etiquetarse como operativo en Resend."
 Assert-True (-not $reminderFunction.Contains('/contacts')) "El recordatorio operativo no debe crear ni modificar Contacts."
 Assert-True (-not $reminderFunction.Contains('RESEND_UNSUBSCRIBE_URL')) "El recordatorio operativo no debe incluir baja promocional."
+
+# --- Acceso al aula virtual (curso END VT, PT, MT) -------------------------
+
+# El trigger de confirmación disparaba en CADA insert y mandaba el correo del
+# taller de julio a cualquier curso nuevo. Esta es la prueba que impide que
+# vuelva a quedar sin filtro.
+Assert-True (Test-Path -LiteralPath $triggerScopeMigrationPath) "Falta la migración que acota el trigger de confirmación a su propio taller."
+Assert-True ($triggerScopeMigration.Contains("when (new.taller_codigo = 'domina-scan-a')")) "El trigger de confirmación debe filtrar por taller_codigo: su plantilla es específica de Domina el Scan A."
+Assert-True (-not $triggerScopeMigration.Contains("drop trigger if exists eccia_sync_resend_contact_after_insert")) "El gate de consentimiento vive dentro de sync-resend-contact, no en su trigger."
+
+Assert-True (Test-Path -LiteralPath $courseAccessEmailPath) "Falta la plantilla HTML del correo de acceso al aula virtual."
+Assert-True ($courseAccessEmail.Contains('{{FIRST_NAME}}')) "El correo de acceso debe personalizar el saludo."
+Assert-True ($courseAccessEmail.Contains('{{USERNAME}}')) "El correo de acceso debe incluir el usuario."
+Assert-True ($courseAccessEmail.Contains('{{PASSWORD}}')) "El correo de acceso debe incluir la contraseña."
+Assert-True ($courseAccessEmail.Contains('https://cursos.littusgroup.com/')) "El correo de acceso debe apuntar al aula virtual."
+Assert-True (-not $courseAccessEmail.Contains('RESEND_UNSUBSCRIBE_URL')) "El correo de acceso es operativo: no lleva baja promocional, y fuera de un Broadcast ese token se imprimiría literal."
+Assert-True (-not $courseAccessEmail.Contains('contact.first_name')) "Fuera de un Broadcast ese token no se resuelve: el saludo se renderiza server-side."
+
+Assert-True (Test-Path -LiteralPath $courseAccessFunctionPath) "Falta la Edge Function que envía los accesos al aula virtual."
+Assert-True ($courseAccessTemplate.Contains('escapeHtml')) "Las credenciales deben escaparse: una contraseña puede traer caracteres que rompan el marcado."
+Assert-True ($courseAccessFunction.Contains(".eq('taller_codigo', tallerCodigo)")) "El envío debe limitarse a los inscritos del curso indicado."
+Assert-True ($courseAccessFunction.Contains('Falta taller_codigo en el payload.')) "Sin taller_codigo debe fallar: un default silencioso manda credenciales a la cohorte equivocada."
+Assert-True ($courseAccessFunction.Contains('approval_phrase')) "El envío real debe requerir aprobación explícita."
+Assert-True ($courseAccessFunction.Contains("mode === 'test'")) "Debe existir un modo de prueba que envíe a un solo destinatario."
+Assert-True ($courseAccessFunction.Contains('missingCredentials.length > 0')) "Debe fallar cerrado si falta alguna credencial: un correo con la contraseña en blanco es peor que no enviarlo."
+Assert-True ($courseAccessFunction.Contains("'Idempotency-Key'")) "El envío de accesos debe usar clave de idempotencia."
+Assert-True ($courseAccessFunction.Contains('course-access/')) "La idempotencia debe ser por curso e inscripción."
+Assert-True ($courseAccessFunction.Contains("email_type', value: 'course_access'")) "El correo de acceso debe etiquetarse como operativo en Resend."
+Assert-True (-not $courseAccessFunction.Contains('/contacts')) "El correo operativo no debe crear ni modificar Contacts."
+Assert-True (-not $courseAccessFunction.Contains('/broadcasts')) "El correo operativo no se envía por Broadcasts: va uno a uno por POST /emails."
+Assert-True ($courseAccessFunction.Contains('SAMPLE_ACCESS')) "La prueba debe usar credenciales de muestra, nunca las reales de un participante."
+
+Assert-True ($functionsConfig.Contains('[functions.send-course-access]')) "send-course-access debe declararse en config.toml: lo que no esté listado se despliega con verify_jwt = true."
 
 Write-Output "Landing checks: OK"
