@@ -131,7 +131,7 @@ Landing checks: OK
 
 ### Proyecto
 
-- Proyecto: `airen`
+- Proyecto: `dkvuihkwuuocjjsscuso`
 - Tabla: `public.eccia_taller_inscripciones`
 - Edge Function: `sync-resend-contact`
 

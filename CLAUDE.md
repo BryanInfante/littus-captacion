@@ -44,16 +44,17 @@ Pages. `deploy-supabase-functions.yml` deploys `issue-certificate` only, and onl
 `validate-certificate`, `download-certificate`) must be deployed manually via `supabase functions deploy
 <name>` until a workflow is added for them.
 
-`.mcp.json` wires the Supabase MCP server to project ref `qfbhyzynpyqqcpuuibod`. It can **deploy** Edge
+`.mcp.json` wires the Supabase MCP server to project ref `dkvuihkwuuocjjsscuso`. It can **deploy** Edge
 Functions but cannot **delete** them — anything deployed through MCP has to be removed with the CLI
 (`supabase functions delete <name> --project-ref ...`). See the "Funciones temporales" section of
 `EMAIL_OPERATIONS.md`.
 
 ## Architecture
 
-Two flows share the same Supabase project (`airen`), both driven by public forms that talk to Supabase
-from the browser using a **publishable key** (never a secret/service-role key). The key and project URL
-are hardcoded in `public/app.js` and `public/certificados.js` — that is intentional, not a leak.
+Two flows share the same Supabase project (`dkvuihkwuuocjjsscuso`), both driven by public forms that
+talk to Supabase from the browser using a **publishable key** (never a secret/service-role key). The
+key and project URL are hardcoded in `public/app.js` and `public/certificados.js` — that is
+intentional, not a leak.
 
 **1. Workshop registration** (`public/index.html` + `public/app.js` → table
 `eccia_taller_inscripciones`): browser inserts a row via PostgREST. Two DB triggers asynchronously invoke

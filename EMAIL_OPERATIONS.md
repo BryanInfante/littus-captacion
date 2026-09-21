@@ -101,7 +101,10 @@ con el endpoint crudo `/emails`: solo los Broadcasts resuelven
 garantiza alcanzar solo a contactos con consentimiento. La plantilla usada vive
 en `emails/eccia-ut1-lanzamiento.html`.
 
-Bórralas de forma permanente con el CLI de Supabase:
+Bórralas de forma permanente con el CLI de Supabase. El `--project-ref` es
+`qfbhyzynpyqqcpuuibod` (el proyecto **viejo**, anterior al wipe del 2026-07-25),
+porque es ahí donde siguen desplegadas — no en `dkvuihkwuuocjjsscuso`. Ver
+`RECOVERY.md`.
 
 ```bash
 supabase functions delete send-ut1-test --project-ref qfbhyzynpyqqcpuuibod
