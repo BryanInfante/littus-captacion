@@ -86,7 +86,7 @@ export const renderCourseAccessEmail = (access: CourseAccess) => {
                 <p style="margin: 0 0 20px;">
                   Creamos tu cuenta en el aula virtual de ECCIA para el entrenamiento en
                   <strong>${courseName}</strong>.
-                  Ahí encontrarás el material de apoyo del curso que estás revisando en clase.
+                  Ahí encontrarás todo el material del curso.
                 </p>
 
                 <p style="margin: 0 0 12px; color: #111318; font-size: 13px; font-weight: 700; line-height: 1.5; letter-spacing: 1px; text-transform: uppercase;">
@@ -150,7 +150,7 @@ export const renderCourseAccessEmail = (access: CourseAccess) => {
 
 export const renderCourseAccessText = (access: CourseAccess) => `Hola ${getFirstName(access.fullName)},
 
-Creamos tu cuenta en el aula virtual de ECCIA para el entrenamiento en ${access.courseName}. Ahí encontrarás el material de apoyo del curso que estás revisando en clase.
+Creamos tu cuenta en el aula virtual de ECCIA para el entrenamiento en ${access.courseName}. Ahí encontrarás todo el material del curso.
 
 Sitio: ${access.classroomUrl}
 Usuario: ${access.usuario}
