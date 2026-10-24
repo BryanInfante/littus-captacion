@@ -318,6 +318,37 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
   border-color: rgba(0,174,239,.45);
   background: var(--eccia-accent-soft);
 }
+/* Generic registration page (inscripcion.html?evento=). Brand tokens only;
+   the card, inputs, consent and status reuse the landing components. */
+.visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.inscripcion-page {
+  min-height: 100svh;
+  background:
+    radial-gradient(ellipse 70% 55% at 78% 16%, var(--eccia-accent-glow), transparent 68%),
+    linear-gradient(180deg, rgba(255,255,255,.025), transparent 34%),
+    var(--eccia-bg);
+}
+.inscripcion-shell { width: min(calc(100% - 2rem), 680px); margin-inline: auto; padding: clamp(var(--space-2xl), 7vw, var(--space-4xl)) 0; }
+.inscripcion-card { background: var(--eccia-surface); box-shadow: 0 24px 64px rgba(0,0,0,.24); }
+.inscripcion-evento h1 { margin-bottom: var(--space-sm); font-size: clamp(2rem, 6vw, 3.25rem); overflow-wrap: anywhere; }
+.inscripcion-resumen { max-width: 58ch; margin: 0; color: var(--eccia-text-soft); }
+.inscripcion-datos { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-xl); margin: var(--space-lg) 0 0; }
+.inscripcion-datos dt { color: var(--eccia-muted); font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.inscripcion-datos dd { margin: 0; color: var(--eccia-text); font-weight: 500; }
+.inscripcion-contenido { margin-top: var(--space-xl); padding-top: var(--space-xl); border-top: 1px solid var(--eccia-border); }
+.inscripcion-contenido form { margin-top: 0; }
+.inscripcion-aviso { display: grid; gap: var(--space-2xs); margin: 0; padding: var(--space-lg); border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: rgba(255,255,255,.025); color: var(--eccia-text-soft); }
+.inscripcion-aviso strong { color: var(--eccia-text); }
+.inscripcion-nota { margin: 0; color: var(--eccia-muted); font-size: .875rem; }
+.field-label { margin: 0; color: var(--eccia-text-soft); font-family: var(--font-body); font-size: .8125rem; font-weight: 600; line-height: 1.4; }
+.field-error { margin: 0; color: var(--eccia-error); font-size: .8125rem; font-weight: 600; line-height: 1.45; }
+.input[aria-invalid="true"] { border-color: var(--eccia-error); }
+/* Turnstile's widget is 65px tall; reserving it avoids a layout shift. */
+.challenge-slot { min-height: 65px; }
+.challenge-slot:focus-visible { outline: 2px solid var(--eccia-accent); outline-offset: 3px; }
+.inscripcion-exito { margin-top: 0; }
+.inscripcion-exito h2 { margin: 0; color: var(--eccia-success); font-size: 1.5rem; }
+.inscripcion-exito h2:focus { outline: none; }
 .mobile-cta { display: none; }
 @media (max-width: 900px) {
   .hero-editorial, .split-layout, .faq-layout, .speaker-layout, .footer-grid, .claim-layout, .course-next__layout, .gift-feature, .replay-layout { grid-template-columns: 1fr; }

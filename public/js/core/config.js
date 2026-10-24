@@ -7,3 +7,6 @@
 export const SUPABASE_URL = "https://dkvuihkwuuocjjsscuso.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_VrTz-gg1X787doh2KgvX3g_ESS7BzS-";
+// Public by design as well; the widget only works on the hostnames registered
+// for it (preinscripcion.littusgroup.com and localhost).
+export const TURNSTILE_SITE_KEY = "0x4AAAAAAFkQkWGC4HttCEQB";

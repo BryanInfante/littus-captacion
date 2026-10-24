@@ -9,6 +9,8 @@ export {
   assertThrows,
 } from "jsr:@std/assert@1.0.19";
 export { parse as babelParse } from "npm:@babel/parser@7.29.9";
+// Fake DOM for the pure view modules of public/js/ (no browser in tests).
+export { parseHTML } from "npm:linkedom@0.18.13";
 export { default as postgres } from "npm:postgres@3.4.9";
 export { parse as parseToml } from "jsr:@std/toml@1.0.11";
 export { parse as parseYaml } from "jsr:@std/yaml@1.3.0";
