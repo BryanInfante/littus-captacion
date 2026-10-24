@@ -46,6 +46,8 @@ export type Database = {
           "inscripcion_cierra_en": string | null;
           "masterclass_codigo": string;
           "nextcloud_directorio": string | null;
+          "resumen": string | null;
+          "tipo": string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -63,6 +65,8 @@ export type Database = {
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo": string;
           "nextcloud_directorio"?: string | null;
+          "resumen"?: string | null;
+          "tipo"?: string | null;
         };
         Update: {
           "activo"?: boolean;
@@ -79,6 +83,8 @@ export type Database = {
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string;
           "nextcloud_directorio"?: string | null;
+          "resumen"?: string | null;
+          "tipo"?: string | null;
         };
         Relationships: [];
       };
@@ -172,6 +178,13 @@ export type Database = {
             referencedColumns: ["masterclass_codigo"];
           },
           {
+            foreignKeyName: "eccia_masterclass_certificados_evento_fkey";
+            columns: ["masterclass_codigo"];
+            isOneToOne: false;
+            referencedRelation: "eccia_eventos_publicos";
+            referencedColumns: ["masterclass_codigo"];
+          },
+          {
             foreignKeyName:
               "eccia_masterclass_certificados_registration_id_fkey";
             columns: ["registration_id"];
@@ -236,11 +249,54 @@ export type Database = {
             referencedRelation: "eccia_eventos";
             referencedColumns: ["masterclass_codigo"];
           },
+          {
+            foreignKeyName: "eccia_taller_inscripciones_evento_fkey";
+            columns: ["taller_codigo"];
+            isOneToOne: false;
+            referencedRelation: "eccia_eventos_publicos";
+            referencedColumns: ["masterclass_codigo"];
+          },
         ];
       };
     };
     Views: {
-      [_ in never]: never;
+      "eccia_eventos_publicos": {
+        Row: {
+          "duracion": string | null;
+          "event_title": string | null;
+          "fecha_evento": string | null;
+          "fecha_texto": string | null;
+          "inscripcion_abre_en": string | null;
+          "inscripcion_cierra_en": string | null;
+          "masterclass_codigo": string | null;
+          "resumen": string | null;
+          "tipo": string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          "duracion"?: string | null;
+          "event_title"?: string | null;
+          "fecha_evento"?: string | null;
+          "fecha_texto"?: string | null;
+          "inscripcion_abre_en"?: string | null;
+          "inscripcion_cierra_en"?: string | null;
+          "masterclass_codigo"?: string | null;
+          "resumen"?: string | null;
+          "tipo"?: string | null;
+        };
+        Update: {
+          "duracion"?: string | null;
+          "event_title"?: string | null;
+          "fecha_evento"?: string | null;
+          "fecha_texto"?: string | null;
+          "inscripcion_abre_en"?: string | null;
+          "inscripcion_cierra_en"?: string | null;
+          "masterclass_codigo"?: string | null;
+          "resumen"?: string | null;
+          "tipo"?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       "eccia_consumir_limite": {

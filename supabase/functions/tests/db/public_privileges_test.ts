@@ -14,6 +14,13 @@ const REGISTRATION_INSERT_COLUMNS: Readonly<Record<string, readonly string[]>> =
 const isAllowedInsert = (table: string, column: string): boolean =>
   REGISTRATION_INSERT_COLUMNS[table]?.includes(column) ?? false;
 
+// Published, non-personal catalog data is the only public read, through a view
+// with an explicit column list. Every other view stays closed, and nothing
+// public may write a view (simple views are auto-updatable).
+const PUBLIC_VIEW_GRANTS: readonly string[] = [
+  "eccia_eventos_publicos: anon has SELECT",
+];
+
 // has_*_privilege answers "can this role do it", which covers grants made by
 // any owner, to PUBLIC, and at column level (pg_attribute.attacl), not only the
 // grants visible in relacl or to the connecting role.
@@ -111,6 +118,30 @@ Deno.test("public roles cannot read or write base tables in schema public", asyn
           violations,
           [],
           "public roles hold column privileges outside the allow-list",
+        );
+      },
+    );
+
+    await t.step(
+      "public roles hold only the allow-listed view grants",
+      async () => {
+        const rows = await sql<
+          { view_name: string; role: string; privilege: string }[]
+        >`
+        select c.relname as view_name, r.role, p.privilege
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+        cross join unnest(array['anon', 'authenticated']) as r(role)
+        cross join unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE',
+                                'REFERENCES', 'TRIGGER', 'MAINTAIN']) as p(privilege)
+        where c.relkind in ('v', 'm')
+          and has_table_privilege(r.role, c.oid, p.privilege)
+        order by 1, 2, 3
+      `;
+        assertEquals(
+          rows.map((r) => `${r.view_name}: ${r.role} has ${r.privilege}`),
+          [...PUBLIC_VIEW_GRANTS],
+          "public view grants differ from the allow-list (unlisted or stale)",
         );
       },
     );
