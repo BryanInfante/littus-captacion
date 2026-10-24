@@ -46,7 +46,7 @@ verify_jwt = false
 [functions.send-course-access]
 verify_jwt = false
 
-# Endpoint público: la publishable key no es un JWT. El despliegue queda
-# pendiente de Turnstile y límites por correo e IP en FN-02-05b.
+# Endpoint público: la publishable key no es un JWT. Lo protegen Turnstile y
+# los límites por correo e IP (FN-02-05b).
 [functions.public-api]
 verify_jwt = false
