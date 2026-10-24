@@ -445,6 +445,31 @@ simple) y UT2 (inscripción con ficha y foto).
   con DOM falso). Marca según `AGENTS.md`. Ratchet: la URL de Supabase y la key
   solo en `public/js/core/` (legado permitido: `app.js`, `certificados.js`,
   `validar-certificado.html`; la lista se achica).
+- **Rebanada FN-02-04 + FN-02-07 (decisión del usuario, 2026-10-24).** La página
+  es el primer consumidor de la vista, así que ambas tareas llegan en la misma
+  rebanada vertical (rama `feat/inscripcion-generica`, desde `main`).
+  - `?evento=` es `masterclass_codigo`; no se agrega columna de slug.
+  - Columnas nuevas en `eccia_eventos`, leídas por la página: `tipo` (`webinar`
+    | `curso`, etiqueta visible) y `resumen` (párrafo descriptivo).
+    `requiere_ficha_inspector` llega con FN-02-06, su consumidor.
+  - Vista `eccia_eventos_publicos`: solo `activo = true`; columnas explícitas
+    (código, `event_title`, `tipo`, `resumen`, `fecha_texto`, `fecha_evento`,
+    `duracion`, `inscripcion_abre_en`, `inscripcion_cierra_en`); `select` para
+    `anon` solo sobre la vista; permisos del dueño.
+  - Formulario: `nombre`, `correo` y `marketing_consent` opcional con el texto
+    actual de la landing; sin casilla de tratamiento de datos (la API no tiene
+    ese campo).
+  - Evento ausente, inexistente o cerrado: mensaje claro, sin formulario. Éxito:
+    mensaje en la misma página, con foco, sin prometer correo (la confirmación
+    llega en F3).
+  - `public/js/core/` es la única ubicación de la URL de Supabase, la
+    publishable key y la site key de Turnstile (`0x4AAAAAAFkQkWGC4HttCEQB`).
+    Vista probada con DOM falso (`linkedom` en `tests/dev_deps.ts`).
+  - Meta Pixel y formulario de la landing quedan en FN-02-10.
+  - Marca: kit en `C:\Users\bryan\dev\littus-brand-kit`, confirmado por el
+    usuario como valor de `LITTUS_BRAND_KIT`.
+  - Prueba en vivo solo en producción después de Pages: CORS acepta un único
+    origen. Todos los eventos siguen cerrados.
 - **Eventos como datos.** Las filas de UT2 y del webinar las carga el operador
   con la service role (SQL registrado en Avance), no una migración; para el
   stack local, `supabase/seed.sql`.
