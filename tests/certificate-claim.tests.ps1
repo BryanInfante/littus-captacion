@@ -95,8 +95,6 @@ Assert-Contains $migration 'nombre_completo text not null' "La tabla debe guarda
 Assert-Contains $migration 'correo text not null' "La tabla debe guardar el correo de inscripción."
 Assert-Contains $migration 'lower(btrim(correo))' "La tabla debe normalizar el correo."
 Assert-Contains $migration 'enable row level security' "La tabla debe tener RLS habilitado."
-Assert-Contains $migration 'grant insert on table public.eccia_masterclass_certificados to anon' "El rol anon solo debe poder insertar."
-Assert-Contains $migration 'with check (true)' "Debe existir política de inserción pública controlada por constraints."
 Assert-True (Test-Path -LiteralPath $glossaryPath) "Falta el PDF descargable del glosario."
 Assert-True (Test-Path -LiteralPath $guidePath) "Falta el PDF descargable de la guía Scan A."
 Assert-True (Test-Path -LiteralPath $brochurePath) "Falta el PDF descargable del brochure."

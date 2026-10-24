@@ -1,6 +1,7 @@
 {
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check supabase/functions/ tests/ && deno test --allow-read=supabase/functions/,.github/,supabase/config.toml --permit-no-files --ignore=supabase/functions/tests/db/ supabase/functions/tests/ tests/",
+    "test:db": "deno test --allow-net=127.0.0.1:54322 --allow-env=PG* supabase/functions/tests/db/",
     "serve": "deno run --allow-net --allow-read=public jsr:@std/http@1.1.4/file-server public"
   },
   // Legacy files excluded from `deno check` (also from any other subcommand
