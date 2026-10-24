@@ -3,6 +3,7 @@ export type Event = {
   readonly active: boolean;
   readonly registrationOpensAt: Date | null;
   readonly registrationClosesAt: Date | null;
+  readonly requiresInspectorProfile?: boolean;
 };
 
 export const acceptsRegistrations = (event: Event, now: Date): boolean =>

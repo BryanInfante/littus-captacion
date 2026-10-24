@@ -9,6 +9,11 @@ import { MemoryHumanChallenge } from "../../_shared/adapters/memory/humanChallen
 import { MemoryRequestLimits } from "../../_shared/adapters/memory/requestLimits.ts";
 import type { HumanChallenge } from "../../_shared/ports/humanChallenge.ts";
 import type { RequestLimits } from "../../_shared/ports/requestLimits.ts";
+import { MemoryInspectorProfiles } from "../../_shared/adapters/memory/inspectorProfiles.ts";
+import { MemoryFileStorage } from "../../_shared/adapters/memory/fileStorage.ts";
+import type { InspectorProfiles } from "../../_shared/ports/inspectorProfiles.ts";
+import type { FileStorage } from "../../_shared/ports/fileStorage.ts";
+import { MAX_INSPECTOR_PHOTO_BYTES } from "../../_shared/domain/inspectorProfile.ts";
 
 const ORIGIN = "https://site.example.invalid";
 const ROUTE =
@@ -35,9 +40,15 @@ const setup = (options: {
   registrations?: Registrations;
   humanChallenge?: HumanChallenge;
   requestLimits?: RequestLimits;
+  requiresInspectorProfile?: boolean;
+  inspectorProfiles?: InspectorProfiles;
+  fileStorage?: FileStorage;
 } = {}) => {
   const ports = memoryPorts([
-    openEvent(options.closed ? { registrationClosesAt: NOW } : {}),
+    openEvent({
+      ...(options.closed ? { registrationClosesAt: NOW } : {}),
+      requiresInspectorProfile: options.requiresInspectorProfile ?? false,
+    }),
   ]);
   const stored: Awaited<ReturnType<Registrations["create"]>>[] = [];
   const entries: Readonly<Record<string, unknown>>[] = [];
@@ -51,6 +62,9 @@ const setup = (options: {
   const handler = createHandler({
     events: ports.events,
     registrations,
+    inspectorProfiles: options.inspectorProfiles ??
+      new MemoryInspectorProfiles(ports.events),
+    fileStorage: options.fileStorage ?? new MemoryFileStorage(),
     humanChallenge: options.humanChallenge ?? new MemoryHumanChallenge(true),
     requestLimits: options.requestLimits ?? new MemoryRequestLimits(() => NOW),
     now: () => NOW,
@@ -59,6 +73,33 @@ const setup = (options: {
     requestId: () => "request-fixture-001",
   });
   return { handler, stored, entries };
+};
+
+const inspectorForm = () => {
+  const form = new FormData();
+  for (
+    const [key, value] of Object.entries({
+      event_code: openEvent().code,
+      correo: " PRIVATE.PERSON@Example.Invalid ",
+      challenge_token: "private-challenge-token",
+      marketing_consent: "true",
+      nombres: "Ana María",
+      apellidos: "Pérez",
+      documento: " ab 12-3456 ",
+      pais: "Ecuador",
+      experiencia_anios: "0",
+      empleador_declarado: "",
+      sin_empleador: "true",
+      consentimiento_datos: "true",
+    })
+  ) form.set(key, value);
+  form.set(
+    "foto",
+    new File([new Uint8Array([0xff, 0xd8, 0xff])], "photo.bin", {
+      type: "application/octet-stream",
+    }),
+  );
+  return form;
 };
 
 Deno.test("public-api returns only id and event_code with 201 and stores normalized email", async () => {
@@ -94,6 +135,122 @@ Deno.test("public-api preserves explicit false marketing consent", async () => {
   await response.text();
   assertEquals(response.status, 201);
   assertEquals(stored.map((row) => row.marketingConsent), [false]);
+});
+
+Deno.test("public-api accepts multipart ficha on the same route and returns the existing registration envelope", async () => {
+  const storage = new MemoryFileStorage();
+  const { handler } = setup({
+    requiresInspectorProfile: true,
+    fileStorage: storage,
+  });
+  const form = inspectorForm();
+  const response = await handler(
+    new Request(ROUTE, {
+      method: "POST",
+      headers: { origin: ORIGIN },
+      body: form,
+    }),
+  );
+  assertEquals(response.status, 201);
+  const payload = await response.json();
+  assertEquals(payload.event_code, openEvent().code);
+  assertEquals(typeof payload.id, "string");
+  assertEquals(storage.files.size, 1);
+  const [path] = storage.files.keys();
+  assertEquals(path.endsWith(".jpg"), true);
+});
+
+Deno.test("public-api rejects missing or unrequested inspector ficha after event lookup", async () => {
+  const required = setup({ requiresInspectorProfile: true });
+  const missing = await required.handler(request());
+  assertEquals(missing.status, 400);
+  assertEquals(await missing.json(), { error: "INSPECTOR_PROFILE_REQUIRED" });
+  const unrequested = setup();
+  const extra = await unrequested.handler(
+    new Request(ROUTE, {
+      method: "POST",
+      headers: { origin: ORIGIN },
+      body: inspectorForm(),
+    }),
+  );
+  assertEquals(extra.status, 400);
+  assertEquals(await extra.json(), { error: "INSPECTOR_PROFILE_UNEXPECTED" });
+});
+
+Deno.test("public-api challenges and checks event status before validating ficha fields", async () => {
+  const challenge = setup({
+    requiresInspectorProfile: true,
+    humanChallenge: new MemoryHumanChallenge(false),
+  });
+  const invalidForm = inspectorForm();
+  invalidForm.set("documento", "bad");
+  const challenged = await challenge.handler(
+    new Request(ROUTE, {
+      method: "POST",
+      headers: { origin: ORIGIN },
+      body: invalidForm,
+    }),
+  );
+  assertEquals(challenged.status, 403);
+  assertEquals(await challenged.json(), { error: "CHALLENGE_FAILED" });
+
+  const closed = setup({ requiresInspectorProfile: true, closed: true });
+  const closedForm = inspectorForm();
+  closedForm.set("documento", "bad");
+  const rejected = await closed.handler(
+    new Request(ROUTE, {
+      method: "POST",
+      headers: { origin: ORIGIN },
+      body: closedForm,
+    }),
+  );
+  assertEquals(rejected.status, 409);
+  assertEquals(await rejected.json(), { error: "REGISTRATION_CLOSED" });
+});
+
+Deno.test("public-api rejects oversized declared length before reading and bounds dishonest streaming lengths", async () => {
+  const { handler } = setup();
+  const declared = await handler(
+    new Request(ROUTE, {
+      method: "POST",
+      headers: {
+        origin: ORIGIN,
+        "content-type": "application/json",
+        "content-length": String(MAX_INSPECTOR_PHOTO_BYTES + 256 * 1024 + 1),
+      },
+      body: "{}",
+    }),
+  );
+  assertEquals(declared.status, 413);
+  let emitted = false;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (emitted) {
+        controller.close();
+        return;
+      }
+      emitted = true;
+      controller.enqueue(
+        new Uint8Array(MAX_INSPECTOR_PHOTO_BYTES + 256 * 1024 + 1),
+      );
+    },
+  });
+  const dishonest = await handler(
+    new Request(
+      ROUTE,
+      {
+        method: "POST",
+        headers: {
+          origin: ORIGIN,
+          "content-type": "application/json",
+          "content-length": "1",
+        },
+        body: stream,
+        duplex: "half",
+      } as RequestInit,
+    ),
+  );
+  assertEquals(dishonest.status, 413);
 });
 
 Deno.test("public-api rejects malformed JSON with 400 without writing", async () => {

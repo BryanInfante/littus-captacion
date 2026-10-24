@@ -43,6 +43,8 @@ create table public.eccia_fichas_inspector (
   estado text not null default 'pendiente_foto',
   foto_path text not null,
   creado_en timestamptz not null default now(),
+  actualizado_en timestamptz not null default now(),
+  marketing_consent boolean not null default false,
   constraint eccia_fichas_inspector_nombres_check check (
     nombres = upper(btrim(nombres)) and char_length(nombres) between 2 and 60
   ),
@@ -79,6 +81,9 @@ create table public.eccia_fichas_inspector (
   ),
   constraint eccia_fichas_inspector_foto_path_check check (
     foto_path ~ '^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*(/[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*)*/inscripciones/[a-z0-9-]+/fotos/[0-9A-Z-]+_[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$'
+    and right(foto_path, char_length('/inscripciones/' || masterclass_codigo || '/fotos/' || documento || '_' || id || '.jpg'))
+      in ('/inscripciones/' || masterclass_codigo || '/fotos/' || documento || '_' || id || '.jpg',
+          '/inscripciones/' || masterclass_codigo || '/fotos/' || documento || '_' || id || '.png')
   ),
   constraint eccia_fichas_inspector_evento_documento_key
     unique (masterclass_codigo, documento)
@@ -100,7 +105,7 @@ begin
   insert into public.eccia_taller_inscripciones
     (nombre, correo, taller_codigo, marketing_consent)
   values
-    (new.nombre_completo, btrim(new.correo), new.masterclass_codigo, false)
+    (new.nombre_completo, btrim(new.correo), new.masterclass_codigo, new.marketing_consent)
   returning id into new.inscripcion_id;
   return new;
 end;

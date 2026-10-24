@@ -7,6 +7,11 @@ const STATUS: Readonly<Record<DomainErrorCode, number>> = {
   ALREADY_REGISTERED: 409,
   REGISTRATION_CLOSED: 409,
   RATE_LIMITED: 429,
+  INSPECTOR_PROFILE_REQUIRED: 400,
+  INSPECTOR_PROFILE_UNEXPECTED: 400,
+  INSPECTOR_PROFILE_IN_PROGRESS: 409,
+  PHOTO_UPLOAD_FAILED: 502,
+  PAYLOAD_TOO_LARGE: 413,
 };
 
 export const errorResponse = (error: unknown, headers: Headers): Response => {

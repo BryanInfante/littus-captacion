@@ -93,6 +93,7 @@ export type Database = {
       };
       "eccia_fichas_inspector": {
         Row: {
+          "actualizado_en": string;
           "apellidos": string;
           "consentimiento_datos_en": string;
           "correo": string;
@@ -104,6 +105,7 @@ export type Database = {
           "foto_path": string;
           "id": string;
           "inscripcion_id": string;
+          "marketing_consent": boolean;
           "masterclass_codigo": string;
           "nombre_completo": string;
           "nombres": string;
@@ -112,6 +114,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          "actualizado_en"?: string;
           "apellidos": string;
           "consentimiento_datos_en": string;
           "correo": string;
@@ -123,6 +126,7 @@ export type Database = {
           "foto_path": string;
           "id"?: string;
           "inscripcion_id": string;
+          "marketing_consent"?: boolean;
           "masterclass_codigo": string;
           "nombre_completo": string;
           "nombres": string;
@@ -130,6 +134,7 @@ export type Database = {
           "sin_empleador"?: boolean;
         };
         Update: {
+          "actualizado_en"?: string;
           "apellidos"?: string;
           "consentimiento_datos_en"?: string;
           "correo"?: string;
@@ -141,6 +146,7 @@ export type Database = {
           "foto_path"?: string;
           "id"?: string;
           "inscripcion_id"?: string;
+          "marketing_consent"?: boolean;
           "masterclass_codigo"?: string;
           "nombre_completo"?: string;
           "nombres"?: string;

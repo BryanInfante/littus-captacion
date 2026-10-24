@@ -1,17 +1,18 @@
 import type { RegisterPublicRegistrationInput } from "../application/registerPublicRegistration.ts";
 import { Email } from "../domain/email.ts";
 import { DomainError } from "../domain/errors.ts";
+import { MAX_INSPECTOR_PHOTO_BYTES } from "../domain/inspectorProfile.ts";
 import {
   parseEventCode,
   parseRegistrationName,
 } from "../domain/registration.ts";
 import { extractClientIp } from "../domain/requestLimits.ts";
 
-// Turnstile documents tokens of up to 2048 characters.
+const MAX_REQUEST_BYTES = MAX_INSPECTOR_PHOTO_BYTES + 256 * 1024;
 const MAX_CHALLENGE_TOKEN_LENGTH = 2048;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+const isRecord = (input: unknown): input is Record<string, unknown> =>
+  typeof input === "object" && input !== null && !Array.isArray(input);
 
 const parseChallengeToken = (input: unknown): string => {
   if (typeof input !== "string") throw new DomainError("INVALID_INPUT");
@@ -22,35 +23,122 @@ const parseChallengeToken = (input: unknown): string => {
   return token;
 };
 
-// Parses the whole request before any side effect: an invalid field never
-// reaches the challenge verifier or consumes a limit.
+const parseMarketingConsent = (input: unknown, multipart: boolean): boolean => {
+  if (input === undefined) return false;
+  if (typeof input === "boolean") return input;
+  if (multipart && (input === "true" || input === "on")) return true;
+  if (multipart && (input === "false" || input === "off")) return false;
+  throw new DomainError("INVALID_INPUT");
+};
+
+const readBoundedBody = async (request: Request): Promise<Uint8Array> => {
+  const header = request.headers.get("content-length");
+  if (header !== null) {
+    if (!/^\d+$/.test(header)) throw new DomainError("INVALID_INPUT");
+    if (Number(header) > MAX_REQUEST_BYTES) {
+      throw new DomainError("PAYLOAD_TOO_LARGE");
+    }
+  }
+  if (request.body === null) return new Uint8Array();
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_REQUEST_BYTES) {
+      await reader.cancel();
+      throw new DomainError("PAYLOAD_TOO_LARGE");
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+};
+
+const field = (form: FormData, name: string): string | null => {
+  const value = form.get(name);
+  if (value === null) return null;
+  if (typeof value !== "string") throw new DomainError("INVALID_INPUT");
+  return value;
+};
+
 export const parseRegistrationRequest = async (
   request: Request,
 ): Promise<RegisterPublicRegistrationInput> => {
-  const mediaType = request.headers.get("content-type")?.split(";")[0]
-    .trim().toLowerCase();
-  if (mediaType !== "application/json") throw new DomainError("INVALID_INPUT");
+  const mediaType = request.headers.get("content-type")?.split(";", 1)[0].trim()
+    .toLowerCase();
+  if (mediaType !== "application/json" && mediaType !== "multipart/form-data") {
+    throw new DomainError("INVALID_INPUT");
+  }
+  const bytes = await readBoundedBody(request);
   let body: unknown;
+  let inspector: RegisterPublicRegistrationInput["inspector"];
   try {
-    body = await request.json();
-  } catch {
+    if (mediaType === "application/json") {
+      body = JSON.parse(new TextDecoder().decode(bytes));
+    } else {
+      const form = await new Response(bytes.buffer as ArrayBuffer, {
+        headers: { "content-type": request.headers.get("content-type") ?? "" },
+      }).formData();
+      const names = [
+        "nombres",
+        "apellidos",
+        "documento",
+        "pais",
+        "experiencia_anios",
+        "empleador_declarado",
+        "sin_empleador",
+        "consentimiento_datos",
+      ] as const;
+      const fields: Record<string, unknown> = {};
+      for (const name of names) fields[name] = field(form, name);
+      const foto = form.get("foto");
+      const photoTooLarge = foto instanceof File &&
+        foto.size > MAX_INSPECTOR_PHOTO_BYTES;
+      inspector = {
+        fields,
+        photoBytes: foto instanceof File
+          ? new Uint8Array(await foto.arrayBuffer())
+          : null,
+        photoTooLarge,
+      };
+      body = {
+        event_code: field(form, "event_code"),
+        nombre: "Inspector",
+        correo: field(form, "correo"),
+        challenge_token: field(form, "challenge_token"),
+        marketing_consent: field(form, "marketing_consent"),
+      };
+    }
+  } catch (error) {
+    if (error instanceof DomainError) throw error;
     throw new DomainError("INVALID_INPUT");
   }
   if (!isRecord(body) || typeof body.correo !== "string") {
     throw new DomainError("INVALID_INPUT");
   }
-  if (
-    body.marketing_consent !== undefined &&
-    typeof body.marketing_consent !== "boolean"
-  ) {
+  if (mediaType === "application/json" && "ficha" in body) {
     throw new DomainError("INVALID_INPUT");
   }
   return {
     eventCode: parseEventCode(body.event_code),
-    name: parseRegistrationName(body.nombre),
+    name: mediaType === "multipart/form-data"
+      ? "Inspector"
+      : parseRegistrationName(body.nombre),
     email: Email.parse(body.correo),
-    marketingConsent: body.marketing_consent ?? false,
+    marketingConsent: parseMarketingConsent(
+      body.marketing_consent,
+      mediaType === "multipart/form-data",
+    ),
     challengeToken: parseChallengeToken(body.challenge_token),
     remoteIp: extractClientIp(request.headers.get("x-forwarded-for")),
+    ...(inspector === undefined ? {} : { inspector }),
   };
 };

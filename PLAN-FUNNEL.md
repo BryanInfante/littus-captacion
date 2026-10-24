@@ -744,7 +744,7 @@ locales en `feat/ficha-inspector`, sin preparar PRs ni publicar.
 - [x] IP-01: persistencia privada, vista pública, seed y tipos generados.
       Comprobar primero el contrato fallando; después reset local y pruebas de
       DB.
-- [ ] IP-02: extender la inscripción con ficha, puertos, adaptadores y máquina
+- [x] IP-02: extender la inscripción con ficha, puertos, adaptadores y máquina
       de estados con compensación. Probar orden, duplicados, recuperación y
       fallos.
 - [ ] IP-03: formulario accesible condicional, multipart, errores y cierre.
@@ -766,10 +766,29 @@ dos pruebas de DB). `supabase db reset --local` aplicó
 GREEN: `deno task test:db`, 14 pruebas aprobadas (47 pasos); tipos regenerados
 con `supabase gen types typescript --local`, formateados y comparación posterior
 de bytes idéntica; `deno task check`, 147 pruebas aprobadas (41 pasos); pglast,
-22 migraciones analizadas sin error. IP-01 está implementada y verificada en
-local; el commit se registra en la siguiente actualización. No se ejecutó ni
-autorizó operación remota. `FN-02-06` continúa en curso; IP-02 e IP-03 siguen
-pendientes.
+22 migraciones analizadas sin error. IP-01: commit `50bc856`; revisión nativa
+declinada para ese candidato, sin desactivar revisiones futuras. No se ejecutó
+ni autorizó operación remota.
+
+IP-02 se implementó en el backend de `public-api`, sin duplicar el pipeline de
+inscripción: el cuerpo se limita antes de leerlo y también durante la lectura;
+challenge, límites y ventana del evento preceden a la validación de ficha. La
+reserva genera el ID y ruta privada antes de subir; la reclamación de pendientes
+usa comparación atómica de `actualizado_en` (umbral de dos minutos), la
+inscripción conserva `marketing_consent` dentro de la transacción del trigger y
+los fallos compensan foto e inscripción. Se amplió la migración IP-01, aún local
+y no publicada, para la marca temporal, el consentimiento y la correspondencia
+entre evento/documento/ID y ruta.
+
+RED de IP-02: la prueba DB primero detectó que la tabla no persistía
+`marketing_consent`; la prueba del adaptador WebDAV detectó que el validador de
+rutas rechazaba el nombre de archivo JPG. Ambos contratos quedaron en verde.
+GREEN: `deno task check`, 162 pruebas aprobadas (41 pasos); `deno task test:db`,
+15 pruebas aprobadas (48 pasos); regeneración local de `database.types.ts`,
+formateo y diff posterior de cero; pglast, 22 migraciones analizadas sin error.
+El estado de IP-02 queda verificado solo en el stack local. No se cambió F3 ni
+se ejecutaron operaciones remotas. `FN-02-06` continúa en curso: IP-03 sigue
+pendiente.
 
 - 2026-10-18: plan propuesto. Decisiones D-06 (sin hotfix del webinar) y D-07
   (todos los lanzamientos postergados) registradas. Pendientes DU-01 a DU-04.

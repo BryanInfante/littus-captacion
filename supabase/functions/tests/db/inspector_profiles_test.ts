@@ -18,15 +18,16 @@ Deno.test("inspector profile reserves its photo and creates a registration atomi
           const [profile] = await tx`
         insert into public.eccia_fichas_inspector
           (id, masterclass_codigo, documento, nombres, apellidos, nombre_completo,
-           correo, pais, experiencia_anios, sin_empleador, foto_path, consentimiento_datos_en)
+           correo, pais, experiencia_anios, sin_empleador, foto_path, consentimiento_datos_en, marketing_consent)
         values (${id}, 'ultrasonido-nivel-ii', 'AB123456', 'ANA', 'PEREZ', 'PEREZ ANA',
-                'profile@example.invalid', 'Ecuador', 0, true, ${path}, now())
+                'profile@example.invalid', 'Ecuador', 0, true, ${path}, now(), true)
         returning inscripcion_id, estado
       `;
           assertEquals(profile.estado, "pendiente_foto");
           const [registration] =
-            await tx`select nombre from public.eccia_taller_inscripciones where id = ${profile.inscripcion_id}`;
+            await tx`select nombre, marketing_consent from public.eccia_taller_inscripciones where id = ${profile.inscripcion_id}`;
           assertEquals(registration.nombre, "PEREZ ANA");
+          assertEquals(registration.marketing_consent, true);
           // Cascading from the registration is the compensation's single transaction.
           await tx`delete from public.eccia_taller_inscripciones where id = ${profile.inscripcion_id}`;
           const rows =
@@ -98,6 +99,22 @@ Deno.test("inspector profile invariants and public access are enforced by Postgr
           anon_execute: false,
           authenticated_execute: false,
         });
+      },
+    );
+
+    await t.step(
+      "pending recovery timestamp and marketing consent are persisted atomically",
+      async () => {
+        const columns = await sql<{ column_name: string }[]>`
+          select column_name from information_schema.columns
+          where table_schema = 'public' and table_name = 'eccia_fichas_inspector'
+            and column_name in ('actualizado_en', 'marketing_consent')
+          order by column_name
+        `;
+        assertEquals(columns.map((row) => row.column_name), [
+          "actualizado_en",
+          "marketing_consent",
+        ]);
       },
     );
 
@@ -192,6 +209,13 @@ Deno.test("inspector profile invariants and public access are enforced by Postgr
         );
         assertEquals(
           await check({ fotoPath: "https://example.invalid/photo.jpg" }),
+          "eccia_fichas_inspector_foto_path_check",
+        );
+        assertEquals(
+          await check({
+            fotoPath:
+              "Test Root/inscripciones/ultrasonido-nivel-ii/fotos/AB123456_11111111-1111-4111-8111-111111111111.jpg",
+          }),
           "eccia_fichas_inspector_foto_path_check",
         );
         assertEquals(await check({ consentimiento: null }), "23502");

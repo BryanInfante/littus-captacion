@@ -20,6 +20,7 @@ const eventFromRow = (
     | "activo"
     | "inscripcion_abre_en"
     | "inscripcion_cierra_en"
+    | "requiere_ficha_inspector"
   >,
 ): Event => ({
   code: row.masterclass_codigo,
@@ -30,6 +31,7 @@ const eventFromRow = (
   registrationClosesAt: row.inscripcion_cierra_en === null
     ? null
     : new Date(row.inscripcion_cierra_en),
+  requiresInspectorProfile: row.requiere_ficha_inspector,
 });
 
 const registrationFromRow = (
@@ -62,7 +64,7 @@ export const createSupabasePorts = (config: {
       findByCode: async (code) => {
         const { data, error } = await client.from("eccia_eventos")
           .select(
-            "masterclass_codigo,activo,inscripcion_abre_en,inscripcion_cierra_en",
+            "masterclass_codigo,activo,inscripcion_abre_en,inscripcion_cierra_en,requiere_ficha_inspector",
           )
           .eq("masterclass_codigo", code).maybeSingle();
         if (error !== null) throw new Error("Event repository unavailable");

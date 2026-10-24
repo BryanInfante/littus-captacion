@@ -10,6 +10,8 @@ const EVENTS = new Set([
   "registration.created",
   "request.completed",
   "request.failed",
+  "inspector.photo_orphaned",
+  "inspector.profile_cleanup_failed",
 ]);
 const METHODS = new Set([
   "POST",

@@ -24,12 +24,13 @@ const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
   const firstCode = `contract-${crypto.randomUUID()}`;
   const secondCode = `contract-${crypto.randomUUID()}`;
   const seed = [
-    openEvent({ code: firstCode }),
+    openEvent({ code: firstCode, requiresInspectorProfile: true }),
     openEvent({
       code: secondCode,
       active: false,
       registrationOpensAt: null,
       registrationClosesAt: null,
+      requiresInspectorProfile: false,
     }),
   ];
   if (adapter === "memory") {
@@ -79,9 +80,11 @@ const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
       await sql`
         insert into public.eccia_eventos
           (masterclass_codigo, event_title, codigo_prefijo, activo,
-           inscripcion_abre_en, inscripcion_cierra_en)
+           inscripcion_abre_en, inscripcion_cierra_en, requiere_ficha_inspector)
         values (${event.code}, 'Port contract fixture', 'ECCIA-TEST-', ${event.active},
-                ${event.registrationOpensAt}, ${event.registrationClosesAt})
+                ${event.registrationOpensAt}, ${event.registrationClosesAt}, ${
+        event.requiresInspectorProfile ?? false
+      })
       `;
     }
     return {
@@ -111,7 +114,7 @@ for (const adapter of ["memory", "supabase"] as const) {
         async () => {
           assertEquals(
             await events.findByCode(firstCode),
-            openEvent({ code: firstCode }),
+            openEvent({ code: firstCode, requiresInspectorProfile: true }),
           );
           assertEquals(
             await events.findByCode(secondCode),
@@ -120,6 +123,7 @@ for (const adapter of ["memory", "supabase"] as const) {
               active: false,
               registrationOpensAt: null,
               registrationClosesAt: null,
+              requiresInspectorProfile: false,
             }),
           );
         },
