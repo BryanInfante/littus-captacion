@@ -3,24 +3,24 @@ const escapeHtml = (value: string) =>
     /[&<>"']/g,
     (character) =>
       ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;',
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
       })[character] ?? character,
-  )
+  );
 
 export const getFirstName = (fullName: string) =>
-  fullName.trim().split(/\s+/)[0] || 'profesional'
+  fullName.trim().split(/\s+/)[0] || "profesional";
 
 export type CourseAccess = {
-  fullName: string
-  courseName: string
-  classroomUrl: string
-  usuario: string
-  password: string
-}
+  fullName: string;
+  courseName: string;
+  classroomUrl: string;
+  usuario: string;
+  password: string;
+};
 
 // Kept in sync with emails/eccia-end-vtptmt-acceso.html, which is the editable
 // source used to preview and import the design. The copy lives here too because
@@ -31,14 +31,14 @@ export type CourseAccess = {
 // the Broadcasts API resolves those tokens. Included here they would render as
 // literal text in the recipient's inbox.
 export const renderCourseAccessEmail = (access: CourseAccess) => {
-  const firstName = escapeHtml(getFirstName(access.fullName))
-  const courseName = escapeHtml(access.courseName)
-  const classroomUrl = escapeHtml(access.classroomUrl)
+  const firstName = escapeHtml(getFirstName(access.fullName));
+  const courseName = escapeHtml(access.courseName);
+  const classroomUrl = escapeHtml(access.classroomUrl);
   const classroomLabel = escapeHtml(
-    access.classroomUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''),
-  )
-  const usuario = escapeHtml(access.usuario)
-  const password = escapeHtml(access.password)
+    access.classroomUrl.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+  );
+  const usuario = escapeHtml(access.usuario);
+  const password = escapeHtml(access.password);
 
   return `<!doctype html>
 <html lang="es">
@@ -145,10 +145,11 @@ export const renderCourseAccessEmail = (access: CourseAccess) => {
       </tr>
     </table>
   </body>
-</html>`
-}
+</html>`;
+};
 
-export const renderCourseAccessText = (access: CourseAccess) => `Hola ${getFirstName(access.fullName)},
+export const renderCourseAccessText = (access: CourseAccess) =>
+  `Hola ${getFirstName(access.fullName)},
 
 Creamos tu cuenta en el aula virtual de ECCIA para el entrenamiento en ${access.courseName}. Ahí encontrarás todo el material del curso.
 
@@ -160,4 +161,4 @@ Por seguridad, cambia la contraseña la primera vez que ingreses. Estas credenci
 
 Si no puedes entrar o el material no aparece, responde directamente a este correo.
 
-Equipo ECCIA`
+Equipo ECCIA`;

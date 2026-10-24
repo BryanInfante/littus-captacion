@@ -2,11 +2,14 @@ const form = document.querySelector("#inscripcion");
 const status = document.querySelector(".form-status");
 const spotlights = document.querySelectorAll("[data-spotlight]");
 const registrationModal = document.querySelector("#registration-success-modal");
-const modalPrimaryAction = registrationModal?.querySelector("[data-modal-primary]");
+const modalPrimaryAction = registrationModal?.querySelector(
+  "[data-modal-primary]",
+);
 const modalCloseButton = registrationModal?.querySelector("[data-modal-close]");
 let previouslyFocusedElement = null;
 
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_VrTz-gg1X787doh2KgvX3g_ESS7BzS-";
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_VrTz-gg1X787doh2KgvX3g_ESS7BzS-";
 const REGISTRATIONS_ENDPOINT =
   "https://dkvuihkwuuocjjsscuso.supabase.co/rest/v1/eccia_taller_inscripciones";
 const META_PIXEL_ID = "896484926815497";
@@ -19,7 +22,9 @@ const initMetaPixel = () => {
 
   if (!window.fbq) {
     const fbq = function () {
-      fbq.callMethod ? fbq.callMethod.apply(fbq, arguments) : fbq.queue.push(arguments);
+      fbq.callMethod
+        ? fbq.callMethod.apply(fbq, arguments)
+        : fbq.queue.push(arguments);
     };
 
     window.fbq = fbq;
@@ -57,8 +62,11 @@ const showStatus = (state, title, message) => {
   status.focus();
 };
 
-const getFocusableElements = () =>
-  [...registrationModal.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+const getFocusableElements = () => [
+  ...registrationModal.querySelectorAll(
+    'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  ),
+];
 
 const openRegistrationModal = () => {
   if (!registrationModal?.showModal) {
@@ -176,7 +184,9 @@ form?.addEventListener("submit", async (event) => {
       return;
     }
 
-    throw new Error(error.message || `Supabase respondió con estado ${response.status}.`);
+    throw new Error(
+      error.message || `Supabase respondió con estado ${response.status}.`,
+    );
   } catch (error) {
     console.error("No se pudo registrar la inscripción.", error);
     showStatus(
