@@ -14,20 +14,20 @@ Hoy un certificado de otro curso se crea a mano en la base con
 
 `supabase/functions/issue-certificate/index.ts`:
 
-| Línea | Valor | Destino |
-| --- | --- | --- |
-| 10 | `MASTERCLASS_CODE` | viene en el payload de la petición |
-| 13 | `EVENT_TITLE` | `eventos.event_title` |
-| 77 | prefijo `ECCIA-UT1-` | `eventos.codigo_prefijo` |
-| 380 | `'Seminario de Ultrasonido'` | `eventos.event_title_linea_1` |
-| 381 | `'Industrial Nivel I'` | `eventos.event_title_linea_2` |
-| 393 | párrafo de descripción | `eventos.descripcion` |
-| 399 | `'2h'` | `eventos.duracion` |
-| 401 | `'03 de julio de 2026'` | `eventos.fecha_texto` |
-| 772 | `masterclass-ultrasonido-nivel-i/2026/` | `eventos.nextcloud_directorio` |
-| 114 | `templates/certificate-base.pdf` | **falta columna** |
-| 421-422 | nombres y cargos de los dos firmantes | **faltan columnas** |
-| 104-105 | rutas de las imágenes de firma | **faltan columnas** |
+| Línea   | Valor                                   | Destino                            |
+| ------- | --------------------------------------- | ---------------------------------- |
+| 10      | `MASTERCLASS_CODE`                      | viene en el payload de la petición |
+| 13      | `EVENT_TITLE`                           | `eventos.event_title`              |
+| 77      | prefijo `ECCIA-UT1-`                    | `eventos.codigo_prefijo`           |
+| 380     | `'Seminario de Ultrasonido'`            | `eventos.event_title_linea_1`      |
+| 381     | `'Industrial Nivel I'`                  | `eventos.event_title_linea_2`      |
+| 393     | párrafo de descripción                  | `eventos.descripcion`              |
+| 399     | `'2h'`                                  | `eventos.duracion`                 |
+| 401     | `'03 de julio de 2026'`                 | `eventos.fecha_texto`              |
+| 772     | `masterclass-ultrasonido-nivel-i/2026/` | `eventos.nextcloud_directorio`     |
+| 114     | `templates/certificate-base.pdf`        | **falta columna**                  |
+| 421-422 | nombres y cargos de los dos firmantes   | **faltan columnas**                |
+| 104-105 | rutas de las imágenes de firma          | **faltan columnas**                |
 
 ## La tabla que creé está incompleta
 
@@ -104,9 +104,9 @@ es peor:
    curso B.
 2. **Rotura directa**: el índice único de `eccia_taller_inscripciones` es sobre
    `(lower(btrim(correo)), taller_codigo)`, así que una persona inscrita a dos
-   cursos tiene **dos filas con el mismo correo**. `maybeSingle()` devuelve error
-   cuando la consulta trae más de una fila. La primera persona que se inscriba a
-   dos cursos rompe la emisión para sí misma.
+   cursos tiene **dos filas con el mismo correo**. `maybeSingle()` devuelve
+   error cuando la consulta trae más de una fila. La primera persona que se
+   inscriba a dos cursos rompe la emisión para sí misma.
 
 Hoy no se manifiesta porque solo hay una inscripción por correo. Se manifiesta
 el día que alguien tome un segundo curso, que es exactamente lo que este plan

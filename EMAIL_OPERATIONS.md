@@ -1,8 +1,8 @@
 # Operación de correos ECCIA
 
 Esta guía separa la infraestructura técnica de la operación cotidiana. El
-objetivo es que las campañas se editen y programen desde Resend sin modificar
-el código de la landing.
+objetivo es que las campañas se editen y programen desde Resend sin modificar el
+código de la landing.
 
 ## Arquitectura elegida
 
@@ -24,16 +24,16 @@ Function.
 
 Busca y reemplaza estos marcadores antes de importar o enviar una campaña:
 
-| Marcador | Uso |
-| --- | --- |
-| `{{SUBJECT}}` | Asunto interno del documento |
-| `{{PREHEADER}}` | Texto corto que aparece junto al asunto |
-| `{{LOGO_URL}}` | URL HTTPS pública del logo ECCIA |
-| `{{EYEBROW}}` | Categoría corta, por ejemplo “Taller técnico” |
-| `{{TITLE}}` | Título principal |
-| `{{BODY_HTML}}` | Contenido central |
-| `{{CTA_URL}}` | Enlace completo del botón |
-| `{{CTA_LABEL}}` | Texto del botón |
+| Marcador        | Uso                                           |
+| --------------- | --------------------------------------------- |
+| `{{SUBJECT}}`   | Asunto interno del documento                  |
+| `{{PREHEADER}}` | Texto corto que aparece junto al asunto       |
+| `{{LOGO_URL}}`  | URL HTTPS pública del logo ECCIA              |
+| `{{EYEBROW}}`   | Categoría corta, por ejemplo “Taller técnico” |
+| `{{TITLE}}`     | Título principal                              |
+| `{{BODY_HTML}}` | Contenido central                             |
+| `{{CTA_URL}}`   | Enlace completo del botón                     |
+| `{{CTA_LABEL}}` | Texto del botón                               |
 
 No reemplaces `{{{contact.first_name|profesional}}}` ni
 `{{{RESEND_UNSUBSCRIBE_URL}}}`: Resend utiliza esos campos para personalizar el
@@ -74,8 +74,8 @@ Nunca envíes una campaña sin comprobar:
 
 Los mensajes necesarios para participar en un taller —confirmación, acceso,
 recordatorio y certificado— son comunicaciones operativas. Las invitaciones a
-otros talleres o promociones solo se envían a quienes marcaron el
-consentimiento opcional.
+otros talleres o promociones solo se envían a quienes marcaron el consentimiento
+opcional.
 
 La confirmación usa una clave de idempotencia vinculada al identificador de la
 inscripción y registra en Supabase el ID de Resend, la fecha de envío y el
@@ -106,8 +106,9 @@ Orden obligatorio:
    les falta credencial.
 2. `mode: "test"` + `test_email` — manda **una** copia con credenciales de
    muestra, para revisar diseño, asunto y remitente.
-3. `mode: "send"` + `approval_phrase` — envía de verdad. Si a alguien de la lista
-   le falta usuario o contraseña, **no envía nada a nadie** y devuelve 409.
+3. `mode: "send"` + `approval_phrase` — envía de verdad. Si a alguien de la
+   lista le falta usuario o contraseña, **no envía nada a nadie** y
+   devuelve 409.
 
 ```bash
 curl -X POST "$SUPABASE_URL/functions/v1/send-course-access" \
@@ -126,9 +127,9 @@ MCP de Supabase. El MCP puede desplegar funciones pero **no borrarlas**, así qu
 quedaron en el proyecto remoto y **ya fueron deshabilitadas** (redeplegadas como
 stubs que devuelven `410 Gone`; ya no leen `RESEND_API_KEY` ni envían nada).
 
-| Función | Uso original | Estado |
-| --- | --- | --- |
-| `send-ut1-test` | Envío de una copia de prueba del correo al dueño del proyecto. | Deshabilitada (410) |
+| Función              | Uso original                                                                                          | Estado              |
+| -------------------- | ----------------------------------------------------------------------------------------------------- | ------------------- |
+| `send-ut1-test`      | Envío de una copia de prueba del correo al dueño del proyecto.                                        | Deshabilitada (410) |
 | `send-ut1-broadcast` | Creó y envió el broadcast a `segment_id` del segmento de consentimiento vía la Resend Broadcasts API. | Deshabilitada (410) |
 
 El envío promocional real se hace con la **Resend Broadcasts API**

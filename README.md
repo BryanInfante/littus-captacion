@@ -7,20 +7,20 @@ Resend.
 
 ## Estado actual
 
-| Componente | Estado |
-| --- | --- |
-| Landing responsive ECCIA | Operativa |
-| Formulario de inscripción | Operativo |
-| Persistencia en Supabase | Operativa |
-| Consentimiento promocional separado | Operativo |
-| Sincronización Supabase → Resend | Operativa |
-| Confirmación transaccional individual | Operativa |
-| Segmento y Topic de Resend | Configurados |
-| Plantilla visual de Broadcast | Creada y probada |
-| Meta Pixel | Preparado; requiere configurar `META_PIXEL_ID` real |
-| Meta Conversions API | Programada como evolución ideal |
-| GitHub Pages con dominio y HTTPS | Operativo |
-| Protección anti-bot | Pendiente antes de una campaña de alto tráfico |
+| Componente                            | Estado                                              |
+| ------------------------------------- | --------------------------------------------------- |
+| Landing responsive ECCIA              | Operativa                                           |
+| Formulario de inscripción             | Operativo                                           |
+| Persistencia en Supabase              | Operativa                                           |
+| Consentimiento promocional separado   | Operativo                                           |
+| Sincronización Supabase → Resend      | Operativa                                           |
+| Confirmación transaccional individual | Operativa                                           |
+| Segmento y Topic de Resend            | Configurados                                        |
+| Plantilla visual de Broadcast         | Creada y probada                                    |
+| Meta Pixel                            | Preparado; requiere configurar `META_PIXEL_ID` real |
+| Meta Conversions API                  | Programada como evolución ideal                     |
+| GitHub Pages con dominio y HTTPS      | Operativo                                           |
+| Protección anti-bot                   | Pendiente antes de una campaña de alto tráfico      |
 
 ## Arquitectura
 
@@ -168,8 +168,7 @@ La tabla conserva:
 ### Configuración operativa
 
 - Dominio verificado: `mail.littusgroup.com`
-- Remitente:
-  `ECCIA <gestioneccia@mail.littusgroup.com>`
+- Remitente: `ECCIA <gestioneccia@mail.littusgroup.com>`
 - Reply-To: `formanager@littusgroup.com`
 - Segmento: `ECCIA · Talleres y actividades`
 - Topic: `Talleres y actividades ECCIA`
@@ -252,9 +251,9 @@ Meta debe vivir como secreto de Supabase, igual que `RESEND_API_KEY`.
 
 ## Despliegue en GitHub Pages
 
-El workflow `.github/workflows/pages.yml` publica el contenido de `public/`
-como artefacto de GitHub Pages. El dominio
-`https://preinscripcion.littusgroup.com` está configurado con HTTPS activo.
+El workflow `.github/workflows/pages.yml` publica el contenido de `public/` como
+artefacto de GitHub Pages. El dominio `https://preinscripcion.littusgroup.com`
+está configurado con HTTPS activo.
 
 ## Marca ECCIA
 
