@@ -6,6 +6,7 @@ export interface Logger {
 }
 
 const EVENTS = new Set([
+  "challenge.unavailable",
   "registration.created",
   "request.completed",
   "request.failed",
