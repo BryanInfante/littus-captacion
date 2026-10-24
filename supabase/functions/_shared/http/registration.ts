@@ -1,17 +1,32 @@
-import type { RegisterForEventInput } from "../application/registerForEvent.ts";
+import type { RegisterPublicRegistrationInput } from "../application/registerPublicRegistration.ts";
 import { Email } from "../domain/email.ts";
 import { DomainError } from "../domain/errors.ts";
 import {
   parseEventCode,
   parseRegistrationName,
 } from "../domain/registration.ts";
+import { extractClientIp } from "../domain/requestLimits.ts";
+
+// Turnstile documents tokens of up to 2048 characters.
+const MAX_CHALLENGE_TOKEN_LENGTH = 2048;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const parseChallengeToken = (input: unknown): string => {
+  if (typeof input !== "string") throw new DomainError("INVALID_INPUT");
+  const token = input.trim();
+  if (token.length === 0 || token.length > MAX_CHALLENGE_TOKEN_LENGTH) {
+    throw new DomainError("INVALID_INPUT");
+  }
+  return token;
+};
+
+// Parses the whole request before any side effect: an invalid field never
+// reaches the challenge verifier or consumes a limit.
 export const parseRegistrationRequest = async (
   request: Request,
-): Promise<RegisterForEventInput> => {
+): Promise<RegisterPublicRegistrationInput> => {
   const mediaType = request.headers.get("content-type")?.split(";")[0]
     .trim().toLowerCase();
   if (mediaType !== "application/json") throw new DomainError("INVALID_INPUT");
@@ -35,5 +50,7 @@ export const parseRegistrationRequest = async (
     name: parseRegistrationName(body.nombre),
     email: Email.parse(body.correo),
     marketingConsent: body.marketing_consent ?? false,
+    challengeToken: parseChallengeToken(body.challenge_token),
+    remoteIp: extractClientIp(request.headers.get("x-forwarded-for")),
   };
 };
