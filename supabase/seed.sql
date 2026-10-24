@@ -14,7 +14,8 @@ insert into public.eccia_eventos (
   fecha_texto,
   fecha_evento,
   duracion,
-  activo
+  activo,
+  requiere_ficha_inspector
 )
 values (
   'ultrasonido-nivel-ii',
@@ -24,6 +25,7 @@ values (
   'Del 17 al 25 de octubre de 2026',
   '2026-10-17',
   '40 horas',
+  true,
   true
 )
 on conflict (masterclass_codigo) do nothing;

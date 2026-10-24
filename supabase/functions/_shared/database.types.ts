@@ -46,6 +46,7 @@ export type Database = {
           "inscripcion_cierra_en": string | null;
           "masterclass_codigo": string;
           "nextcloud_directorio": string | null;
+          "requiere_ficha_inspector": boolean;
           "resumen": string | null;
           "tipo": string | null;
         };
@@ -65,6 +66,7 @@ export type Database = {
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo": string;
           "nextcloud_directorio"?: string | null;
+          "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
           "tipo"?: string | null;
         };
@@ -83,10 +85,91 @@ export type Database = {
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string;
           "nextcloud_directorio"?: string | null;
+          "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
           "tipo"?: string | null;
         };
         Relationships: [];
+      };
+      "eccia_fichas_inspector": {
+        Row: {
+          "apellidos": string;
+          "consentimiento_datos_en": string;
+          "correo": string;
+          "creado_en": string;
+          "documento": string;
+          "empleador_declarado": string | null;
+          "estado": string;
+          "experiencia_anios": number;
+          "foto_path": string;
+          "id": string;
+          "inscripcion_id": string;
+          "masterclass_codigo": string;
+          "nombre_completo": string;
+          "nombres": string;
+          "pais": string;
+          "sin_empleador": boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          "apellidos": string;
+          "consentimiento_datos_en": string;
+          "correo": string;
+          "creado_en"?: string;
+          "documento": string;
+          "empleador_declarado"?: string | null;
+          "estado"?: string;
+          "experiencia_anios": number;
+          "foto_path": string;
+          "id"?: string;
+          "inscripcion_id": string;
+          "masterclass_codigo": string;
+          "nombre_completo": string;
+          "nombres": string;
+          "pais": string;
+          "sin_empleador"?: boolean;
+        };
+        Update: {
+          "apellidos"?: string;
+          "consentimiento_datos_en"?: string;
+          "correo"?: string;
+          "creado_en"?: string;
+          "documento"?: string;
+          "empleador_declarado"?: string | null;
+          "estado"?: string;
+          "experiencia_anios"?: number;
+          "foto_path"?: string;
+          "id"?: string;
+          "inscripcion_id"?: string;
+          "masterclass_codigo"?: string;
+          "nombre_completo"?: string;
+          "nombres"?: string;
+          "pais"?: string;
+          "sin_empleador"?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "eccia_fichas_inspector_inscripcion_id_fkey";
+            columns: ["inscripcion_id"];
+            isOneToOne: true;
+            referencedRelation: "eccia_taller_inscripciones";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "eccia_fichas_inspector_masterclass_codigo_fkey";
+            columns: ["masterclass_codigo"];
+            isOneToOne: false;
+            referencedRelation: "eccia_eventos";
+            referencedColumns: ["masterclass_codigo"];
+          },
+          {
+            foreignKeyName: "eccia_fichas_inspector_masterclass_codigo_fkey";
+            columns: ["masterclass_codigo"];
+            isOneToOne: false;
+            referencedRelation: "eccia_eventos_publicos";
+            referencedColumns: ["masterclass_codigo"];
+          },
+        ];
       };
       "eccia_limites_solicitud": {
         Row: {
@@ -269,6 +352,7 @@ export type Database = {
           "inscripcion_abre_en": string | null;
           "inscripcion_cierra_en": string | null;
           "masterclass_codigo": string | null;
+          "requiere_ficha_inspector": boolean | null;
           "resumen": string | null;
           "tipo": string | null;
         };
@@ -281,6 +365,7 @@ export type Database = {
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string | null;
+          "requiere_ficha_inspector"?: boolean | null;
           "resumen"?: string | null;
           "tipo"?: string | null;
         };
@@ -292,6 +377,7 @@ export type Database = {
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string | null;
+          "requiere_ficha_inspector"?: boolean | null;
           "resumen"?: string | null;
           "tipo"?: string | null;
         };

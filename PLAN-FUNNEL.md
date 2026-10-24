@@ -733,6 +733,44 @@ mientras contenga piezas de UT2 que el workflow desplegaría
 
 ## Avance
 
+### Ejecución local de FN-02-06 (2026-10-24)
+
+Alcance: implementar el diseño vinculante sin rediseño, sin operaciones remotas.
+Ruta: trabajo delegado a un único `odd-worker`; este documento se usa para
+seguimiento porque `odd/tasks/` no está entre las rutas permitidas. Estimación:
+tres unidades cohesivas, aproximadamente 1.500 líneas de autoría; solo commits
+locales en `feat/ficha-inspector`, sin preparar PRs ni publicar.
+
+- [x] IP-01: persistencia privada, vista pública, seed y tipos generados.
+      Comprobar primero el contrato fallando; después reset local y pruebas de
+      DB.
+- [ ] IP-02: extender la inscripción con ficha, puertos, adaptadores y máquina
+      de estados con compensación. Probar orden, duplicados, recuperación y
+      fallos.
+- [ ] IP-03: formulario accesible condicional, multipart, errores y cierre.
+      Probar con linkedom y ejecutar todas las verificaciones solicitadas.
+
+Cada unidad exige `deno task check` antes de su commit. Criterio de aceptación:
+contrato certgen normalizado, datos privados, foto privada reservada antes de la
+subida, recuperación de pendientes y comportamiento JSON existente preservado.
+Pendiente en producción: aprobación para migración remota, valor del usuario de
+`NEXTCLOUD_ROOT_DIR`, activar el indicador de UT2 y despacho F3 solo para
+`completa`. No se modifica F3 en esta tarea.
+
+Estado inicial sustituido por la ejecución observada: `deno --version` responde
+2.9.7. RED de IP-01 observado antes de escribir la migración: el indicador
+`requiere_ficha_inspector` no existía en la base local; la vista y el contrato
+de PostgREST todavía no exponían la nueva columna (3 aserciones fallidas en las
+dos pruebas de DB). `supabase db reset --local` aplicó
+`20261025090000_add_inspector_profiles.sql` y cargó el indicador UT2 en el seed.
+GREEN: `deno task test:db`, 14 pruebas aprobadas (47 pasos); tipos regenerados
+con `supabase gen types typescript --local`, formateados y comparación posterior
+de bytes idéntica; `deno task check`, 147 pruebas aprobadas (41 pasos); pglast,
+22 migraciones analizadas sin error. IP-01 está implementada y verificada en
+local; el commit se registra en la siguiente actualización. No se ejecutó ni
+autorizó operación remota. `FN-02-06` continúa en curso; IP-02 e IP-03 siguen
+pendientes.
+
 - 2026-10-18: plan propuesto. Decisiones D-06 (sin hotfix del webinar) y D-07
   (todos los lanzamientos postergados) registradas. Pendientes DU-01 a DU-04.
 - 2026-10-18: FN-00-01 hecho. Privilegios por columna confirmados en
