@@ -82,6 +82,25 @@ export type Database = {
         };
         Relationships: [];
       };
+      "eccia_limites_solicitud": {
+        Row: {
+          "clave_hash": string;
+          "intentos": number;
+          "vence_en": string;
+        };
+        ComputedFields: never;
+        Insert: {
+          "clave_hash": string;
+          "intentos": number;
+          "vence_en": string;
+        };
+        Update: {
+          "clave_hash"?: string;
+          "intentos"?: number;
+          "vence_en"?: string;
+        };
+        Relationships: [];
+      };
       "eccia_masterclass_certificados": {
         Row: {
           "certificate_attempts": number;
@@ -224,7 +243,17 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      "eccia_consumir_limite": {
+        Args: {
+          "p_clave_hash": string;
+          "p_limite": number;
+          "p_ventana_segundos": number;
+        };
+        Returns: {
+          "allowed": boolean;
+          "retry_after_seconds": number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
