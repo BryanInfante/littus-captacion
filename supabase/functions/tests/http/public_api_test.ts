@@ -5,6 +5,10 @@ import type { LogEntry } from "../../_shared/log.ts";
 import type { RegistrationDetails } from "../../_shared/domain/registration.ts";
 import type { Registrations } from "../../_shared/ports/registrations.ts";
 import { memoryPorts, NOW, openEvent } from "../fixtures/registration.ts";
+import { MemoryHumanChallenge } from "../../_shared/adapters/memory/humanChallenge.ts";
+import { MemoryRequestLimits } from "../../_shared/adapters/memory/requestLimits.ts";
+import type { HumanChallenge } from "../../_shared/ports/humanChallenge.ts";
+import type { RequestLimits } from "../../_shared/ports/requestLimits.ts";
 
 const ORIGIN = "https://site.example.invalid";
 const ROUTE =
@@ -13,6 +17,7 @@ const validBody = {
   event_code: openEvent().code,
   nombre: "Private Test Person",
   correo: " PRIVATE.PERSON@Example.Invalid ",
+  challenge_token: "private-challenge-token",
 };
 
 const request = (body: unknown = validBody, origin: string | null = ORIGIN) => {
@@ -28,6 +33,8 @@ const request = (body: unknown = validBody, origin: string | null = ORIGIN) => {
 const setup = (options: {
   closed?: boolean;
   registrations?: Registrations;
+  humanChallenge?: HumanChallenge;
+  requestLimits?: RequestLimits;
 } = {}) => {
   const ports = memoryPorts([
     openEvent(options.closed ? { registrationClosesAt: NOW } : {}),
@@ -44,6 +51,8 @@ const setup = (options: {
   const handler = createHandler({
     events: ports.events,
     registrations,
+    humanChallenge: options.humanChallenge ?? new MemoryHumanChallenge(true),
+    requestLimits: options.requestLimits ?? new MemoryRequestLimits(() => NOW),
     now: () => NOW,
     publicSiteUrl: ORIGIN,
     logger: createLogger((entry: LogEntry) => entries.push(entry)),
@@ -305,4 +314,203 @@ Deno.test("public-api route table rejects unknown paths and unsupported methods"
   await unsupported.text();
   assertEquals(unsupported.status, 405);
   assertEquals(stored, []);
+});
+
+Deno.test("public-api parses before challenge and rejects missing or invalid challenge token with 400", async () => {
+  for (const token of [undefined, null, "", "   ", 42]) {
+    let challenges = 0;
+    let limits = 0;
+    const { handler, stored } = setup({
+      humanChallenge: {
+        verify: () => {
+          challenges++;
+          return Promise.resolve(true);
+        },
+      },
+      requestLimits: {
+        consume: () => {
+          limits++;
+          return Promise.resolve({ allowed: true });
+        },
+      },
+    });
+    const response = await handler(
+      request({ ...validBody, challenge_token: token }),
+    );
+    assertEquals(response.status, 400);
+    assertEquals(await response.json(), { error: "INVALID_INPUT" });
+    assertEquals(challenges, 0);
+    assertEquals(limits, 0);
+    assertEquals(stored, []);
+  }
+});
+
+Deno.test("public-api invalid email is rejected before challenge and limits", async () => {
+  const calls: string[] = [];
+  const { handler, stored } = setup({
+    humanChallenge: {
+      verify: () => {
+        calls.push("challenge");
+        return Promise.resolve(true);
+      },
+    },
+    requestLimits: {
+      consume: () => {
+        calls.push("limits");
+        return Promise.resolve({ allowed: true });
+      },
+    },
+  });
+  const response = await handler(
+    request({ ...validBody, correo: "not-an-email" }),
+  );
+  assertEquals(response.status, 400);
+  assertEquals(await response.json(), { error: "INVALID_INPUT" });
+  assertEquals(calls, []);
+  assertEquals(stored, []);
+});
+
+for (const blocked of ["challenge", "ip", "email"] as const) {
+  Deno.test(`public-api maps blocked ${blocked} to safe error with CORS and no writes`, async () => {
+    for (const origin of [ORIGIN, "https://evil.example.invalid", null]) {
+      const { handler, stored, entries } = setup({
+        humanChallenge: new MemoryHumanChallenge(blocked !== "challenge"),
+        requestLimits: {
+          consume: (key) =>
+            Promise.resolve(
+              key.kind === blocked
+                ? { allowed: false, retryAfterSeconds: 17 }
+                : { allowed: true },
+            ),
+        },
+      });
+      const incoming = request(validBody, origin);
+      incoming.headers.set("x-forwarded-for", " 203.0.113.7, 198.51.100.1");
+      const response = await handler(incoming);
+      const status = blocked === "challenge" ? 403 : 429;
+      assertEquals(response.status, status);
+      assertEquals(await response.json(), {
+        error: blocked === "challenge" ? "CHALLENGE_FAILED" : "RATE_LIMITED",
+      });
+      assertEquals(
+        response.headers.get("retry-after"),
+        status === 429 ? "17" : null,
+      );
+      assertEquals(
+        response.headers.get("access-control-allow-origin"),
+        origin === ORIGIN ? ORIGIN : null,
+      );
+      assertEquals(
+        response.headers.get("vary")?.toLowerCase().includes("origin"),
+        true,
+      );
+      assertEquals(stored, []);
+      assertEquals(entries.length > 0, true);
+      assertSafeLogs(entries);
+      assertEquals(entries.some((entry) => entry.status === status), true);
+      for (
+        const value of [
+          validBody.challenge_token,
+          "203.0.113.7",
+          "198.51.100.1",
+        ]
+      ) {
+        assertEquals(JSON.stringify(entries).includes(value), false);
+      }
+    }
+  });
+}
+
+Deno.test("public-api forwards the first client IP and normalized email to abuse ports", async () => {
+  const checks: unknown[] = [];
+  const { handler } = setup({
+    humanChallenge: {
+      verify: (token, ip) => {
+        checks.push([token, ip]);
+        return Promise.resolve(true);
+      },
+    },
+    requestLimits: {
+      consume: (key) => {
+        checks.push(key);
+        return Promise.resolve({ allowed: true });
+      },
+    },
+  });
+  const incoming = request();
+  incoming.headers.set("x-forwarded-for", " 203.0.113.7 , 198.51.100.1");
+  const response = await handler(incoming);
+  await response.text();
+  assertEquals(response.status, 201);
+  assertEquals(checks, [
+    [validBody.challenge_token, "203.0.113.7"],
+    { kind: "ip", value: "203.0.113.7" },
+    { kind: "email", value: "private.person@example.invalid" },
+  ]);
+});
+
+Deno.test("public-api missing and invalid forwarded IP share a bucket rather than bypassing limits", async () => {
+  const requestLimits = new MemoryRequestLimits(() => NOW);
+  for (let attempt = 0; attempt < 21; attempt++) {
+    const { handler, stored } = setup({ requestLimits });
+    const incoming = request({
+      ...validBody,
+      correo: `person${attempt}@example.invalid`,
+    });
+    if (attempt % 2 === 1) {
+      incoming.headers.set("x-forwarded-for", "invalid, 203.0.113.7");
+    }
+    const response = await handler(incoming);
+    assertEquals(response.status, attempt < 20 ? 201 : 429);
+    if (attempt === 20) {
+      assertEquals(await response.json(), { error: "RATE_LIMITED" });
+      assertEquals(response.headers.get("retry-after"), "3600");
+      assertEquals(stored, []);
+    } else {
+      await response.text();
+    }
+  }
+});
+
+Deno.test("public-api infrastructure failure never leaks hash IP email token or secret", async () => {
+  const hash = "a".repeat(64);
+  const secret = "private-hash-secret";
+  const { handler, stored, entries } = setup({
+    requestLimits: {
+      consume: () => {
+        throw new Error(
+          `${hash} ${secret} 203.0.113.7 ${validBody.correo} ${validBody.challenge_token}`,
+        );
+      },
+    },
+  });
+  const response = await handler(request());
+  assertEquals(response.status, 500);
+  assertEquals(await response.json(), { error: "INTERNAL_ERROR" });
+  assertEquals(stored, []);
+  assertSafeLogs(entries);
+  for (
+    const value of [hash, secret, "203.0.113.7", validBody.challenge_token]
+  ) {
+    assertEquals(JSON.stringify(entries).includes(value), false);
+  }
+});
+
+Deno.test("logger rejects abuse fields including keyed hash and challenge token", () => {
+  const entries: LogEntry[] = [];
+  createLogger((entry) => entries.push(entry)).log("request-fixture-001", {
+    event: "request.failed",
+    status: 429,
+    challenge_token: validBody.challenge_token,
+    token: validBody.challenge_token,
+    ip: "203.0.113.7",
+    email: validBody.correo,
+    hash: "a".repeat(64),
+    secret: "private-hash-secret",
+  });
+  assertEquals(entries, [{
+    requestId: "request-fixture-001",
+    event: "request.failed",
+    status: 429,
+  }]);
 });

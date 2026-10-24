@@ -5,6 +5,9 @@ const env = (): Record<string, string | undefined> => ({
   SUPABASE_URL: "http://127.0.0.1:54321",
   SUPABASE_SERVICE_ROLE_KEY: "local-service-role-fixture",
   PUBLIC_SITE_URL: "https://site.example.invalid",
+  TURNSTILE_SECRET_KEY: "fixture-turnstile-secret",
+  REQUEST_LIMIT_HASH_SECRET:
+    "fixture-request-limit-hash-secret-at-least-32-chars",
 });
 
 Deno.test("config prefers the default secret from SUPABASE_SECRET_KEYS JSON", () => {
@@ -44,6 +47,8 @@ Deno.test("config fails fast naming each missing required variable", () => {
       "SUPABASE_URL",
       "PUBLIC_SITE_URL",
       "SUPABASE_SERVICE_ROLE_KEY",
+      "TURNSTILE_SECRET_KEY",
+      "REQUEST_LIMIT_HASH_SECRET",
     ]
   ) {
     for (const value of [undefined, "", "   "]) {
@@ -144,5 +149,39 @@ Deno.test("config rejects invalid SUPABASE_URL values", () => {
       Error,
       "SUPABASE_URL",
     );
+  }
+});
+
+Deno.test("config exposes separate challenge and hashing secrets without conflating credentials", () => {
+  const config = parseConfig(env());
+  assertEquals(config.turnstileSecretKey, env().TURNSTILE_SECRET_KEY);
+  assertEquals(config.requestLimitHashSecret, env().REQUEST_LIMIT_HASH_SECRET);
+});
+
+Deno.test("config failures never echo challenge hash or service role secret values", () => {
+  for (
+    const variable of [
+      "PUBLIC_SITE_URL",
+      "TURNSTILE_SECRET_KEY",
+      "REQUEST_LIMIT_HASH_SECRET",
+    ]
+  ) {
+    const error = assertThrows(
+      () => parseConfig({ ...env(), [variable]: "" }),
+      Error,
+      variable,
+    );
+    if (!(error instanceof Error)) throw new Error("Expected Error");
+    for (
+      const key of [
+        "TURNSTILE_SECRET_KEY",
+        "REQUEST_LIMIT_HASH_SECRET",
+        "SUPABASE_SERVICE_ROLE_KEY",
+      ]
+    ) {
+      const secret = env()[key];
+      if (secret === undefined) throw new Error("Missing fixture secret");
+      assertEquals(error.message.includes(secret), false);
+    }
   }
 });

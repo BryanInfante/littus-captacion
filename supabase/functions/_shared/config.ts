@@ -2,6 +2,9 @@ export type Config = {
   readonly supabaseUrl: string;
   readonly supabaseServiceRoleKey: string;
   readonly publicSiteUrl: string;
+  // Separate secrets: rotating Turnstile never changes the request limit keys.
+  readonly turnstileSecretKey: string;
+  readonly requestLimitHashSecret: string;
 };
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -78,6 +81,8 @@ export const parseConfig = (env: Environment): Config => ({
     "PUBLIC_SITE_URL",
     httpsOrLocal,
   ),
+  turnstileSecretKey: required(env, "TURNSTILE_SECRET_KEY"),
+  requestLimitHashSecret: required(env, "REQUEST_LIMIT_HASH_SECRET"),
 });
 
 export const loadConfig = (): Config => parseConfig(Deno.env.toObject());

@@ -1,15 +1,20 @@
-import { registerForEvent } from "../_shared/application/registerForEvent.ts";
+import { registerPublicRegistration } from "../_shared/application/registerPublicRegistration.ts";
+import { TurnstileHumanChallenge } from "../_shared/adapters/turnstile/humanChallenge.ts";
 import { loadConfig } from "../_shared/config.ts";
 import { corsHeaders } from "../_shared/http/cors.ts";
 import { errorResponse } from "../_shared/http/errors.ts";
 import { parseRegistrationRequest } from "../_shared/http/registration.ts";
 import { createLogger, type Logger } from "../_shared/log.ts";
 import type { Events } from "../_shared/ports/events.ts";
+import type { HumanChallenge } from "../_shared/ports/humanChallenge.ts";
 import type { Registrations } from "../_shared/ports/registrations.ts";
+import type { RequestLimits } from "../_shared/ports/requestLimits.ts";
 
 export type HandlerDependencies = {
   readonly events: Events;
   readonly registrations: Registrations;
+  readonly humanChallenge: HumanChallenge;
+  readonly requestLimits: RequestLimits;
   readonly now: () => Date;
   readonly publicSiteUrl: string;
   readonly logger: Logger;
@@ -24,7 +29,8 @@ export const createHandler = (
     headers: Headers,
   ): Promise<Response> => {
     const input = await parseRegistrationRequest(request);
-    const created = await registerForEvent(
+    // The only registration path: challenge and limits are never optional.
+    const created = await registerPublicRegistration(
       input,
       dependencies,
       dependencies.now(),
@@ -81,17 +87,31 @@ export const createHandler = (
 
 if (import.meta.main) {
   const config = loadConfig();
+  const logger = createLogger();
   const { createSupabasePorts } = await import(
     "../_shared/adapters/supabase/registrationPorts.ts"
+  );
+  const { createSupabaseRequestLimits } = await import(
+    "../_shared/adapters/supabase/requestLimits.ts"
   );
   Deno.serve(createHandler({
     ...createSupabasePorts({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
     }),
+    humanChallenge: new TurnstileHumanChallenge({
+      secretKey: config.turnstileSecretKey,
+      fetch: (input, init) => fetch(input, init),
+      logger,
+    }),
+    requestLimits: createSupabaseRequestLimits({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      hashSecret: config.requestLimitHashSecret,
+    }),
     now: () => new Date(),
     publicSiteUrl: config.publicSiteUrl,
     requestId: () => crypto.randomUUID(),
-    logger: createLogger(),
+    logger,
   }));
 }
