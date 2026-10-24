@@ -17,10 +17,7 @@ const WORKFLOW_PATH = ".github/workflows/deploy-supabase-functions.yml";
 
 // Function directories the workflow must not deploy yet, each with its
 // reason. Empty while every function is deployed.
-const NOT_DEPLOYED: readonly string[] = [
-  // no challenge or throttling until FN-02-05b
-  "public-api",
-];
+const NOT_DEPLOYED: readonly string[] = [];
 
 const readFunctionDirectories = async (): Promise<Set<string>> => {
   const directories = new Set<string>();
