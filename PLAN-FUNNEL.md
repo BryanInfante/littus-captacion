@@ -1219,5 +1219,8 @@ mientras contenga piezas de UT2 que el workflow desplegaría
     cargados (FN-02-08). Hallazgo: `_shared/http/cors.ts` no expone
     `Retry-After` (`Access-Control-Expose-Headers`), así que el navegador no
     puede leer la espera de un 429; la página muestra entonces «Espera unos
-    minutos antes de volver a intentarlo.». Exponer la cabecera es un cambio
-    pequeño de `public-api`, fuera de esta rebanada.
+    minutos antes de volver a intentarlo.». Corregido en la misma rebanada:
+    `cors.ts` agrega `access-control-expose-headers: retry-after` para el origen
+    permitido; la prueba de `public_api_test.ts` falló primero (RED en las tres
+    variantes 403/429) y pasa con el cambio (`deno task check`: 147 pruebas
+    aprobadas). Se despliega con `public-api` al mergear.
