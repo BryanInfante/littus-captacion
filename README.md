@@ -276,6 +276,32 @@ Antes de cualquier cambio visual:
 - revisar los límites del plan de Resend;
 - configurar protección anti-bot si se espera tráfico alto.
 
+### Autenticación de webhooks de inscripción
+
+Los despachos de `private.eccia_post_to_edge_function` solo se encolan cuando
+`private.eccia_config.webhook_secret` tiene un valor no vacío. La base envía
+`x-eccia-webhook-secret`; cada receptor Edge compara ese valor con
+`ECCIA_WEBHOOK_SECRET`. El operador debe provisionar el mismo secreto aleatorio
+fuerte (equivalente a 32 bytes) en ambos lugares mediante sus mecanismos
+seguros. No guardar el valor en el repositorio, logs, tickets ni historial de
+comandos.
+
+El corte requiere coordinación: pausar las escrituras que disparan webhooks y
+drenar la cola anterior mientras los receptores actuales siguen aceptando sus
+solicitudes. En una ventana controlada, provisionar ambos valores coincidentes,
+desplegar los receptores autenticados (`send-registration-confirmation` y
+`sync-resend-contact`) y aplicar la migración del emisor. Validar ambos caminos
+antes de reanudar las escrituras. El despliegue de `db-events` por sí solo no
+actualiza los callers existentes. Si quedan notificaciones pendientes, hace
+falta un procedimiento de recuperación aprobado antes del corte; el
+reconciliador aún no existe y no hay un modo de transición anónimo.
+
+La rotación usa la misma pausa, drenaje y actualización sincronizada, seguida de
+validación y recuperación aprobada de pendientes. La cabecera protege la entrada
+HTTP pública; no oculta el secreto a roles de base de datos confiables que
+puedan leer la cola de `pg_net`
+([límite documentado](https://supabase.com/kb/troubleshooting/database-roles-can-read-request-headers-queued-by-pg_net)).
+
 ### Antes de enviar una campaña
 
 - comprobar remitente y Reply-To;

@@ -623,7 +623,7 @@ cerrar.
 | FN-02-09  | Retirar `public/inscripcion-ut2.*`, `submit-ficha-inspector` y su suite.                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-02-06, FN-02-07        |           |
 | FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | hecho localmente (2026-10-24); landing sin publicar                                                    | FN-02-07                  |           |
 | FN-02-11  | Marcar `PLAN-INSCRIPCION-UT2.md` como reemplazado por F2 y F3.                                                                                                                                                                                                                                                                                                                                                                     | pendiente                                                                                              | FN-02-09                  |           |
-| FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | WA-01 local hecho; WA-02 pendiente                                                                     | FN-02-05b                 |           |
+| FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | WA-01/WA-02 locales; activación productiva pendiente                                                   | FN-02-05b                 |           |
 | FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-01                  |           |
 | FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | pendiente                                                                                              | FN-03-02                  |           |
 | FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-03-02                  |           |
@@ -1519,15 +1519,41 @@ publicar; no hubo deploy, push ni PR.
   sigue pendiente; no se abrió el evento, publicó la landing ni contactó
   servicios externos. Entrega `feature-branch-chain`; commits solo locales.
 
-### FN-03-01 · autenticación de webhooks (WA-01 local hecho)
+### FN-03-01 · autenticación de webhooks (WA-01/WA-02 implementados localmente)
 
 - Ruta delegada directa; entrega `feature-branch-chain`. Pronóstico WA-01:
   250–350 líneas; WA-02: hasta 300 líneas. Commits locales, sin push, PR,
   despliegue, secretos productivos ni envíos externos.
 - [x] WA-01: parseo tipado y diferido de `ECCIA_WEBHOOK_SECRET`, guardia HTTP
       compartida, ambos receptores actuales y prueba unitaria pura.
-- [ ] WA-02 (pendiente): migración autenticada del emisor SQL, prueba local con
-      rollback y runbook operativo. FN-03-01 no se marca hecho en WA-01.
+- WA-01: commit local `0be2f27`; revisión nativa declinada para ese candidato.
+  Verificador independiente: `deno task check` (175 aprobadas) y prueba
+  focalizada (5/5), sin bloqueos.
+- [x] WA-02: migración autenticada del emisor SQL, prueba DB contra `pg_net`
+      local con rollback, runbook de corte y rotación, y evidencia local. Ruta
+      delegada directa; entrega `feature-branch-chain`; forecast ≤350 líneas;
+      comprobada en el stack local.
+- [x] WA-02a: observar RED funcional contra el emisor actual y añadir prueba
+      local aislada que compruebe secreto ausente/vacío, cabecera y límites de
+      seguridad.
+- [x] WA-02b: conservar comportamiento del emisor al añadir cabecera en una
+      migración nueva; documentar provisionamiento y corte coordinado sin
+      ejecutarlos.
+- [x] WA-02c: aplicar migraciones solo al stack local; ejecutar DB suite,
+      chequeo completo y `git diff --check`; registrar resultado antes del
+      commit.
+- RED WA-02: antes de la migración, la prueba DB falló en los casos de secreto
+  ausente/vacío (se encolaba el POST) y en la cabecera personalizada ausente;
+  las aserciones de `SECURITY DEFINER`, `search_path` vacío y revocaciones ya
+  pasaban.
+- GREEN WA-02: `supabase db reset --local` aplicó la migración nueva;
+  `deno task test:db` pasó 17 pruebas (53 pasos), incluida verificación de
+  cabecera, URL, cuerpo, timeout y rollback; `deno task check` pasó 175 pruebas
+  (46 pasos) y `git diff --check` quedó limpio.
+- La prueba usa una URL fija en `127.0.0.1:1`, secretos ficticios y siempre
+  revierte la transacción: no dispara solicitudes HTTP ni conserva fixtures.
+- La cabecera protege el ingreso HTTP público, no oculta el secreto a roles de
+  base de datos confiables capaces de leer la cola `pg_net`.
 - RED funcional: tras el scaffold de importaciones, fallaron el recorte del
   secreto configurado y el paso autenticado al callback; el caso válido aún
   devolvía 401.
@@ -1538,4 +1564,6 @@ publicar; no hubo deploy, push ni PR.
   provisionó ningún secreto ni se ejecutaron envíos.
 - Antes de producción se requiere corte coordinado con pausa de escrituras y
   recuperación de notificaciones pendientes; no habrá modo anónimo de
-  transición.
+  transición. No se configuró ningún secreto real, desplegó código ni contactó
+  servicios externos; WA-01/WA-02 están implementados localmente, no activados
+  en producción.
