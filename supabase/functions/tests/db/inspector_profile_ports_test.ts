@@ -25,7 +25,7 @@ Deno.test("Supabase inspector profile claim is atomic, retries the reserved path
       marketingConsent: true,
       nombres: "ANA",
       apellidos: "PEREZ",
-      nombreCompleto: "PEREZ ANA",
+      nombreCompleto: "ANA PEREZ",
       documento: document,
       pais: "Ecuador",
       experienciaAnios: 0,

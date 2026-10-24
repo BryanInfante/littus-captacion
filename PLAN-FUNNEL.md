@@ -1421,3 +1421,21 @@ pendiente.
   como dato de operador. Antes: columna obligatoria; UT2, END09 y END10 con
   prefijo. Después: columna opcional; esas tres filas nulas; `DF-DMST-`,
   `LEYV-PMM-` y `ECCIA-UT1-` sin cambios. `seed.sql` alineado.
+
+### Correccion local de nombre del inspector (2026-10-24)
+
+- [x] Corregir `nombre_completo` a `NOMBRES APELLIDOS` en el parser y la
+      migracion no aplicada al remoto. Contrato contrastado con
+      `certgen/domain/alta_inspector.py:8-11`. Ruta: correccion delegada de
+      FN-02-06; alcance limitado a parser, migracion, pruebas y este plan.
+- RED: la prueba de dominio fallo con el orden anterior (`PEREZ ANA MARIA`)
+  frente al esperado (`ANA MARIA PEREZ`). Las pruebas DB contra el stack local
+  anterior tambien detectaron la restriccion de nombre invertida; el adaptador
+  reporto `Inspector profile store unavailable`. Tras el reset, una asercion DB
+  identifico que el caso de nombre invalido debia mantener el orden nuevo.
+- GREEN: prueba focalizada de dominio y aplicacion, 8 aprobadas;
+  `supabase db
+  reset --local` correcto; `deno task test:db`, 15 aprobadas (48
+  pasos); `deno task check`, 169 aprobadas (46 pasos). El reset aplico la
+  migracion localmente. Pendientes: diff check, commit local y revision nativa
+  del orquestador. La migracion sigue sin aplicarse al remoto; no se altero F3.

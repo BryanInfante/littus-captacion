@@ -20,7 +20,7 @@ Deno.test("inspector profile normalizes fields and derives consent time from ser
     fields,
     new Date("2026-10-24T12:00:00.000Z"),
   );
-  assertEquals(parsed.nombreCompleto, "PÉREZ ANA MARÍA");
+  assertEquals(parsed.nombreCompleto, "ANA MARÍA PÉREZ");
   assertEquals(parsed.documento, "AB12-3456");
   assertEquals(parsed.pais, "Ecuador");
   assertEquals(parsed.experienciaAnios, 0);

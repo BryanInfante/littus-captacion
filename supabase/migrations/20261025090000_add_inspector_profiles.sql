@@ -52,7 +52,7 @@ create table public.eccia_fichas_inspector (
     apellidos = upper(btrim(apellidos)) and char_length(apellidos) between 2 and 60
   ),
   constraint eccia_fichas_inspector_nombre_completo_check check (
-    nombre_completo = apellidos || ' ' || nombres
+    nombre_completo = nombres || ' ' || apellidos
     and nombre_completo = upper(btrim(nombre_completo))
     and char_length(nombre_completo) between 5 and 60
   ),

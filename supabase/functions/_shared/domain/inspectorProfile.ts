@@ -34,7 +34,7 @@ export const parseInspectorProfile = (
 ): InspectorProfile => {
   const nombres = text(fields.nombres, 2, 60).toLocaleUpperCase("es");
   const apellidos = text(fields.apellidos, 2, 60).toLocaleUpperCase("es");
-  const nombreCompleto = `${apellidos} ${nombres}`;
+  const nombreCompleto = `${nombres} ${apellidos}`;
   if ([...nombreCompleto].length < 5 || [...nombreCompleto].length > 60) {
     throw new DomainError("INVALID_INPUT");
   }

@@ -10,7 +10,7 @@ import { memoryPorts, NOW, openEvent } from "../fixtures/registration.ts";
 const makeProfile = () => ({
   nombres: "ANA",
   apellidos: "PEREZ",
-  nombreCompleto: "PEREZ ANA",
+  nombreCompleto: "ANA PEREZ",
   documento: "AB123456",
   pais: "Ecuador",
   experienciaAnios: 0,
@@ -39,7 +39,7 @@ const setup = () => {
 Deno.test("inspector registration reserves a path before upload and completes after the upload", async () => {
   const ports = setup();
   const registration = await registerInspectorProfile(input(), ports, NOW);
-  assertEquals(registration.name, "PEREZ ANA");
+  assertEquals(registration.name, "ANA PEREZ");
   assertEquals(registration.marketingConsent, true);
   assertEquals(ports.storage.files.size, 1);
   const [path] = ports.storage.files.keys();
@@ -107,7 +107,7 @@ Deno.test("failed upload compensates the pending profile and leaves no photo", a
   ports.storage.failUpload = false;
   assertEquals(
     (await registerInspectorProfile(input(), ports, NOW)).name,
-    "PEREZ ANA",
+    "ANA PEREZ",
   );
 });
 
