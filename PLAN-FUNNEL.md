@@ -477,7 +477,7 @@ simple) y UT2 (inscripción con ficha y foto).
   `resumen = 'Curso de Ultrasonido Convencional Nivel II.'`,
   `fecha_texto = 'Del 17 al 25 de octubre de 2026'`,
   `fecha_evento = '2026-10-17'` (inicio), `duracion = '40 horas'`,
-  `codigo_prefijo = 'ECCIA-UT2-'` (propuesto en `PLAN-INSCRIPCION-UT2.md`),
+  `codigo_prefijo = null` (certgen emite el certificado del curso),
   `activo = true`, ventana de inscripción nula (cerrado). Orden según el plan:
   FN-02-08 carga la fila cerrada; FN-02-06 agrega la ficha del inspector, que es
   parte de la inscripción directa; F3 agrega la confirmación; abrir la ventana
@@ -1280,3 +1280,23 @@ mientras contenga piezas de UT2 que el workflow desplegaría
   en un navegador real con un evento interno abierto unos minutos (requiere
   aprobación del usuario y la extensión de Chrome o una prueba manual del
   usuario). Siguiente tarea según el plan: FN-02-06 (ficha del inspector).
+- 2026-10-24: corrección de `codigo_prefijo`. Error del agente: cargó el curso
+  UT2 con `ECCIA-UT2-`, tomado de `PLAN-INSCRIPCION-UT2.md` sin contrastarlo con
+  certgen. Los certificados de cursos END los emite certgen con su propia
+  numeración (`LITTUS-<registro>_<ENT|CAL|CER>_...`); `codigo_prefijo` es solo
+  el prefijo de los certificados de participación que emite este sistema.
+  Decisión (usuario): nulo para los cursos END. Migración
+  `20261024210000_make_certificate_prefix_optional.sql`: quita el `not null` (el
+  `check` de formato sigue para valores no nulos) y anula los prefijos
+  inventados de `end-vt-pt-mt-2026-09` y `end-vt-ii-pt-ii-ut-i-2026-10`. La
+  prueba `registration_event_test.ts`, que fijaba un prefijo válido y único para
+  esas filas, ahora exige nulo: RED (2 filas con prefijo) y GREEN tras la
+  migración (`test:db` 12 aprobadas; `deno task check` 147; pglast 21
+  migraciones; tipos regenerados, `codigo_prefijo: string | null`). En
+  producción, con aprobación del usuario: migración aplicada y
+  `update public.eccia_eventos set codigo_prefijo = null where
+  masterclass_codigo = 'ultrasonido-nivel-ii' and codigo_prefijo =
+  'ECCIA-UT2-'`
+  como dato de operador. Antes: columna obligatoria; UT2, END09 y END10 con
+  prefijo. Después: columna opcional; esas tres filas nulas; `DF-DMST-`,
+  `LEYV-PMM-` y `ECCIA-UT1-` sin cambios. `seed.sql` alineado.

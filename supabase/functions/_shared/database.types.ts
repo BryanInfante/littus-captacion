@@ -33,7 +33,7 @@ export type Database = {
       "eccia_eventos": {
         Row: {
           "activo": boolean;
-          "codigo_prefijo": string;
+          "codigo_prefijo": string | null;
           "creado_en": string;
           "descripcion": string | null;
           "duracion": string | null;
@@ -52,7 +52,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           "activo"?: boolean;
-          "codigo_prefijo": string;
+          "codigo_prefijo"?: string | null;
           "creado_en"?: string;
           "descripcion"?: string | null;
           "duracion"?: string | null;
@@ -70,7 +70,7 @@ export type Database = {
         };
         Update: {
           "activo"?: boolean;
-          "codigo_prefijo"?: string;
+          "codigo_prefijo"?: string | null;
           "creado_en"?: string;
           "descripcion"?: string | null;
           "duracion"?: string | null;

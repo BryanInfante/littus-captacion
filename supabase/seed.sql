@@ -4,7 +4,8 @@
 -- migration.
 
 -- Mirrors the production row of the course: active and listed in the public
--- catalog, with no registration window, so it stays closed.
+-- catalog, with no registration window, so it stays closed. No certificate
+-- prefix: certgen issues END course certificates.
 insert into public.eccia_eventos (
   masterclass_codigo,
   event_title,
@@ -13,7 +14,6 @@ insert into public.eccia_eventos (
   fecha_texto,
   fecha_evento,
   duracion,
-  codigo_prefijo,
   activo
 )
 values (
@@ -24,7 +24,6 @@ values (
   'Del 17 al 25 de octubre de 2026',
   '2026-10-17',
   '40 horas',
-  'ECCIA-UT2-',
   true
 )
 on conflict (masterclass_codigo) do nothing;
