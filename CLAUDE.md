@@ -1,180 +1,427 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with
-code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) and any other coding
+agent working in this repository. Its rules are mandatory. When the code
+disagrees with this file, the code is the legacy part: migrate it toward these
+rules, never the other way around.
 
 ## Project
 
-Static landing page + Supabase backend for ECCIA (Littus Group) workshop
-registration and certificate issuance. No frontend framework, bundler, or build
-step — `public/` is plain HTML/CSS/JS served directly (locally and via GitHub
-Pages). Backend logic lives in Supabase Edge Functions (Deno/TypeScript).
+ECCIA (Littus Group) acquisition funnel: a static site on GitHub Pages
+(`public/`) plus a Supabase backend (Postgres + Edge Functions in
+Deno/TypeScript). It is **one funnel**, not a set of separate apps:
+
+1. webinar registration
+2. participation certificate
+3. participation gifts
+4. invitation mass email to subscribers
+5. course registration
+6. course certificate (optional per event, but the capability must exist)
+7. validation of any certificate issued by this system
 
 Read `README.md` for the operational runbook, `EMAIL_OPERATIONS.md` for Resend
-campaign procedures, and `AGENTS.md` for mandatory brand rules before any visual
-change.
+campaign procedures, `AGENTS.md` for mandatory brand rules before any visual
+change, and `RECOVERY.md` before touching Supabase (the project was wiped on
+2026-07-25 and rebuilt from `supabase/migrations/`).
 
-## Commands
+## Working agreement
 
-There is no `package.json` / npm toolchain — do not introduce one without
-asking.
+- **No MVPs, no "minimal" designs.** Build each piece correctly once: robust,
+  tested, and consistent with this architecture. Slower and right beats fast and
+  patched.
+- **Plans before code** for anything that is not a local fix: a
+  `PLAN-<TOPIC>.md` at the repository root, in neutral professional Spanish,
+  with decisions, tasks, and progress. Keep it updated as work lands.
+- **Vertical slices.** Migrate one real caller end to end and let the
+  abstraction grow from what it needs. Never add API surface (a port, a method,
+  a column, an endpoint) without a caller in the same change.
+- **Land the ratchet with the first slice**: the test that makes the old way
+  fail ships with the first migrated caller, so a migration cannot stall half
+  done.
+- **Test first.** Observe the failing test before the implementation.
+- Small commits, one work unit each, Conventional Commits, tests and docs
+  together with the behavior.
 
-Serve the static site locally:
+## Funnel rules
 
-```powershell
-npx serve public
+- **The event is the hub.** `eccia_eventos` describes every webinar and course,
+  and every funnel step references an event. A new webinar or course is **a row,
+  never new code**: no per-event page, Edge Function, trigger, email template,
+  folder, or migration copied from a previous event.
+- **One generic implementation per step**, parameterized by the event: one
+  registration page, one confirmation email, one certificate issuer, one gifts
+  page, one validator for every certificate.
+- **Event-specific content lives in data**: titles, dates, copy, links, gifts,
+  which registration fields are required, certificate template, signers, and
+  storage folder belong to the event.
+- **Extend, do not copy.** Before writing a page, function, trigger, or
+  template, find the step that already does it and extend it. If two pieces do
+  almost the same thing, consolidate them in the same change. Repeated pipelines
+  and redundant code are technical debt and are rejected in review.
+- **One source per setting.** The public site URL and the Nextcloud root each
+  come from a single environment variable; every URL and storage path derives
+  from them.
+
+## Architecture (hexagonal, kept small)
+
+The backend follows ports and adapters. Dependencies point inward only:
+
+```
+driving adapters  ──►  application (use cases)  ──►  domain
+(HTTP routes,               │
+ DB webhooks, pages)        ▼
+                          ports  ◄──  driven adapters (Supabase, Resend, Nextcloud, PDF, QR)
 ```
 
-(or just open `public/index.html` directly / use a Live Server extension).
+### Layout
 
-Run tests (PowerShell 7+) — each file is an independent suite; run one by
-invoking it alone:
-
-```powershell
-.\tests\landing.tests.ps1              # index.html, styles, app.js, registration + reminder emails
-.\tests\certificate-claim.tests.ps1    # regalos.html, certificados.js, claims migration, PDF downloads
-.\tests\certificate-generation.tests.ps1  # issue/validate/download functions, config.toml, validar-certificado.html
+```
+deno.json                  root config: fmt, lint, test include/exclude, tasks (deno task check)
+supabase/functions/
+  _shared/
+    deps.ts                the ONLY file with runtime third-party specifiers (exact versions, re-exported by name)
+    domain/                entities, value objects, domain rules, domain errors
+    application/           use cases; depend on domain + ports only
+    ports/                 interfaces for external I/O
+    adapters/              supabase/, resend/, nextcloud/, pdf/, qr/, memory/
+    http/                  routing, CORS, request parsing, webhook auth, error-to-status mapping
+    config.ts              the only module that reads environment variables; returns typed config
+    log.ts                 the only logger: request id + allow-listed fields
+    database.types.ts      generated by `supabase gen types typescript`; imported only by adapters/supabase
+  <function-group>/
+    index.ts               route table: each route parses input, calls one use case, maps the result
+  tests/                   unit, contract, entrypoint, and architecture tests (see Testing)
+    dev_deps.ts            the ONLY file with test-only third-party specifiers (exact versions)
 ```
 
-If execution policy blocks the script or PowerShell 5 mis-decodes UTF-8, use the
-workaround documented in `README.md` (`Pruebas` section) — it loads the script
-as a scriptblock with `$PSScriptRoot` rebound.
+`_shared` is not deployed as a function (Supabase skips folders that start with
+`_`); functions import it by relative path. Functions have no per-function
+import map unless one is strictly needed: every third-party import goes through
+`_shared/deps.ts` with inline exact versions (`npm:pdf-lib@1.17.1`), so one file
+owns every runtime version and deploys resolve the same way everywhere. Test
+tooling (assertions, parsers, database clients for tests, fake DOMs) lives in
+`tests/dev_deps.ts` instead, because importing a module evaluates everything it
+imports: a test dependency in `deps.ts` would load in every function at boot. No
+package appears in both files, deployed code never imports `dev_deps.ts`, and
+`deps.ts` holds only what deployed code imports (it is created by its first
+runtime caller).
 
-Tests are static assertion scripts: they read the relevant `public/`, `emails/`,
-and `supabase/functions/**/index.ts` files as raw text and assert on required
-markers/strings (see `Assert-Contains` in `tests/landing.tests.ps1`). There is
-no DOM/runtime execution — when adding a feature, add matching string assertions
-to the suite that already owns those files rather than a JS test runner. Note
-each suite pins its own file list at the top; adding a new file means adding its
-`Join-Path` there too.
+### Function groups
 
-Deploy: GitHub Actions handle deployment on push to `main`. `pages.yml`
-publishes `public/` to GitHub Pages. `deploy-supabase-functions.yml` deploys
-`issue-certificate` only, and only when files under
-`supabase/functions/issue-certificate/**` or `supabase/config.toml` change —
-other Edge Functions (`sync-resend-contact`, `send-registration-confirmation`,
-`send-workshop-reminder`, `validate-certificate`, `download-certificate`) must
-be deployed manually via `supabase functions deploy
-<name>` until a workflow is
-added for them.
+Group endpoints by **trust boundary and dependency weight**, not one function
+per action and not one function for everything:
 
-`.mcp.json` wires the Supabase MCP server to project ref `dkvuihkwuuocjjsscuso`.
-It can **deploy** Edge Functions but cannot **delete** them — anything deployed
-through MCP has to be removed with the CLI
-(`supabase functions delete <name> --project-ref ...`). See the "Funciones
-temporales" section of `EMAIL_OPERATIONS.md`.
+| Group          | Contents                                                         | Trust                                                                       |
+| -------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `public-api`   | event catalog, registration, certificate validation and download | anonymous; light dependencies so the most used endpoints boot fast          |
+| `db-events`    | webhooks fired by database triggers                              | only requests carrying the webhook secret                                   |
+| `certificates` | certificate issuance and rendering                               | anonymous with abuse protection; loads the renderer with dynamic `import()` |
+| `operator`     | gated campaigns and maintenance actions                          | approval phrase and secrets                                                 |
 
-## Architecture
+Existing functions migrate into these groups slice by slice. Public URLs that
+are already printed or emailed (QR validation links, certificate download links)
+are frozen contracts: keep them working through the migration.
 
-Two flows share the same Supabase project (`dkvuihkwuuocjjsscuso`), both driven
-by public forms that talk to Supabase from the browser using a **publishable
-key** (never a secret/service-role key). The key and project URL are hardcoded
-in `public/app.js` and `public/certificados.js` — that is intentional, not a
-leak.
+### Layer rules
 
-**1. Workshop registration** (`public/index.html` + `public/app.js` → table
-`eccia_taller_inscripciones`): browser inserts a row via PostgREST. Two DB
-triggers asynchronously invoke `send-registration-confirmation` and
-`sync-resend-contact`. Both fire unconditionally — the consent gate lives
-_inside_ `sync-resend-contact`, which re-reads the row and short-circuits with
-`{status: 'skipped', reason: 'no_consent'}` (`sync-resend-contact/index.ts:89`).
-Keep it there; do not move consent logic into the trigger.
+- **domain/** is pure TypeScript: no `Deno.*`, no `fetch`, no third-party
+  imports, no I/O. Time and ids are passed in as values (`now`, `id`), never
+  read inside. It holds the business rules: event state (active, registration
+  open), registration eligibility, certificate code format, certificate status
+  transitions, consent semantics.
+- **application/** holds one use case per module (for example
+  `registerForEvent`, `issueCertificate`, `validateCertificate`,
+  `sendRegistrationConfirmation`). It depends on domain types and ports only,
+  never on an adapter or the Supabase client.
+- **ports/** exist only for external I/O and are named in domain terms: one
+  repository per aggregate (`Events`, `Registrations`, `InspectorProfiles`,
+  `Certificates`), plus `Mailer`, `FileStorage`, and `CertificateRenderer`.
+- **adapters/** implement ports. They are the only code that touches Supabase,
+  Resend, WebDAV, `pdf-lib`, or `qrcode`. `adapters/memory/` provides in-memory
+  implementations for tests.
+- **Routes** contain no business rules. A rule found in a route, a trigger, or a
+  page is a bug to move into the domain.
+- **Consistency across systems.** A use case that writes to more than one system
+  (database, Nextcloud, email) is an explicit state machine persisted in the
+  database, with a compensation for each step that can fail (for example, delete
+  the uploaded photo when the insert fails). The certificate claim
+  (`pending → rendering → uploaded → emailed`, with stale-render recovery) is
+  the reference pattern.
 
-**This project was wiped on 2026-07-25 and is being rebuilt — read `RECOVERY.md`
-before touching Supabase.** The schema now lives in `supabase/migrations/` in
-full, including the previously unversioned table creation and trigger functions.
+### Database
 
-`app.js` has a `REGISTRATION_CLOSED` boolean at the top that disables the form
-without deleting it, and a `META_PIXEL_ID` constant (`PageView` on load, `Lead`
-only after Supabase confirms the insert; empty string disables tracking safely).
+- Postgres is a driven adapter behind repository ports and the last line of
+  defense for invariants. Rules live in the domain; the schema enforces them
+  again with `foreign key`, `check`, `unique`, `not null`.
+- **Every event-scoped table references `eccia_eventos` with a foreign key.** No
+  free-text event codes.
+- **Two kinds of trigger, nothing else:**
+  - **integrity triggers**: same transaction, no I/O, only derive or insert rows
+    the schema requires;
+  - **dispatch triggers**: a single call to
+    `private.eccia_post_to_edge_function`, one trigger per kind of event (for
+    example "registration created"), never one per webinar or course.
 
-`send-workshop-reminder` is invoked manually, not by a trigger. It is gated: the
-payload needs `mode: 'send'` **plus** the exact `APPROVAL_PHRASE` constant,
-otherwise it only returns a preview. Do not weaken that gate.
+  Any other logic is a use case.
+- **Writes**: public roles never write any table. Registrations are written only
+  by the `public-api` Edge Function (service role), after the challenge and
+  throttling, with domain checks that the event exists, is active, and accepts
+  registrations. Certificates, events, and every other table are also written
+  only by the service role.
+- **Reads**: never grant public `select` on a base table. Published,
+  non-personal catalog data may be exposed through a dedicated view with an
+  explicit column allow-list (for example `eccia_eventos_publicos`). Everything
+  else is read through an Edge Function that returns allow-listed fields, as
+  `validate-certificate` does.
+- **Migrations are forward-only and immutable once applied** to the remote
+  project. A migration that has not been applied anywhere may be edited in
+  place. Destructive steps (drop a default, replace a policy, add a constraint
+  as `not valid` and then `validate`) go in a new migration, after a separate
+  idempotent data-fix migration, with before/after counts recorded in the plan.
+- Database names stay in Spanish (`eccia_eventos`, `eccia_taller_inscripciones`,
+  ...); code uses the English glossary below, and only `adapters/supabase` maps
+  the names (with `database.types.ts`).
 
-**2. Certificate issuance** (`public/regalos.html` + `public/certificados.js` →
-`issue-certificate` Edge Function): browser POSTs name+email to the function
-directly (not a DB insert). The two flows are **coupled**: `issue-certificate`
-first looks the email up in `eccia_taller_inscripciones` and returns 403 if
-there is no matching registration. Certificates are only for people who
-registered.
+### Event delivery (database → functions)
 
-The function then:
+- Dispatch triggers send a shared secret header (`x-eccia-webhook-secret`, read
+  from `private.eccia_config` or Vault); `_shared/http` rejects any webhook
+  request without it.
+- `pg_net` is fire and forget. Every side effect therefore records its state on
+  the row (`*_sent_at`, `*_attempts`, `*_error`), and a scheduled reconciler
+  (`pg_cron` calling the `db-events` group) retries rows still pending after a
+  timeout. Handlers are idempotent: a replay of a completed side effect
+  short-circuits.
+- Deploy order is functions first, then the migrations that call them. CI
+  enforces it.
 
-- normalizes input, generates a unique `codigo_certificado`
-  (`ECCIA-UT1-XXXXXXXX`),
-- renders a PDF with `pdf-lib` + `fontkit` (fonts fetched at runtime from Google
-  Fonts) and a QR code (`npm:qrcode`) pointing at
-  `validar-certificado.html?code=...`,
-- uploads the PDF to Nextcloud over WebDAV and stores the resulting
-  `nextcloud_path`,
-- emails the download/validation links via Resend,
-- tracks progress through `certificate_status`:
-  `pending → rendering → uploaded → emailed` (or `failed`, with
-  `certificate_error`/`certificate_attempts`).
+### Frontend
 
-`validate-certificate` (public GET by `code`) reports validity plus display
-metadata. `download-certificate` (public GET by `code`) proxies the PDF bytes
-from Nextcloud (only for `uploaded`/`emailed` status) so WebDAV credentials
-never reach the browser. Those two plus `issue-certificate` have
-`verify_jwt = false` in `supabase/config.toml` since the public pages call them
-anonymously.
+- Static site, **no build step and no npm toolchain** (do not introduce one
+  without asking). Native ES modules (`<script type="module">`); serve over HTTP
+  locally, because browsers block modules on `file://`.
+- **One page per funnel step, parameterized by the event** through the query
+  string (`?evento=<slug>`, the same pattern as
+  `validar-certificado.html?code=`). No per-event HTML. Share previews (Open
+  Graph) are generic per step.
+- Layout:
 
-### Certificate gotchas
+  ```
+  public/
+    <step>.html          markup and brand only
+    js/core/             api client (the single place for the Supabase URL, publishable key, and
+                         endpoints), config, shared UI helpers
+    js/<step>/           container module (state, calls the api client) + view module
+    brand/               tokens.css and components.css from the Littus Brand Kit
+  ```
 
-- **`public/certificado.html` and `public/certificado_variante_blanca.html` are
-  not live pages** — they are static design references for the PDF layout
-  (inline `<style>`, no form, no JS). The PDF geometry in
-  `issue-certificate/index.ts` (`buildLayout()`, `htmlMm()`) mirrors those
-  mockups in millimeters. Change the mockup and the layout function together, or
-  they drift.
-- **Font URLs are pinned to static per-weight files** on `fonts.gstatic.com`,
-  not variable fonts and not the google/fonts source repo. `@pdf-lib/fontkit`
-  silently drops most glyphs when subsetting Inter's variable font. The comment
-  above those constants explains it — do not "modernize" the URLs.
-- **Stale-render recovery**: a claim stuck in `rendering` for more than
+- **Container/presentational**: containers own state and I/O; views are pure
+  functions that receive the data and the `document` to render into, so tests
+  can pass a fake DOM. Views hold no `fetch`. Event content comes from the
+  backend, never hardcoded in a page.
+- **Accessibility**: every field has a label, errors are announced next to the
+  field, the whole flow works with the keyboard, and colors come from brand
+  tokens (which meet contrast).
+- Design references that are not live pages do not belong in `public/`
+  (everything there is published).
+
+## Glossary
+
+| Code (English)    | Database                                       | Notes                                                                           |
+| ----------------- | ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| Event             | `eccia_eventos` (key `masterclass_codigo`)     | Webinar or course. Legacy alias `taller_codigo` in registrations.               |
+| Registration      | `eccia_taller_inscripciones`                   | A person registered to an event; unique per (email, event).                     |
+| Inspector profile | `eccia_fichas_inspector`                       | Registration data certgen needs (`certgen alta-inspector`); photo in Nextcloud. |
+| Certificate       | `eccia_masterclass_certificados`               | Participation or course certificate, validated by code.                         |
+| Subscriber        | Resend contact with `marketing_consent = true` | Audience for promotional broadcasts.                                            |
+
+## Code practices
+
+- TypeScript strict; no `any`, no non-null assertions to silence the checker.
+- **Parse, don't validate**: untrusted input (HTTP body, webhook payload, env
+  vars) is parsed once at the boundary into domain types; inner layers never
+  re-check raw shapes.
+- **Errors are typed.** Domain and application raise domain errors; one mapping
+  in `_shared/http` turns them into HTTP status codes and user-facing messages.
+  No ad hoc status codes in routes.
+- **No hardcoded event data, URLs, origins, email addresses, or storage paths**
+  outside config or the event row.
+- **Configuration**: only `_shared/config.ts` reads `Deno.env`; it fails fast
+  with a clear error when a required variable is missing or invalid.
+- **Logging** only through `_shared/log.ts`, with a request id and an allow-list
+  of fields. Never log personal data (names, emails, document numbers, photo
+  paths that embed them) or secrets, and never log a whole error object or
+  request body.
+- **Abuse protection**: public endpoints with side effects (registration,
+  certificate issuance) use a challenge (Cloudflare Turnstile) and throttling
+  per email and per IP stored in Postgres.
+- Names say what things are; comments explain why, not what. One code style,
+  enforced by `deno fmt`.
+
+## Testing
+
+- **Runner**: `deno test` for everything with logic: domain, application,
+  adapters, routes, email templates, and the frontend's pure modules (Deno runs
+  browser ES modules; views get a fake DOM such as `linkedom` through
+  `tests/dev_deps.ts`).
+- **Levels**:
+  - domain and application: unit tests with `adapters/memory/`;
+  - repository and storage adapters: **contract tests**, one suite per port run
+    against the memory adapter and against a local Supabase stack
+    (`supabase start`), never against the remote project;
+  - routes: call the handler with a `Request` and assert status and body;
+  - email templates: snapshot tests of the rendered HTML per event.
+- **Architecture ratchets** keep the rules enforced: no third-party specifier
+  outside `_shared/deps.ts` and `tests/dev_deps.ts` (no package in both, no
+  `dev_deps.ts` import outside tests, no test-only export in `deps.ts`), no
+  Supabase client outside `adapters/supabase`, no `Deno.env` outside
+  `config.ts`, no `console.*` outside `log.ts`, no import from `domain/` to
+  anything outside it.
+- The PowerShell suites in `tests/*.ps1` are **legacy static string
+  assertions**. Do not add assertions to them. A slice that moves code covered
+  by one of their assertions replaces that assertion with a `deno test` behavior
+  test in the same commit; "stay green" applies only to code that has not moved.
+- Migrations: syntax check (pglast) always; applied to the local stack when
+  available.
+
+## Toolchain and commands
+
+- **Deno** is the toolchain for Edge Functions and tests (it is the Supabase
+  runtime). The root `deno.json` defines `deno task check`, which runs
+  `deno fmt --check`, `deno lint`, `deno check`, and `deno test`. It must pass
+  before every commit. The first `deno fmt` over legacy code goes in its own
+  commit.
+- **Supabase CLI** for the local stack (`supabase start`, needs Docker) and type
+  generation.
+- Serve the static site locally with Deno's file server (pinned in a `deno.json`
+  task).
+- Legacy static suites (Windows PowerShell 5.1 or PowerShell 7):
+
+  ```powershell
+  .\tests\landing.tests.ps1
+  .\tests\certificate-claim.tests.ps1
+  .\tests\certificate-generation.tests.ps1
+  ```
+
+  If execution policy blocks them or PowerShell 5 mis-decodes UTF-8, use the
+  workaround in `README.md` (`Pruebas`).
+
+## Deployment and CI
+
+- A `check` job (`deno task check` plus migration syntax) runs on every push and
+  pull request. Every deploy job `needs: check`.
+- `pages.yml` publishes `public/`. `deploy-supabase-functions.yml` deploys
+  **all** functions on any change under `supabase/functions/**`; no function is
+  deployed by hand except in an emergency, recorded in the plan.
+- Migrations are applied only after the functions they call are deployed.
+- `.mcp.json` wires the Supabase MCP server to project ref
+  `dkvuihkwuuocjjsscuso`. It can deploy Edge Functions but cannot delete them;
+  anything deployed through MCP must be removed with the CLI
+  (`supabase functions delete <name> --project-ref ...`). See "Funciones
+  temporales" in `EMAIL_OPERATIONS.md`.
+- Applying migrations to the remote project, deploying, and pushing to `main`
+  are the user's decisions.
+
+## Security invariants (do not weaken)
+
+- Public pages only use a Supabase **publishable key** (hardcoded in the
+  frontend api client on purpose; it is not a leak). `RESEND_API_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEYS`, the webhook secret, and
+  `NEXTCLOUD_*` credentials live only as Edge Function secrets (or Vault).
+- Edge Functions read the secret key via `SUPABASE_SECRET_KEYS` (JSON,
+  `.default`) with fallback to `SUPABASE_SERVICE_ROLE_KEY`; keep both paths, in
+  `config.ts`.
+- Public roles never write any table and never read base tables (see Database).
+  Registrations go only through `public-api` (service role), after the challenge
+  and throttling.
+- Personal data (document numbers, photos) stays private: photos only in private
+  Nextcloud folders, never public links, never in logs.
+- **Operational vs promotional email never mix.** Operational emails
+  (registration confirmation, reminders, certificate delivery) are sent
+  regardless of consent. Promotional emails go only to
+  `marketing_consent = true` contacts through the Resend **Broadcasts API** with
+  a `segment_id`, never the raw `/emails` endpoint (only Broadcasts resolve
+  `{{{RESEND_UNSUBSCRIBE_URL}}}`). See `EMAIL_OPERATIONS.md`.
+- The consent gate for contact sync lives inside the sync use case (today
+  `sync-resend-contact/index.ts`), not in the trigger.
+- Manual campaign sends stay gated: preview by default, send only with
+  `mode: 'send'` plus the exact approval phrase (today
+  `send-workshop-reminder`).
+- Secrets have a rotation runbook in `README.md` (secret keys, Resend key,
+  Nextcloud app password, webhook secret).
+
+## Edge Function secrets
+
+`RESEND_API_KEY`, `NEXTCLOUD_WEBDAV_URL` (the user's WebDAV root),
+`NEXTCLOUD_USERNAME`, `NEXTCLOUD_APP_PASSWORD`, `NEXTCLOUD_FICHAS_FOTOS_DIR` (to
+be replaced by `NEXTCLOUD_ROOT_DIR`), and the public site URL (today
+`CERTIFICATE_PUBLIC_BASE_URL`, to be replaced by `PUBLIC_SITE_URL`). See
+`PLAN-DOMINIO-ECCIA.md`.
+
+## Certificate gotchas
+
+- `public/certificado.html` and `public/certificado_variante_blanca.html` are
+  design references for the PDF layout, not live pages (they are still published
+  because they sit in `public/`; move them out). The PDF geometry in
+  `issue-certificate` (`buildLayout()`, `htmlMm()`) mirrors them in millimeters.
+  Change the mockup and the layout together.
+- Font URLs are pinned to static per-weight files on `fonts.gstatic.com`, not
+  variable fonts: `@pdf-lib/fontkit` silently drops most glyphs when subsetting
+  Inter's variable font. Do not "modernize" them.
+- Stale-render recovery: a claim stuck in `rendering` for more than
   `RENDERING_STALE_MS` (2 min) is treated as a crashed attempt and retried,
-  because a platform-level crash skips the `try/catch` that would otherwise
-  demote it to `failed`.
+  because a platform crash skips the `try/catch`.
+- `validate-certificate` reads only the database: certificates without a stored
+  PDF must still validate. Never delete certificate rows to clean up storage.
 
-### Edge Function secrets
+## Brand
 
-`RESEND_API_KEY`, `NEXTCLOUD_WEBDAV_URL` / `NEXTCLOUD_USERNAME` /
-`NEXTCLOUD_APP_PASSWORD`, and `CERTIFICATE_PUBLIC_BASE_URL` (the public origin
-used to build validation URLs). Read via `requiredEnv()`, which throws when
-missing.
+Bound to the Littus Brand Kit (`brand_id: eccia`). Before any frontend, CSS,
+HTML, or email visual change, follow `AGENTS.md` (resolve `LITTUS_BRAND_KIT`,
+read the brand manifest and tokens). Do not invent colors, logos, typography, or
+copy. Every page loads `public/brand/tokens.css` first.
 
-Schema evolution: `eccia_masterclass_certificados` was created in
-`20260703145000_add_masterclass_certificate_claims.sql`, extended in
-`20260704120000_add_certificate_generation_flow.sql` (status machine,
-Nextcloud/Resend tracking) and
-`20260705200000_add_certificate_rendering_started_at.sql`. Follow this pattern —
-additive `alter table ... add column if not exists` migrations — rather than
-rewriting prior migrations.
+## Current state and known debt
 
-### Security invariants (do not weaken)
+The code predates this architecture. Migrate it slice by slice under a plan;
+never copy it as a template.
 
-- Public pages only ever use a Supabase **publishable key**; `RESEND_API_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEYS`, and `NEXTCLOUD_*`
-  credentials live only as Supabase Edge Function secrets.
-- Edge Functions read the secret key via `getSecretKey()`:
-  `SUPABASE_SECRET_KEYS` (JSON, `.default`) with fallback to
-  `SUPABASE_SERVICE_ROLE_KEY` — keep both paths when touching this code.
-- RLS restricts public roles to `insert` only, on an explicit column allow-list;
-  never grant public `select`/`update`/`delete` on either table.
-- Never mix "operational" emails (registration confirmation, reminders,
-  certificate delivery — sent regardless of consent) with "promotional" emails
-  (only sent to `marketing_consent = true` contacts via the Resend
-  segment/topic). Promotional sends go through the Resend **Broadcasts API**
-  with a `segment_id`, never the raw `/emails` endpoint — only Broadcasts
-  resolve `{{{RESEND_UNSUBSCRIBE_URL}}}`. See `EMAIL_OPERATIONS.md` for the full
-  rule.
+Security (fix first):
 
-### Brand
+- `eccia_masterclass_certificados` grants `insert` to `anon` with a policy
+  `with check (true)`
+  (`20260703145000_add_masterclass_certificate_claims.sql:28,34-38`), and
+  `validate-certificate` treats status `external` as valid
+  (`validate-certificate/index.ts:10`): anyone can insert a certificate that
+  validates. The frontend no longer uses that grant.
+- Webhooks are unauthenticated: `pg_net` sends only `Content-Type`, every
+  function has `verify_jwt = false`, and handlers check only the payload shape.
+  Failed deliveries are lost silently.
+- `issue-certificate/index.ts:821` logs a whole error object;
+  `submit-ficha-inspector` logs a photo path that embeds the document number.
 
-This project is bound to the Littus Brand Kit (`brand_id: eccia`). Before any
-frontend/CSS/HTML/visual change, follow the resolution steps in `AGENTS.md`
-(resolve `LITTUS_BRAND_KIT`, read the brand manifest and tokens) — do not invent
-colors, logos, typography, or copy. Locally, the applied tokens live in
-`public/brand/tokens.css` and `public/brand/components.css`; every page loads
-`tokens.css` first.
+Architecture and correctness:
+
+- No `_shared/`: `requiredEnv`, secret-key lookup, CORS, WebDAV helpers, and
+  Resend calls are duplicated across functions; `send-workshop-reminder` imports
+  another function's template by relative path.
+- No `deno.json` anywhere; third-party imports are inline and partly unpinned
+  (`npm:pdf-lib`, `npm:qrcode`).
+- `issue-certificate` (830 lines) mixes HTTP, rules, rendering, storage, and
+  email, and hardcodes UT1 values (see `PLAN-CERTIFICADOS-MULTICURSO.md`). It
+  looks up the registration by email alone with `maybeSingle()`, so a person
+  registered to two events gets a 403.
+- `eccia_taller_inscripciones.taller_codigo` is free text with no foreign key;
+  its default and the public insert policy are hardwired to `'domina-scan-a'`,
+  which does not exist in `eccia_eventos`.
+- `send-registration-confirmation` and `send-ut2-registration-confirmation` are
+  near-identical copies with per-event triggers.
+- `submit-ficha-inspector` hardcodes its CORS origin and reads only
+  `SUPABASE_SERVICE_ROLE_KEY`.
+- `public/inscripcion-ut2.*`, `public/regalos.html`, and `public/app.js`
+  hardcode event content and use classic scripts.
+- Only 3 of 9 functions are deployed by the workflow; there is no CI check
+  before deploying.
+- Tests are static string assertions (some pin exact source text, for example
+  `tests/certificate-generation.tests.ps1`); the only runtime test is
+  `tests/submit-ficha-inspector.validation.test.ts`.
