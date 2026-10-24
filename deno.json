@@ -16,7 +16,8 @@
       "supabase/functions/",
       "tests/",
       "public/js/",
-      "public/*.js"
+      "public/*.js",
+      "*.md"
     ],
     "exclude": [
       // Legacy: the static PowerShell suites pin the exact source text of these
