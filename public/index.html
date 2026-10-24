@@ -86,75 +86,13 @@
             <p class="authority-line">Evento organizado por Littus Group America</p>
           </div>
 
-          <aside class="registration-rail" aria-labelledby="form-title">
+          <aside class="registration-rail" aria-labelledby="event-status-title">
             <div class="registration-card">
-              <p class="form-kicker">Evento finalizado</p>
-              <h2 id="form-title">Registro cerrado</h2>
-              <p>La masterclass ya terminó. El formulario de inscripción está cerrado.</p>
-
-              <form id="inscripcion" aria-describedby="form-note" novalidate>
-                <div class="field">
-                  <label for="nombre">
-                    Nombre <span class="required-mark" aria-hidden="true">*</span>
-                  </label>
-                  <input
-                    class="input"
-                    id="nombre"
-                    name="nombre"
-                    type="text"
-                    autocomplete="name"
-                    aria-describedby="nombre-help"
-                    placeholder="Tu nombre"
-                    disabled
-                    required
-                  />
-                  <p class="field-help" id="nombre-help">Campo obligatorio.</p>
-                </div>
-                <div class="field">
-                  <label for="correo">
-                    Correo electrónico
-                    <span class="required-mark" aria-hidden="true">*</span>
-                  </label>
-                  <input
-                    class="input"
-                    id="correo"
-                    name="correo"
-                    type="email"
-                    autocomplete="email"
-                    aria-describedby="correo-help"
-                    placeholder="tu@correo.com"
-                    disabled
-                    required
-                  />
-                  <p class="field-help" id="correo-help">Campo obligatorio.</p>
-                </div>
-                <label class="consent-field" for="marketing-consent">
-                  <input
-                    id="marketing-consent"
-                    name="marketing_consent"
-                    type="checkbox"
-                    disabled
-                  />
-                  <span>
-                    Quiero recibir información sobre futuros talleres y
-                    actividades de ECCIA. Esta opción es voluntaria.
-                  </span>
-                </label>
-                <button class="btn-primary submit-button" type="submit" disabled>
-                  Registro cerrado
-                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                </button>
-                <p class="form-note" id="form-note">
-                  Gracias por el interés. Este evento ya finalizó y no recibe nuevas inscripciones.
-                </p>
-              </form>
-              <div
-                class="form-status"
-                role="status"
-                aria-live="polite"
-                tabindex="-1"
-                hidden
-              ></div>
+              <p class="section-eyebrow">Evento finalizado</p>
+              <h2 id="event-status-title">Registro cerrado</h2>
+              <p>La masterclass ya terminó. El registro para este evento está cerrado.</p>
+              <a class="btn-primary" data-registration-cta href="inscripcion.html?evento=ultrasonido-industrial-scan-a">Consultar estado del evento</a>
+              <p>Si quieres información sobre próximas fechas, puedes escribirnos por <a href="https://wa.me/59399976669" target="_blank" rel="noopener noreferrer">WhatsApp</a>.</p>
             </div>
           </aside>
         </div>
@@ -450,30 +388,6 @@
       </div>
     </footer>
 
-    <dialog
-      class="registration-modal"
-      id="registration-success-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="registration-success-title"
-      aria-describedby="registration-success-description"
-    >
-      <div class="registration-modal__dialog">
-        <button class="registration-modal__close" type="button" data-modal-close aria-label="Cerrar confirmación">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
-        </button>
-        <p class="section-eyebrow">Evento finalizado</p>
-        <h2 id="registration-success-title">Este evento ha terminado</h2>
-        <p id="registration-success-description">
-          La masterclass de Ultrasonido Industrial - Interpretación del Scan-A ya finalizó. Si quieres información sobre próximas fechas o entrenamientos, puedes escribirnos por WhatsApp.
-        </p>
-        <div class="registration-modal__actions">
-          <a class="btn-primary" data-modal-primary href="https://wa.me/59399976669" target="_blank" rel="noopener noreferrer">Solicitar próximas fechas</a>
-          <a class="btn-secondary" href="regalos.html">Ir a recursos y certificado</a>
-        </div>
-      </div>
-    </dialog>
-
-    <a class="mobile-cta" data-registration-cta href="inscripcion.html?evento=ultrasonido-industrial-scan-a">Evento finalizado</a>
+    <a class="mobile-cta" data-registration-cta href="inscripcion.html?evento=ultrasonido-industrial-scan-a">Consultar evento</a>
   </body>
 </html>

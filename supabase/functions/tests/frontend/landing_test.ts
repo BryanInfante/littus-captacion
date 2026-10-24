@@ -11,9 +11,11 @@ Deno.test("landing registration calls use the generic event route", async () => 
     ...document.querySelectorAll("a[data-registration-cta]"),
   ];
 
-  assertEquals(registrationCalls.length, 8);
+  assertEquals(registrationCalls.length, 9);
   assertEquals(
     registrationCalls.map((link) => link.getAttribute("href")),
-    Array(8).fill(REGISTRATION_URL),
+    Array(9).fill(REGISTRATION_URL),
   );
+  assertEquals(document.querySelector("form"), null);
+  assertEquals(document.querySelector("#registration-success-modal"), null);
 });

@@ -621,7 +621,7 @@ cerrar.
 | FN-02-07  | Página `public/inscripcion.html?evento=` con `js/core/` y `js/inscripcion/`; ratchet del cliente API.                                                                                                                                                                                                                                                                                                                              | hecho y publicado (2026-10-24)                                                                         | FN-02-05b                 |           |
 | FN-02-08  | Filas de eventos como datos (operador) y `supabase/seed.sql` local.                                                                                                                                                                                                                                                                                                                                                                | fila UT2 cargada; ruta corregida; integración handler local aprobada; browser/Turnstile real pendiente | FN-02-04                  |           |
 | FN-02-09  | Retirar `public/inscripcion-ut2.*`, `submit-ficha-inspector` y su suite.                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-02-06, FN-02-07        |           |
-| FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | pendiente                                                                                              | FN-02-07                  |           |
+| FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | hecho localmente (2026-10-24); landing sin publicar                                                    | FN-02-07                  |           |
 | FN-02-11  | Marcar `PLAN-INSCRIPCION-UT2.md` como reemplazado por F2 y F3.                                                                                                                                                                                                                                                                                                                                                                     | pendiente                                                                                              | FN-02-09                  |           |
 | FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | pendiente                                                                                              | FN-02-05b                 |           |
 | FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-01                  |           |
@@ -1502,10 +1502,19 @@ publicar; no hubo deploy, push ni PR.
   separada. Entrega elegida: `feature-branch-chain`; commits solo locales. No se
   autoriza abrir ni publicar PRs, desplegar ni abrir eventos.
 
-### FN-02-10 - landing route to generic registration (in progress)
+### FN-02-10 - ruta local de landing al flujo genérico
 
-- Delegated direct route; delivery `feature-branch-chain`, local commits only.
-- [x] Slice A: 8 landing CTAs use `ultrasonido-industrial-scan-a` and neutral
-      `Consultar evento` labels; Deno DOM test added.
-- [ ] Slice B: remove closed form/direct POST and update coverage.
-- No event opening, deployment, or publishing; real-browser/Turnstile pending.
+- Slice A: `56c26d6`, 45 líneas; evaluación nativa `medium`, `under_budget`,
+  `review_due=false` contra `f4ae5b8`.
+- Slice B retira el formulario cerrado y el POST directo; los nueve CTA llevan
+  al slug `ultrasonido-industrial-scan-a` con texto que no promete registro.
+- RED: el test DOM observó 0 CTA en la ruta genérica (esperados 8); GREEN:
+  destino y formulario retirado verificados con `linkedom`.
+- Al sacar `public/app.js` del lint legacy, `deno task check` reveló una entrada
+  obsoleta en el ratchet de arquitectura; se quitaron ambas exclusiones viejas,
+  sin debilitar las reglas. La prueba evita aserciones estáticas de fuente.
+- GREEN local: test Deno focalizado 1/1; suite PowerShell OK; `deno task check`
+  170 aprobadas (46 pasos); `git diff --check` limpio.
+- Sin prueba DB: el cambio es frontend. Navegador/Turnstile real de FN-02-08
+  sigue pendiente; no se abrió el evento, publicó la landing ni contactó
+  servicios externos. Entrega `feature-branch-chain`; commits solo locales.

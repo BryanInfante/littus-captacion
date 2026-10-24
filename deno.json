@@ -45,7 +45,6 @@
     "exclude": [
       // Legacy files that fail `deno lint` today (24 findings in 9 files).
       // Do not add entries; remove each one when the file is migrated or fixed.
-      "public/app.js",
       "public/certificados.js",
       "supabase/functions/download-certificate/index.ts",
       "supabase/functions/issue-certificate/index.ts",
