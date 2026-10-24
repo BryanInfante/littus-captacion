@@ -243,6 +243,34 @@ export const domainImportsStayInDomain: Rule = {
       ),
 };
 
+// Settings that bind a page to the deployed backend. Pages and the api client
+// import them from one module, so rotating a key or moving the project is a
+// one-line change. Paths are relative to the repository root. The patterns
+// match any project or key, not only today's values, so a second project URL
+// or key cannot slip in either.
+export const PUBLIC_SETTINGS_SOURCE = "public/js/core/config.js";
+
+const PUBLIC_SETTINGS: readonly { name: string; pattern: RegExp }[] = [
+  { name: "Supabase project URL", pattern: /\b[a-z0-9]{20}\.supabase\.co\b/ },
+  {
+    name: "Supabase publishable key",
+    pattern: /\bsb_publishable_[A-Za-z0-9_-]+/,
+  },
+  { name: "Turnstile site key", pattern: /\b0x4[A-Za-z0-9_-]{18,}/ },
+];
+
+export const publicSettingsOutsideSource = (
+  files: readonly SourceFile[],
+): Violation[] =>
+  files.flatMap(({ path, source }) =>
+    path === PUBLIC_SETTINGS_SOURCE ? [] : source.split("\n").flatMap(
+      (text, index) =>
+        PUBLIC_SETTINGS
+          .filter(({ pattern }) => pattern.test(text))
+          .map(({ name }) => ({ path, line: index + 1, detail: name })),
+    )
+  );
+
 export type RatchetResult = {
   // Violations in files that are not on the legacy list: new code broke the rule.
   readonly unlisted: readonly string[];
@@ -267,11 +295,16 @@ export const ratchet = (
   rule: Rule,
   files: readonly ScannedFile[],
   legacyPaths: readonly string[],
-): RatchetResult => {
-  const violations = [
+): RatchetResult =>
+  ratchetViolations([
     ...files.flatMap(({ path, facts }) => rule.check(path, facts)),
     ...(rule.checkAll?.(files) ?? []),
-  ];
+  ], legacyPaths);
+
+export const ratchetViolations = (
+  violations: readonly Violation[],
+  legacyPaths: readonly string[],
+): RatchetResult => {
   const violating = new Set(violations.map(({ path }) => path));
   return {
     unlisted: violations
