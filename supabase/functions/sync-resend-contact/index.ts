@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { withWebhookAuth } from '../_shared/http/webhook.ts'
 
 const RESEND_API_URL = 'https://api.resend.com'
 const SEGMENT_ID = '109cb30f-74b0-47d3-810b-aa7b18994166'
@@ -39,7 +40,7 @@ const splitName = (fullName: string) => {
   }
 }
 
-Deno.serve(async (request) => {
+Deno.serve(withWebhookAuth(async (request) => {
   if (request.method !== 'POST') {
     return jsonResponse({ error: 'Método no permitido.' }, 405)
   }
@@ -173,4 +174,4 @@ Deno.serve(async (request) => {
 
     return jsonResponse({ error: 'No se pudo sincronizar el contacto.' }, 502)
   }
-})
+}))

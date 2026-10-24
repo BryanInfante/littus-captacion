@@ -14,6 +14,10 @@ export type InspectorStorageConfig = {
   readonly rootDirectory: string;
 };
 
+export type WebhookConfig = {
+  readonly webhookSecret: string;
+};
+
 type Environment = Readonly<Record<string, string | undefined>>;
 
 const invalid = (variable: string): Error =>
@@ -130,3 +134,12 @@ export const parseInspectorStorageConfig = (
 
 export const loadInspectorStorageConfig = (): InspectorStorageConfig =>
   parseInspectorStorageConfig(Deno.env.toObject());
+
+export const parseWebhookConfig = (
+  env: Readonly<Record<string, string | undefined>>,
+): WebhookConfig => ({
+  webhookSecret: required(env, "ECCIA_WEBHOOK_SECRET"),
+});
+
+export const loadWebhookConfig = (): WebhookConfig =>
+  parseWebhookConfig(Deno.env.toObject());

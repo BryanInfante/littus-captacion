@@ -623,7 +623,7 @@ cerrar.
 | FN-02-09  | Retirar `public/inscripcion-ut2.*`, `submit-ficha-inspector` y su suite.                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-02-06, FN-02-07        |           |
 | FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | hecho localmente (2026-10-24); landing sin publicar                                                    | FN-02-07                  |           |
 | FN-02-11  | Marcar `PLAN-INSCRIPCION-UT2.md` como reemplazado por F2 y F3.                                                                                                                                                                                                                                                                                                                                                                     | pendiente                                                                                              | FN-02-09                  |           |
-| FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | pendiente                                                                                              | FN-02-05b                 |           |
+| FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | WA-01 local hecho; WA-02 pendiente                                                                     | FN-02-05b                 |           |
 | FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-01                  |           |
 | FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | pendiente                                                                                              | FN-03-02                  |           |
 | FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-03-02                  |           |
@@ -1518,3 +1518,24 @@ publicar; no hubo deploy, push ni PR.
 - Sin prueba DB: el cambio es frontend. Navegador/Turnstile real de FN-02-08
   sigue pendiente; no se abrió el evento, publicó la landing ni contactó
   servicios externos. Entrega `feature-branch-chain`; commits solo locales.
+
+### FN-03-01 · autenticación de webhooks (WA-01 local hecho)
+
+- Ruta delegada directa; entrega `feature-branch-chain`. Pronóstico WA-01:
+  250–350 líneas; WA-02: hasta 300 líneas. Commits locales, sin push, PR,
+  despliegue, secretos productivos ni envíos externos.
+- [x] WA-01: parseo tipado y diferido de `ECCIA_WEBHOOK_SECRET`, guardia HTTP
+      compartida, ambos receptores actuales y prueba unitaria pura.
+- [ ] WA-02 (pendiente): migración autenticada del emisor SQL, prueba local con
+      rollback y runbook operativo. FN-03-01 no se marca hecho en WA-01.
+- RED funcional: tras el scaffold de importaciones, fallaron el recorte del
+  secreto configurado y el paso autenticado al callback; el caso válido aún
+  devolvía 401.
+- GREEN: prueba focalizada `webhook_auth_test.ts` 5/5; `deno task check` 175
+  aprobadas (46 pasos). Sin prueba DB: WA-01 no cambia SQL.
+- La primera pasada del chequeo detectó `require-await` por un wrapper sin
+  `await`; se quitó `async` y el chequeo final quedó verde. No se generó ni
+  provisionó ningún secreto ni se ejecutaron envíos.
+- Antes de producción se requiere corte coordinado con pausa de escrituras y
+  recuperación de notificaciones pendientes; no habrá modo anónimo de
+  transición.

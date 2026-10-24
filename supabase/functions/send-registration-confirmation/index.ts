@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { withWebhookAuth } from '../_shared/http/webhook.ts'
 import { renderConfirmationEmail } from './template.ts'
 
 const RESEND_API_URL = 'https://api.resend.com'
@@ -30,7 +31,7 @@ const getSecretKey = () => {
   return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 }
 
-Deno.serve(async (request) => {
+Deno.serve(withWebhookAuth(async (request) => {
   if (request.method !== 'POST') {
     return jsonResponse({ error: 'Método no permitido.' }, 405)
   }
@@ -140,4 +141,4 @@ Deno.serve(async (request) => {
 
     return jsonResponse({ error: 'No se pudo enviar la confirmación.' }, 502)
   }
-})
+}))
