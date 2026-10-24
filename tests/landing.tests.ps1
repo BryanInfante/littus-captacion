@@ -166,8 +166,6 @@ Assert-True (-not $html.Contains('scan-waveform')) "El hero no debe incluir wave
 $formCount = ([regex]::Matches($html, "<form\b")).Count
 Assert-True ($formCount -eq 1) "Debe existir exactamente un formulario."
 
-$ctaCount = ([regex]::Matches($html, 'href="#inscripcion"')).Count
-Assert-True ($ctaCount -ge 6) "Los CTA secundarios deben apuntar a #inscripcion."
 
 Assert-Contains 'Inspector Senior de Soldadura AWS SCWI' "Falta la certificación AWS SCWI."
 Assert-Contains '23050028' "Falta el registro AWS SCWI."

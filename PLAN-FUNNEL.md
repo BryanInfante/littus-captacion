@@ -1501,3 +1501,11 @@ publicar; no hubo deploy, push ni PR.
   servicios externos, desplegar o publicar siguen requiriendo autorización
   separada. Entrega elegida: `feature-branch-chain`; commits solo locales. No se
   autoriza abrir ni publicar PRs, desplegar ni abrir eventos.
+
+### FN-02-10 - landing route to generic registration (in progress)
+
+- Delegated direct route; delivery `feature-branch-chain`, local commits only.
+- [x] Slice A: 8 landing CTAs use `ultrasonido-industrial-scan-a` and neutral
+      `Consultar evento` labels; Deno DOM test added.
+- [ ] Slice B: remove closed form/direct POST and update coverage.
+- No event opening, deployment, or publishing; real-browser/Turnstile pending.
