@@ -16,7 +16,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+
   deploy:
+    needs: check
     runs-on: ubuntu-latest
 
     environment:
@@ -25,16 +29,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.0
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v5.0.0
 
       - name: Upload public directory
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v4.0.0
         with:
           path: ./public
 
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4.0.5

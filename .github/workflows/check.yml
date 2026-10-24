@@ -1,0 +1,57 @@
+name: Check
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# github.workflow is the caller's name inside workflow_call, so the direct run
+# and each deploy's gate get their own group instead of cancelling each other.
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.0
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2.0.3
+        with:
+          deno-version: 2.9.7
+
+      - name: Check Deno sources
+        run: deno task check
+
+      - name: Setup Python
+        uses: actions/setup-python@v6.0.0
+        with:
+          python-version: 3.12.10
+
+      - name: Install pglast
+        # pglast 7.x embeds the PostgreSQL 17 parser, the version Supabase runs.
+        run: python -m pip install pglast==7.20
+
+      - name: Check migration syntax
+        run: python .github/scripts/check_migrations.py
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1.4.0
+        with:
+          version: 2.121.0
+
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Check database privileges
+        run: deno task test:db
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop

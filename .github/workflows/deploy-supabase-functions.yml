@@ -14,20 +14,38 @@ permissions:
   contents: read
 
 jobs:
-  deploy-issue-certificate:
+  check:
+    uses: ./.github/workflows/check.yml
+
+  deploy-functions:
+    needs: check
     runs-on: ubuntu-latest
+
+    env:
+      FUNCTIONS: |
+        validate-certificate
+        download-certificate
+        sync-resend-contact
+        send-registration-confirmation
+        send-workshop-reminder
+        issue-certificate
+        send-course-access
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v1.4.0
         with:
-          version: latest
+          version: 2.121.0
 
-      - name: Deploy issue-certificate
+      - name: Deploy functions
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-        run: supabase functions deploy issue-certificate --project-ref "$SUPABASE_PROJECT_REF"
+        run: |
+          while IFS= read -r function; do
+            [ -n "$function" ] || continue
+            supabase functions deploy "$function" --project-ref "$SUPABASE_PROJECT_REF"
+          done <<< "$FUNCTIONS"
