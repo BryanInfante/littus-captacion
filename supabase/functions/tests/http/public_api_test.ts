@@ -400,6 +400,12 @@ for (const blocked of ["challenge", "ip", "email"] as const) {
         response.headers.get("access-control-allow-origin"),
         origin === ORIGIN ? ORIGIN : null,
       );
+      // The page runs cross-origin, so it can read Retry-After only if exposed.
+      assertEquals(
+        response.headers.get("access-control-expose-headers")?.toLowerCase()
+          .split(/,\s*/).includes("retry-after") ?? false,
+        origin === ORIGIN,
+      );
       assertEquals(
         response.headers.get("vary")?.toLowerCase().includes("origin"),
         true,
