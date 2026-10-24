@@ -27,6 +27,7 @@ const EVENT: PublicEvent = {
   duration: "2 horas",
   registrationOpensAt: new Date("2026-10-01T00:00:00Z"),
   registrationClosesAt: null,
+  requiresInspectorProfile: false,
 };
 
 const CONSENT_TEXT =
@@ -224,6 +225,95 @@ Deno.test("an open event renders a labelled, described and keyboard-reachable fo
   assertEquals(text(refs.submit), "Inscribirse");
   assertEquals(refs.status.getAttribute("role"), "status");
   assertEquals(text(refs.status), "");
+});
+
+Deno.test("inspector events render the accessible required ficha without a generic name", async () => {
+  const { document } = await loadRegistrationPage();
+  const refs = renderOpenEvent(document, {
+    ...EVENT,
+    requiresInspectorProfile: true,
+  });
+  const label = (id: string) =>
+    text(document.querySelector(`label[for="${id}"]`));
+  for (
+    const [id, expected] of [
+      ["nombres", "Nombres *"],
+      ["apellidos", "Apellidos *"],
+      ["documento", "Documento *"],
+      ["pais", "País *"],
+      ["experiencia-anios", "Años de experiencia *"],
+      ["foto", "Foto *"],
+    ]
+  ) {
+    assertEquals(label(id), expected);
+    assertEquals(document.getElementById(id)?.hasAttribute("required"), true);
+  }
+  assertEquals(label("empleador-declarado"), "Empleador declarado");
+  assertEquals(
+    document.getElementById("empleador-declarado")?.hasAttribute("required"),
+    false,
+  );
+  assertEquals(document.getElementById("nombre"), null);
+  assertEquals(refs.inspectorFields !== null, true);
+  assertEquals(
+    text(document.querySelector('label[for="consentimiento-datos"]')),
+    "Autorizo a ECCIA (Littus Group America) a tratar mis datos personales y mi foto para gestionar mi inscripción y mi certificación. *",
+  );
+  assertEquals(
+    (document.getElementById("foto") as HTMLInputElement).getAttribute(
+      "accept",
+    ),
+    "image/jpeg,image/png",
+  );
+  assertEquals(
+    document.getElementById("sin-empleador")?.getAttribute("type"),
+    "checkbox",
+  );
+  assertEquals(
+    refs.inspectorFields?.sinEmpleador.hasAttribute("required"),
+    false,
+  );
+  assertEquals(
+    refs.inspectorFields?.consentimientoDatos.hasAttribute("required"),
+    true,
+  );
+  for (
+    const id of [
+      "nombres",
+      "apellidos",
+      "documento",
+      "pais",
+      "experiencia-anios",
+      "empleador-declarado",
+      "foto",
+      "consentimiento-datos",
+    ]
+  ) {
+    const control = document.getElementById(id);
+    const described = (control?.getAttribute("aria-describedby") ?? "")
+      .split(" ")
+      .filter((value) => value.length > 0);
+    assertEquals(
+      described.length > 0 &&
+        described.every((descriptionId) =>
+          document.getElementById(descriptionId) !== null
+        ),
+      true,
+      `${id} has existing help and error descriptions`,
+    );
+    assertEquals(
+      document.getElementById(`${id}-error`)?.hasAttribute("hidden"),
+      true,
+    );
+  }
+});
+
+Deno.test("non-inspector events do not render or require inspector fields", async () => {
+  const { document } = await loadRegistrationPage();
+  const refs = renderOpenEvent(document, EVENT);
+  assertEquals(document.getElementById("foto"), null);
+  assertEquals(refs.inspectorFields, null);
+  assertEquals(refs.name.hasAttribute("required"), true);
 });
 
 Deno.test("form values are read as typed and the stored email is shown back", async () => {

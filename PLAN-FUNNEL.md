@@ -617,7 +617,7 @@ cerrar.
 | FN-02-05a | Inscripción vertical en `public-api`: dominio (`Email`, ventana de inscripción), puertos `Events`/`Registrations`, adaptadores de memoria y Supabase, HTTP, configuración y registro seguro; migración de `inscripcion_abre_en`/`inscripcion_cierra_en` y pruebas de contrato locales. Sin despliegue ni protección contra abuso en esta rebanada.                                                                                 | hecho localmente (2026-10-19); sin desplegar                                   | FN-02-03                  |           |
 | FN-02-05b | Protección contra abuso: puertos `HumanChallenge`/`RequestLimits`, Turnstile y memoria, HMAC-SHA-256 y consumo atómico en Postgres; 5 intentos por correo/hora y 20 por IP/hora. Fase 1: pruebas; fase 2: implementación y migración tras RED observado. Sin despliegue (FN-02-13).                                                                                                                                                | hecho localmente (2026-10-24); sin desplegar                                   | FN-02-05a                 |           |
 | FN-02-13  | Primer despliegue de `public-api`, separado del desarrollo: usuario crea widget Turnstile y configura `TURNSTILE_SECRET_KEY`, `REQUEST_LIMIT_HASH_SECRET` y `PUBLIC_SITE_URL` como secretos de Edge Function. Con autorización de despliegue, actualizar workflow y `NOT_DEPLOYED` juntos; verificar CORS real y rechazos 403/429. No abrir eventos.                                                                               | hecho (2026-10-24); 429 extremo a extremo pendiente de FN-02-07                | FN-02-05b                 |           |
-| FN-02-06  | Paso de ficha del inspector: `InspectorProfiles`, `FileStorage` Nextcloud, compensación; reescritura de `20261018140000`; validación movida a `domain/`.                                                                                                                                                                                                                                                                           | pendiente                                                                      | FN-02-05b                 |           |
+| FN-02-06  | Paso de ficha del inspector: `InspectorProfiles`, `FileStorage` Nextcloud, compensación; reescritura de `20261018140000`; validación movida a `domain/`.                                                                                                                                                                                                                                                                           | hecho localmente (2026-10-24); sin desplegar ni aplicar                        | FN-02-05b                 |           |
 | FN-02-07  | Página `public/inscripcion.html?evento=` con `js/core/` y `js/inscripcion/`; ratchet del cliente API.                                                                                                                                                                                                                                                                                                                              | hecho y publicado (2026-10-24)                                                 | FN-02-05b                 |           |
 | FN-02-08  | Filas de eventos como datos (operador) y `supabase/seed.sql` local.                                                                                                                                                                                                                                                                                                                                                                | fila del curso UT2 cargada (2026-10-24); prueba de extremo a extremo pendiente | FN-02-04                  |           |
 | FN-02-09  | Retirar `public/inscripcion-ut2.*`, `submit-ficha-inspector` y su suite.                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                      | FN-02-06, FN-02-07        |           |
@@ -747,7 +747,7 @@ locales en `feat/ficha-inspector`, sin preparar PRs ni publicar.
 - [x] IP-02: extender la inscripción con ficha, puertos, adaptadores y máquina
       de estados con compensación. Probar orden, duplicados, recuperación y
       fallos.
-- [ ] IP-03: formulario accesible condicional, multipart, errores y cierre.
+- [x] IP-03: formulario accesible condicional, multipart, errores y cierre.
       Probar con linkedom y ejecutar todas las verificaciones solicitadas.
 
 Cada unidad exige `deno task check` antes de su commit. Criterio de aceptación:
@@ -790,6 +790,39 @@ El estado de IP-02 queda verificado solo en el stack local. No se cambió F3 ni
 se ejecutaron operaciones remotas. `FN-02-06` continúa en curso: IP-03 sigue
 pendiente.
 
+- 2026-10-24: IP-03, cliente de ficha del inspector completado localmente en
+  `feat/ficha-inspector`. El catálogo valida `requiere_ficha_inspector` como
+  booleano; la vista muestra la ficha solo para esos eventos, sin duplicar el
+  campo de nombre general. El modelo refleja los límites de
+  `parseInspectorProfile` y valida el archivo por tipo y tamaño; la firma real
+  sigue siendo responsabilidad del backend. Con ficha se envía el contrato
+  multipart de `public-api` mediante `FormData` del navegador, sin fijar
+  `Content-Type`; sin ficha se conserva el cuerpo JSON anterior. Se reutilizó
+  literalmente el consentimiento de la ficha de UT2 y se añadieron errores
+  accesibles con foco en el primer campo inválido.
+  - RED conductual:
+    `deno test --no-check --allow-read supabase/functions/tests/frontend/api_test.ts supabase/functions/tests/frontend/inscripcion_view_test.ts supabase/functions/tests/frontend/inscripcion_container_test.ts`
+    observó 9 fallos conductuales y 28 aprobaciones: faltaban el indicador de
+    catálogo, multipart, códigos de error, render condicional, validación y
+    recolección de la ficha. La ejecución habitual se hizo después con
+    comprobación de tipos; su fallo inicial de tipos no se cuenta como RED.
+  - GREEN:
+    `deno test --allow-read supabase/functions/tests/frontend/api_test.ts supabase/functions/tests/frontend/inscripcion_model_test.ts supabase/functions/tests/frontend/inscripcion_view_test.ts supabase/functions/tests/frontend/inscripcion_container_test.ts`,
+    47 pruebas aprobadas (44 pasos). Prueba de DB tras
+    `supabase db reset --local`: `deno task test:db`, 15 pruebas aprobadas (48
+    pasos). Tipos regenerados con `supabase gen types typescript --local`,
+    formateados y comparación idéntica con
+    `supabase/functions/_shared/database.types.ts`. `deno task check`: 169
+    pruebas aprobadas (46 pasos); pglast: 22 migraciones; las tres suites
+    PowerShell indicadas en CLAUDE.md: OK; `git diff --check`: limpio.
+  - IP-01 e IP-02 siguen respaldados por los commits `50bc856` y `dbda00e`; el
+    usuario declinó la revisión nativa de cada candidato. No se desactivó
+    revisión ni se hicieron operaciones remotas. IP-03 queda pendiente del ciclo
+    nativo que coordina el orquestador después del commit.
+  - Pendiente en producción: aprobación del usuario para aplicar la migración,
+    valor de `NEXTCLOUD_ROOT_DIR` provisto por el usuario y
+    `requiere_ficha_inspector=true` para UT2. F3 debe despachar solo fichas
+    `completa`; F3 no se implementó en esta tarea.
 - 2026-10-18: plan propuesto. Decisiones D-06 (sin hotfix del webinar) y D-07
   (todos los lanzamientos postergados) registradas. Pendientes DU-01 a DU-04.
 - 2026-10-18: FN-00-01 hecho. Privilegios por columna confirmados en

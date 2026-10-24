@@ -85,7 +85,10 @@ const startForm = (dependencies, event) => {
     if (submitting) return;
     clearFeedback(refs);
 
-    const validation = validateRegistration(readRegistrationForm(refs));
+    const validation = validateRegistration(
+      readRegistrationForm(refs),
+      event.requiresInspectorProfile,
+    );
     if (!validation.ok) {
       showFieldErrors(refs, validation.errors);
       return;
@@ -130,7 +133,10 @@ const startForm = (dependencies, event) => {
       renderSuccess(document);
       return;
     }
-    const feedback = describeRegistrationError(result);
+    const feedback = describeRegistrationError(
+      result,
+      event.requiresInspectorProfile,
+    );
     if (feedback.target === "status") {
       showStatus(refs, feedback);
     } else {

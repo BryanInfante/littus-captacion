@@ -16,6 +16,11 @@
  * @property {HTMLFormElement} form
  * @property {HTMLInputElement} name
  * @property {HTMLInputElement} email
+ * @property {{ nombres: HTMLInputElement, apellidos: HTMLInputElement,
+ *   documento: HTMLInputElement, pais: HTMLInputElement,
+ *   experienciaAnios: HTMLInputElement, empleadorDeclarado: HTMLInputElement,
+ *   sinEmpleador: HTMLInputElement, consentimientoDatos: HTMLInputElement,
+ *   foto: HTMLInputElement } | null} inspectorFields
  * @property {HTMLInputElement} consent
  * @property {HTMLElement} challengeSlot
  * @property {HTMLButtonElement} submit
@@ -26,6 +31,8 @@ const TYPE_LABEL = { webinar: "Webinar", curso: "Curso" };
 const DEFAULT_EYEBROW = "Inscripción";
 const SUBMIT_LABEL = "Inscribirse";
 const SUBMITTING_LABEL = "Enviando…";
+const INSPECTOR_CONSENT_TEXT =
+  "Autorizo a ECCIA (Littus Group America) a tratar mis datos personales y mi foto para gestionar mi inscripción y mi certificación.";
 // Verbatim from the landing form (public/index.html).
 const CONSENT_TEXT =
   "Quiero recibir información sobre futuros talleres y actividades de ECCIA. Esta opción es voluntaria.";
@@ -216,7 +223,7 @@ const fieldError = (document, id) => {
 
 /**
  * @param {Document} document
- * @param {{ id: string, label: string, help: string, attributes: Record<string, string> }} field
+ * @param {{ id: string, label: string, help: string, attributes: Record<string, string>, required?: boolean }} field
  */
 const textField = (document, field) => {
   const wrapper = create(document, "div", { className: "field" });
@@ -225,13 +232,18 @@ const textField = (document, field) => {
     id: field.id,
     attributes: {
       name: field.id,
-      required: "",
+      ...(field.required === false ? {} : { required: "" }),
       "aria-describedby": `${field.id}-help ${field.id}-error`,
       ...field.attributes,
     },
   });
   wrapper.append(
-    requiredLabel(document, field.id, field.label),
+    field.required === false
+      ? create(document, "label", {
+        attributes: { for: field.id },
+        text: field.label,
+      })
+      : requiredLabel(document, field.id, field.label),
     input,
     create(document, "p", {
       className: "field-help",
@@ -273,7 +285,7 @@ export const renderOpenEvent = (document, event) => {
     " son obligatorios.",
   );
 
-  const name = textField(document, {
+  const name = event.requiresInspectorProfile ? null : textField(document, {
     id: "nombre",
     label: "Nombre",
     help: "Campo obligatorio.",
@@ -304,6 +316,165 @@ export const renderOpenEvent = (document, event) => {
     consent,
     create(document, "span", { text: CONSENT_TEXT }),
   );
+
+  /** @type {FormRefs["inspectorFields"]} */
+  let inspectorFields = null;
+  /** @type {Node[]} */
+  const inspectorNodes = [];
+  if (event.requiresInspectorProfile) {
+    const names = textField(document, {
+      id: "nombres",
+      label: "Nombres",
+      help: "Campo obligatorio.",
+      attributes: {
+        type: "text",
+        autocomplete: "given-name",
+        minlength: "2",
+        maxlength: "60",
+      },
+    });
+    const surnames = textField(document, {
+      id: "apellidos",
+      label: "Apellidos",
+      help: "Campo obligatorio.",
+      attributes: {
+        type: "text",
+        autocomplete: "family-name",
+        minlength: "2",
+        maxlength: "60",
+      },
+    });
+    const documentNumber = textField(document, {
+      id: "documento",
+      label: "Documento",
+      help: "De 6 a 20 letras, números o guiones, sin espacios.",
+      attributes: {
+        type: "text",
+        autocomplete: "off",
+        maxlength: "20",
+        autocapitalize: "characters",
+      },
+    });
+    const country = textField(document, {
+      id: "pais",
+      label: "País",
+      help: "Campo obligatorio.",
+      attributes: {
+        type: "text",
+        autocomplete: "country-name",
+        minlength: "2",
+        maxlength: "60",
+      },
+    });
+    const experience = textField(document, {
+      id: "experiencia-anios",
+      label: "Años de experiencia",
+      help: "Escribe un número entero entre 0 y 60.",
+      attributes: {
+        type: "number",
+        min: "0",
+        max: "60",
+        step: "1",
+        inputmode: "numeric",
+      },
+    });
+    const employer = textField(document, {
+      id: "empleador-declarado",
+      label: "Empleador declarado",
+      help: "Escribe tu empleador o selecciona que no tienes empleador.",
+      required: false,
+      attributes: {
+        type: "text",
+        autocomplete: "organization",
+        minlength: "2",
+        maxlength: "120",
+      },
+    });
+    const noEmployerLabel = create(document, "label", {
+      className: "consent-field",
+      attributes: { for: "sin-empleador" },
+    });
+    const noEmployer = create(document, "input", {
+      id: "sin-empleador",
+      attributes: { name: "sin_empleador", type: "checkbox" },
+    });
+    noEmployerLabel.append(
+      noEmployer,
+      create(document, "span", { text: "No tengo empleador" }),
+    );
+
+    const photoWrapper = create(document, "div", { className: "field" });
+    const photo = create(document, "input", {
+      className: "input",
+      id: "foto",
+      attributes: {
+        name: "foto",
+        type: "file",
+        accept: "image/jpeg,image/png",
+        required: "",
+        "aria-describedby": "foto-help foto-error",
+      },
+    });
+    photoWrapper.append(
+      requiredLabel(document, "foto", "Foto"),
+      photo,
+      create(document, "p", {
+        className: "field-help",
+        id: "foto-help",
+        text: "Formato JPEG o PNG. Tamaño máximo: 5 MB.",
+      }),
+      fieldError(document, "foto-error"),
+    );
+
+    const dataConsentLabel = create(document, "label", {
+      className: "consent-field",
+      attributes: { for: "consentimiento-datos" },
+    });
+    const dataConsent = create(document, "input", {
+      id: "consentimiento-datos",
+      attributes: {
+        name: "consentimiento_datos",
+        type: "checkbox",
+        required: "",
+        "aria-describedby": "consentimiento-datos-error",
+      },
+    });
+    dataConsentLabel.append(
+      dataConsent,
+      create(document, "span", { text: `${INSPECTOR_CONSENT_TEXT} ` }),
+      create(document, "span", {
+        className: "required-mark",
+        text: "*",
+        attributes: { "aria-hidden": "true" },
+      }),
+    );
+    const dataConsentError = fieldError(document, "consentimiento-datos-error");
+    dataConsentError.setAttribute("aria-live", "polite");
+
+    inspectorFields = {
+      nombres: names.input,
+      apellidos: surnames.input,
+      documento: documentNumber.input,
+      pais: country.input,
+      experienciaAnios: experience.input,
+      empleadorDeclarado: employer.input,
+      sinEmpleador: noEmployer,
+      consentimientoDatos: dataConsent,
+      foto: photo,
+    };
+    inspectorNodes.push(
+      names.wrapper,
+      surnames.wrapper,
+      documentNumber.wrapper,
+      country.wrapper,
+      experience.wrapper,
+      employer.wrapper,
+      noEmployerLabel,
+      photoWrapper,
+      dataConsentLabel,
+      dataConsentError,
+    );
+  }
 
   const challenge = create(document, "div", { className: "field" });
   const challengeSlot = create(document, "div", {
@@ -340,9 +511,10 @@ export const renderOpenEvent = (document, event) => {
 
   form.append(
     note,
-    name.wrapper,
+    ...(name === null ? [] : [name.wrapper]),
     email.wrapper,
     consentLabel,
+    ...inspectorNodes,
     challenge,
     submit,
     status,
@@ -351,9 +523,12 @@ export const renderOpenEvent = (document, event) => {
 
   return {
     form,
-    name: name.input,
+    // The detached ref keeps the container contract stable without exposing a redundant name field.
+    name: name?.input ?? /** @type {HTMLInputElement} */
+      (document.createElement("input")),
     email: email.input,
     consent,
+    inspectorFields,
     challengeSlot,
     submit,
     status,
@@ -365,9 +540,23 @@ export const renderOpenEvent = (document, event) => {
  * @returns {RegistrationInput}
  */
 export const readRegistrationForm = (refs) => ({
-  name: refs.name.value,
+  name: refs.inspectorFields === null ? refs.name.value : "",
   email: refs.email.value,
   marketingConsent: refs.consent.checked === true,
+  ...(refs.inspectorFields === null ? {} : {
+    inspectorProfile: {
+      nombres: refs.inspectorFields.nombres.value,
+      apellidos: refs.inspectorFields.apellidos.value,
+      documento: refs.inspectorFields.documento.value,
+      pais: refs.inspectorFields.pais.value,
+      experienciaAnios: refs.inspectorFields.experienciaAnios.value,
+      empleadorDeclarado: refs.inspectorFields.empleadorDeclarado.value,
+      sinEmpleador: refs.inspectorFields.sinEmpleador.checked === true,
+      consentimientoDatos:
+        refs.inspectorFields.consentimientoDatos.checked === true,
+      foto: refs.inspectorFields.foto.files?.[0] ?? null,
+    },
+  }),
 });
 
 /**
@@ -384,11 +573,54 @@ export const showEmailValue = (refs, email) => {
  */
 const fieldsOf = (refs) => {
   const document = refs.form.ownerDocument;
-  return [
-    ["name", refs.name, required(document, "nombre-error")],
-    ["email", refs.email, required(document, "correo-error")],
-    ["challenge", refs.challengeSlot, required(document, "verificacion-error")],
-  ];
+  /** @type {[keyof FieldErrors, HTMLElement, HTMLElement][]} */
+  const fields = [];
+  if (refs.inspectorFields === null) {
+    fields.push(["name", refs.name, required(document, "nombre-error")]);
+  }
+  fields.push(["email", refs.email, required(document, "correo-error")]);
+  if (refs.inspectorFields !== null) {
+    fields.push(
+      [
+        "nombres",
+        refs.inspectorFields.nombres,
+        required(document, "nombres-error"),
+      ],
+      [
+        "apellidos",
+        refs.inspectorFields.apellidos,
+        required(document, "apellidos-error"),
+      ],
+      [
+        "documento",
+        refs.inspectorFields.documento,
+        required(document, "documento-error"),
+      ],
+      ["pais", refs.inspectorFields.pais, required(document, "pais-error")],
+      [
+        "experienciaAnios",
+        refs.inspectorFields.experienciaAnios,
+        required(document, "experiencia-anios-error"),
+      ],
+      [
+        "empleadorDeclarado",
+        refs.inspectorFields.empleadorDeclarado,
+        required(document, "empleador-declarado-error"),
+      ],
+      ["foto", refs.inspectorFields.foto, required(document, "foto-error")],
+      [
+        "consentimientoDatos",
+        refs.inspectorFields.consentimientoDatos,
+        required(document, "consentimiento-datos-error"),
+      ],
+    );
+  }
+  fields.push([
+    "challenge",
+    refs.challengeSlot,
+    required(document, "verificacion-error"),
+  ]);
+  return fields;
 };
 
 /** @param {FormRefs} refs */

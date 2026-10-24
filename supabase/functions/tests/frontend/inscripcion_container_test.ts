@@ -21,6 +21,7 @@ const OPEN_EVENT: PublicEvent = {
   duration: null,
   registrationOpensAt: new Date("2026-10-01T00:00:00Z"),
   registrationClosesAt: null,
+  requiresInspectorProfile: false,
 };
 
 const deferred = <T>() => {
@@ -36,6 +37,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 type Options = {
   search?: string;
+  inspector?: boolean;
   catalog?: () => Promise<PublicEvent | null>;
   register?: (request: RegistrationRequest) => Promise<RegistrationResult>;
   challenge?: () => Promise<Challenge>;
@@ -62,7 +64,10 @@ const start = async (options: Options = {}) => {
     api: {
       fetchPublicEvent: (code) => {
         catalogCalls.push(code);
-        return options.catalog?.() ?? Promise.resolve(OPEN_EVENT);
+        return options.catalog?.() ?? Promise.resolve({
+          ...OPEN_EVENT,
+          requiresInspectorProfile: options.inspector ?? false,
+        });
       },
       register: (request) => {
         registrations.push(request);
@@ -169,6 +174,66 @@ Deno.test("a valid submission registers once with normalized values and shows th
   const success = page.document.querySelector("#inscripcion-contenido h2");
   assertEquals(text(success), "Tu inscripción quedó registrada.");
   assertEquals(page.focused(), success);
+});
+
+Deno.test("inspector submission validates the ficha and registers with its photo", async () => {
+  const { page, registrations, resets } = await start({ inspector: true });
+  input(page, "correo").value = " Ana@Example.com ";
+  input(page, "marketing-consent").checked = true;
+  input(page, "nombres").value = " Ana ";
+  input(page, "apellidos").value = " Pérez ";
+  input(page, "documento").value = " abc12345 ";
+  input(page, "pais").value = " Ecuador ";
+  input(page, "experiencia-anios").value = "8";
+  input(page, "empleador-declarado").value = " Empresa ";
+  input(page, "consentimiento-datos").checked = true;
+  const photo = new File([new Uint8Array([0xff, 0xd8, 0xff])], "foto.jpg", {
+    type: "image/jpeg",
+  });
+  Object.defineProperty(input(page, "foto"), "files", { value: [photo] });
+  submitForm(page);
+  await settle();
+
+  assertEquals(registrations, [{
+    eventCode: "webinar-scan-a",
+    name: "",
+    email: "ana@example.com",
+    marketingConsent: true,
+    challengeToken: "token-1",
+    inspectorProfile: {
+      nombres: "Ana",
+      apellidos: "Pérez",
+      documento: "ABC12345",
+      pais: "Ecuador",
+      experienciaAnios: 8,
+      empleadorDeclarado: "Empresa",
+      sinEmpleador: false,
+      consentimientoDatos: true,
+      foto: photo,
+    },
+  }]);
+  assertEquals(resets(), 1);
+  assertEquals(
+    text(page.document.querySelector("#inscripcion-contenido h2")),
+    "Tu inscripción quedó registrada.",
+  );
+});
+
+Deno.test("inspector ficha errors focus the first invalid field and do not submit", async () => {
+  const { page, registrations } = await start({ inspector: true });
+  input(page, "correo").value = "ana@example.com";
+  submitForm(page);
+  await settle();
+  assertEquals(registrations, []);
+  assertEquals(
+    text(byId(page.document, "nombres-error")),
+    "Escribe entre 2 y 60 caracteres para tus nombres.",
+  );
+  assertEquals(
+    text(byId(page.document, "documento-error")),
+    "Escribe tu documento.",
+  );
+  assertEquals(page.focused(), input(page, "nombres"));
 });
 
 Deno.test("a second submit while the first is pending is ignored", async () => {
