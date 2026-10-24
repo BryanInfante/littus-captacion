@@ -5,6 +5,62 @@ import { DomainError } from "../../domain/errors.ts";
 import type { InspectorProfiles } from "../../ports/inspectorProfiles.ts";
 import type { InspectorProfileReservation } from "../../ports/inspectorProfiles.ts";
 
+const SAFE_SEGMENT = /^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$/;
+const PHOTO_FILENAME =
+  /^[0-9A-Z-]+_[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$/;
+
+const rootSegments = (rootDirectory: string): string[] => {
+  const segments = rootDirectory.split("/");
+  if (segments.some((segment) => !SAFE_SEGMENT.test(segment))) {
+    throw new Error("Inspector profile storage root unavailable");
+  }
+  return segments;
+};
+
+const relativePhotoPath = (
+  path: string,
+  eventCode: string,
+  document: string,
+): string => {
+  const segments = path.split("/");
+  if (
+    segments.length !== 4 || segments[0] !== "inscripciones" ||
+    segments[1] !== eventCode || segments[2] !== "fotos" ||
+    !segments[3].startsWith(`${document}_`) || !PHOTO_FILENAME.test(segments[3])
+  ) {
+    throw new Error("Inspector profile photo path is invalid");
+  }
+  return path;
+};
+
+const storedPhotoPath = (
+  path: string,
+  root: readonly string[],
+  eventCode: string,
+  document: string,
+): string => {
+  const segments = path.split("/");
+  if (
+    segments.length !== root.length + 4 ||
+    root.some((segment, index) => segments[index] !== segment)
+  ) {
+    throw new Error("Inspector profile path is outside configured root");
+  }
+  return relativePhotoPath(
+    segments.slice(root.length).join("/"),
+    eventCode,
+    document,
+  );
+};
+
+const persistedPhotoPath = (
+  path: string,
+  root: readonly string[],
+  eventCode: string,
+  document: string,
+): string =>
+  `${root.join("/")}/${relativePhotoPath(path, eventCode, document)}`;
+
 const registrationFor = (input: InspectorProfileReservation, id: string) => ({
   id,
   eventCode: input.eventCode,
@@ -16,6 +72,7 @@ const registrationFor = (input: InspectorProfileReservation, id: string) => ({
 export const createSupabaseInspectorProfiles = (config: {
   readonly url: string;
   readonly serviceRoleKey: string;
+  readonly rootDirectory: () => string;
 }): InspectorProfiles => {
   const client = createClient<Database>(config.url, config.serviceRoleKey, {
     auth: {
@@ -26,6 +83,13 @@ export const createSupabaseInspectorProfiles = (config: {
   });
   return {
     claim: async (input, staleBefore, now) => {
+      // Resolve the root once and validate paths before any database mutation.
+      const root = rootSegments(config.rootDirectory());
+      const photoPath = relativePhotoPath(
+        input.photoPath,
+        input.eventCode,
+        input.documento,
+      );
       // The before-insert integrity trigger supplies inscripcion_id in the same transaction.
       const profileInsert = {
         id: input.id,
@@ -40,7 +104,12 @@ export const createSupabaseInspectorProfiles = (config: {
         empleador_declarado: input.empleadorDeclarado,
         sin_empleador: input.sinEmpleador,
         consentimiento_datos_en: input.consentimientoDatosEn,
-        foto_path: input.photoPath,
+        foto_path: persistedPhotoPath(
+          photoPath,
+          root,
+          input.eventCode,
+          input.documento,
+        ),
         actualizado_en: now.toISOString(),
         marketing_consent: input.marketingConsent,
       } as unknown as Database["public"]["Tables"]["eccia_fichas_inspector"][
@@ -55,7 +124,7 @@ export const createSupabaseInspectorProfiles = (config: {
         return {
           kind: "claimed",
           id: inserted.id,
-          photoPath: inserted.foto_path,
+          photoPath,
           registration: registrationFor(input, inserted.inscripcion_id),
         };
       }
@@ -73,6 +142,12 @@ export const createSupabaseInspectorProfiles = (config: {
         throw new Error("Inspector profile store unavailable");
       }
       if (existing === null) throw new DomainError("ALREADY_REGISTERED");
+      const existingPhotoPath = storedPhotoPath(
+        existing.foto_path,
+        root,
+        input.eventCode,
+        input.documento,
+      );
       if (existing.estado === "completa") return { kind: "complete" };
       if (new Date(existing.actualizado_en).getTime() > staleBefore.getTime()) {
         return { kind: "in_progress" };
@@ -92,7 +167,7 @@ export const createSupabaseInspectorProfiles = (config: {
       return {
         kind: "claimed",
         id: claimed.id,
-        photoPath: claimed.foto_path,
+        photoPath: existingPhotoPath,
         registration: registrationFor(input, claimed.inscripcion_id),
       };
     },

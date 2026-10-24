@@ -6,6 +6,7 @@ export type InspectorProfileReservation = InspectorProfile & {
   readonly eventCode: string;
   readonly email: string;
   readonly marketingConsent: boolean;
+  // Relative to the configured storage root; adapters persist canonical paths.
   readonly photoPath: string;
 };
 

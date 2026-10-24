@@ -112,6 +112,7 @@ if (import.meta.main) {
     inspectorProfiles: createSupabaseInspectorProfiles({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
+      rootDirectory: () => loadInspectorStorageConfig().rootDirectory,
     }),
     fileStorage: {
       upload: (path, bytes, contentType) =>
