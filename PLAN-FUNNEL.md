@@ -1439,3 +1439,17 @@ pendiente.
   pasos); `deno task check`, 169 aprobadas (46 pasos). El reset aplico la
   migracion localmente. Pendientes: diff check, commit local y revision nativa
   del orquestador. La migracion sigue sin aplicarse al remoto; no se altero F3.
+
+- Actualizacion posterior: el fix local quedo en el commit `fdfae5b`
+  (`feat/ficha-inspector`); evaluacion nativa `medium`, `under_budget`, 42
+  lineas y `review_due=false`. Con autorizacion explicita, se aplico en
+  produccion la migracion `20261025090000_add_inspector_profiles`, con SHA-256
+  `32ef2d702a9999c64b01121f1256ffc4ead103ae0274620aca660275cb805dac`. La
+  consulta transaccional verifico el SQL exacto, agrego una sola entrada al
+  historial (20 a 21) y dejo intactos los timestamps divergentes; no se uso
+  `db push`. Verificacion posterior: 116 inscripciones, 0 perfiles, 4 eventos
+  publicos y flag nuevo en `false`; lectura anonima del catalogo correcta, RLS y
+  privilegios privados comprobados. No hubo deploy, push, PR ni cambios de F3.
+  Sigue pendiente la decision del operador de activar
+  `requiere_ficha_inspector=true` para UT2; la inscripcion continua cerrada
+  (limites de ventana nulos).
