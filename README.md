@@ -286,6 +286,72 @@ Antes de cualquier cambio visual:
 - enviar una prueba interna;
 - revisar que el volumen no exceda los límites diarios del plan.
 
+### Registrar un certificado `external`
+
+Un certificado `external` se emitió fuera del sistema (por ejemplo, diseñado a
+mano) y debe validarse en `validar-certificado.html?code=<código>`. Desde la
+migración `20261018130000` (aplicada al remoto el 2026-10-19) ningún rol público
+escribe en `public.eccia_masterclass_certificados`: solo `service_role`. El
+método recomendado es SQL ejecutado como administrador en el editor SQL del
+panel de Supabase (o con el MCP): corre en una sola transacción y no expone
+ninguna clave. No se usa la API REST ni se pega la secret key en consolas.
+
+Requisitos previos:
+
+- El curso existe en `public.eccia_eventos`; la validación toma de allí el
+  título, la duración y la fecha. Si falta, el certificado valida pero muestra
+  esos campos vacíos. Un curso nuevo es una fila:
+
+  ```sql
+  insert into public.eccia_eventos
+    (masterclass_codigo, event_title, duracion, fecha_texto, fecha_evento, codigo_prefijo)
+  values
+    ('<slug-del-curso>', '<título>', '<8h>', '<1 de enero de 2026>', '2026-01-01', 'ECCIA-XX-');
+  ```
+
+  `codigo_prefijo` debe cumplir `^[A-Z]{2,8}-[A-Z0-9]{2,6}-$` (mayúsculas y
+  guion final).
+- Nombre completo, con al menos dos palabras. El correo es obligatorio y único
+  por curso: si no se conoce, usar un placeholder con TLD `.invalid`
+  (`nombre.apellido@pendiente.invalid`) y reemplazarlo cuando se obtenga.
+
+Pasos:
+
+1. Construir el código como `<codigo_prefijo>` + 8 caracteres hexadecimales en
+   **mayúsculas**: la validación convierte el código a mayúsculas antes de
+   buscarlo. Debe ser único; la base lo rechaza si se repite.
+2. Insertar la fila (sustituir los marcadores `<...>`):
+
+   ```sql
+   insert into public.eccia_masterclass_certificados
+     (nombre_completo, correo, masterclass_codigo, codigo_certificado,
+      certificate_status, validation_url, certificate_generated_at)
+   select '<nombre completo>', '<correo>@pendiente.invalid', '<slug-del-curso>', c,
+          'external',
+          'https://preinscripcion.littusgroup.com/validar-certificado.html?code=' || c,
+          '<fecha de emisión>'
+   from (select e.codigo_prefijo || upper(substr(md5(gen_random_uuid()::text), 1, 8)) as c
+         from public.eccia_eventos e
+         where e.masterclass_codigo = '<slug-del-curso>') s
+   returning codigo_certificado, validation_url;
+   ```
+
+   Si el curso no existe, el `select` no devuelve filas y no se inserta nada.
+   `validation_url` es la URL que se codifica en el QR; debe terminar en
+   `?code=<código>`.
+3. Verificar abriendo la `validation_url` devuelta: debe mostrar el nombre, el
+   curso y el estado válido. Un certificado `external` no tiene PDF, por lo que
+   su descarga responde 404.
+
+Seguridad:
+
+- La secret key solo existe como secreto de las Edge Functions o en el panel:
+  nunca en el frontend, el historial de la terminal ni los registros.
+- Los roles públicos no pueden escribir certificados; no se restablece ese
+  privilegio para facilitar una carga.
+- No se borran filas de certificados: un código ya impreso o enviado debe seguir
+  validando. Para corregir un dato se usa `update`.
+
 ## Documentación relacionada
 
 - [Operación de correos ECCIA](EMAIL_OPERATIONS.md)
