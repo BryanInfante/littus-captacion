@@ -117,7 +117,3 @@ revoke all on function private.eccia_ficha_crea_inscripcion()
 create trigger eccia_ficha_crea_inscripcion_before_insert
 before insert on public.eccia_fichas_inspector
 for each row execute function private.eccia_ficha_crea_inscripcion();
-
-update public.eccia_eventos
-set requiere_ficha_inspector = true
-where masterclass_codigo = 'ultrasonido-nivel-ii';
