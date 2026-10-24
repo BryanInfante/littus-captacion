@@ -3,8 +3,9 @@
 .env.*
 !.env.example
 
-# Archivos temporales de Supabase CLI
+# Archivos temporales de Supabase CLI y del stack local (`supabase start`)
 supabase/.temp/
+supabase/.branches/
 
 # Certificados generados localmente para pruebas
 output/

@@ -348,6 +348,8 @@ foreach ($network in @('Facebook', 'Instagram', 'TikTok', 'LinkedIn', 'YouTube')
 }
 Assert-True ($styles.Contains('.footer-navigation')) "Faltan estilos para la navegación del footer."
 Assert-True ($styles.Contains('.footer-socials')) "Faltan estilos para las redes del footer."
+Assert-True (-not ($styles -match '(?m)^[ \t]*(?:[^{}\r\n,]+,\s*)*body\s*(?:,[^{}\r\n]*)?\{\s*font:\s*inherit')) "body no debe heredar font: inherit: pisa su font-family y el texto cae en la fuente por defecto del navegador."
+Assert-True ($styles.Contains('button, input { font: inherit; }')) "Los controles de formulario deben heredar la fuente del body."
 
 Assert-True (Test-Path -LiteralPath $emailTemplatePath) "Falta la plantilla maestra de correo ECCIA."
 Assert-True ($emailTemplate.Contains('{{{contact.first_name|profesional}}}')) "La plantilla debe admitir personalización segura del saludo."

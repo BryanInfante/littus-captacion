@@ -3,16 +3,18 @@ const escapeHtml = (value: string) =>
     /[&<>"']/g,
     (character) =>
       ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;',
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
       })[character] ?? character,
-  )
+  );
 
 export const renderConfirmationEmail = (fullName: string) => {
-  const firstName = escapeHtml(fullName.trim().split(/\s+/)[0] || 'profesional')
+  const firstName = escapeHtml(
+    fullName.trim().split(/\s+/)[0] || "profesional",
+  );
 
   return `<!doctype html>
 <html lang="es">
@@ -64,14 +66,18 @@ export const renderConfirmationEmail = (fullName: string) => {
       </td></tr>
     </table>
   </body>
-</html>`
-}
+</html>`;
+};
 
-const WORKSHOP_STREAM_URL = 'https://youtube.com/live/yW3OQFl76kg?feature=share'
-const REMINDER_EVENT_NAME = 'Masterclass Ultrasonido Industrial - Interpretación del Scan-A'
+const WORKSHOP_STREAM_URL =
+  "https://youtube.com/live/yW3OQFl76kg?feature=share";
+const REMINDER_EVENT_NAME =
+  "Masterclass Ultrasonido Industrial - Interpretación del Scan-A";
 
 export const renderWorkshopReminderEmail = (fullName: string) => {
-  const firstName = escapeHtml(fullName.trim().split(/\s+/)[0] || 'profesional')
+  const firstName = escapeHtml(
+    fullName.trim().split(/\s+/)[0] || "profesional",
+  );
 
   return `<!doctype html>
 <html lang="es">
@@ -118,5 +124,5 @@ export const renderWorkshopReminderEmail = (fullName: string) => {
       </td></tr>
     </table>
   </body>
-</html>`
-}
+</html>`;
+};
