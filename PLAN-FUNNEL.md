@@ -567,12 +567,12 @@ cerrar.
 | FN-02-02  | Migración de datos idempotente de la clave del webinar; conteos.                                                                                                                                                                                                                                                                                                                                                                   | hecho (2026-10-19)                                              | FN-02-01                  |           |
 | FN-02-12  | Migración de datos idempotente que crea en `eccia_eventos` las filas de los cursos `end-vt-pt-mt-2026-09` (11 inscripciones) y `end-vt-ii-pt-ii-ut-i-2026-10` (2), como eventos pasados: `activo = false`, título derivado del código, `codigo_prefijo` provisorio y `fecha_evento`, `fecha_texto` y `duracion` nulos (sin datos inventados); requisito de la FK. Decisión del usuario 2026-10-19: conservar las 13 inscripciones. | hecho (2026-10-19)                                              | FN-02-01                  |           |
 | FN-02-03  | Migración: quitar default, FK `not valid`, privilegios y política según DU-02; migración aparte con `validate`.                                                                                                                                                                                                                                                                                                                    | hecho (2026-10-19)                                              | FN-02-02, FN-02-12, DU-02 |           |
-| FN-02-04  | Columnas del evento que la rebanada lee y vista `eccia_eventos_publicos`.                                                                                                                                                                                                                                                                                                                                                          | pendiente                                                       | FN-01-05                  |           |
+| FN-02-04  | Columnas del evento que la rebanada lee y vista `eccia_eventos_publicos`.                                                                                                                                                                                                                                                                                                                                                          | hecho localmente (2026-10-24); sin desplegar ni aplicar         | FN-01-05                  |           |
 | FN-02-05a | Inscripción vertical en `public-api`: dominio (`Email`, ventana de inscripción), puertos `Events`/`Registrations`, adaptadores de memoria y Supabase, HTTP, configuración y registro seguro; migración de `inscripcion_abre_en`/`inscripcion_cierra_en` y pruebas de contrato locales. Sin despliegue ni protección contra abuso en esta rebanada.                                                                                 | hecho localmente (2026-10-19); sin desplegar                    | FN-02-03                  |           |
 | FN-02-05b | Protección contra abuso: puertos `HumanChallenge`/`RequestLimits`, Turnstile y memoria, HMAC-SHA-256 y consumo atómico en Postgres; 5 intentos por correo/hora y 20 por IP/hora. Fase 1: pruebas; fase 2: implementación y migración tras RED observado. Sin despliegue (FN-02-13).                                                                                                                                                | hecho localmente (2026-10-24); sin desplegar                    | FN-02-05a                 |           |
 | FN-02-13  | Primer despliegue de `public-api`, separado del desarrollo: usuario crea widget Turnstile y configura `TURNSTILE_SECRET_KEY`, `REQUEST_LIMIT_HASH_SECRET` y `PUBLIC_SITE_URL` como secretos de Edge Function. Con autorización de despliegue, actualizar workflow y `NOT_DEPLOYED` juntos; verificar CORS real y rechazos 403/429. No abrir eventos.                                                                               | hecho (2026-10-24); 429 extremo a extremo pendiente de FN-02-07 | FN-02-05b                 |           |
 | FN-02-06  | Paso de ficha del inspector: `InspectorProfiles`, `FileStorage` Nextcloud, compensación; reescritura de `20261018140000`; validación movida a `domain/`.                                                                                                                                                                                                                                                                           | pendiente                                                       | FN-02-05b                 |           |
-| FN-02-07  | Página `public/inscripcion.html?evento=` con `js/core/` y `js/inscripcion/`; ratchet del cliente API.                                                                                                                                                                                                                                                                                                                              | pendiente                                                       | FN-02-05b                 |           |
+| FN-02-07  | Página `public/inscripcion.html?evento=` con `js/core/` y `js/inscripcion/`; ratchet del cliente API.                                                                                                                                                                                                                                                                                                                              | hecho localmente (2026-10-24); sin desplegar ni aplicar         | FN-02-05b                 |           |
 | FN-02-08  | Filas de eventos como datos (operador) y `supabase/seed.sql` local.                                                                                                                                                                                                                                                                                                                                                                | pendiente                                                       | FN-02-04                  |           |
 | FN-02-09  | Retirar `public/inscripcion-ut2.*`, `submit-ficha-inspector` y su suite.                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                       | FN-02-06, FN-02-07        |           |
 | FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | pendiente                                                       | FN-02-07                  |           |
@@ -1154,3 +1154,70 @@ mientras contenga piezas de UT2 que el workflow desplegaría
   permite, el límite por IP es evadible; el desafío y el límite por correo se
   mantienen); revocar el token personal de Supabase usado para la CLI; ningún
   evento tiene la ventana de inscripción abierta.
+- 2026-10-24: FN-02-04 y FN-02-07, rebanada vertical en
+  `feat/inscripcion-generica`, hecha localmente; sin migración remota, sin
+  despliegue y sin push. Commits: `10349ef` (catálogo: migración
+  `20261024200000_add_public_event_catalog.sql`, tipos regenerados, contrato del
+  catálogo y ratchet de vistas públicas; 415 líneas agregadas, 1 eliminada),
+  `6633c49` (`public/js/core/config.js` y `api.js`, ratchet de configuración
+  pública y cambios de `deno.json`; 689 agregadas, 4 eliminadas) y `f871c6f`
+  (`public/inscripcion.html`, `public/js/inscripcion/`,
+  `public/js/core/turnstile.js`, estilos y `linkedom@0.18.13` en
+  `tests/dev_deps.ts`; 2344 agregadas). Marca: `brand_id` `eccia`, kit en
+  `C:\Users\bryan\dev\littus-brand-kit` (valor confirmado por el usuario para
+  `LITTUS_BRAND_KIT`); se leyeron `agents/brand-applicator.md`, `STEERING.md`,
+  `manifest.json`, `BRAND.md`, `tokens.json` y `components.css`; el proyecto ya
+  tenía `brand/tokens.css`, `brand/components.css` (idéntico al del kit salvo
+  finales de línea) y logos en `brand/assets/` (la carpeta `assets/` del kit
+  está vacía).
+  - Decisiones: `tipo` y `resumen` son nulables, sin default y sin relleno. Un
+    default rotularía un curso como webinar (o al revés) y escribir textos por
+    evento en una migración convertiría datos en código; el operador los
+    completa al preparar cada evento y la página omite la etiqueta y el resumen
+    mientras sean nulos. `tipo` admite solo `webinar` o `curso`; `resumen` exige
+    texto sin espacios al borde y de 1 a 600 caracteres. La vista usa permisos
+    del dueño (`security_invoker = false`) y además `security_barrier = true`,
+    para que los filtros del cliente no se evalúen sobre filas inactivas;
+    `select` solo para `anon` (el sitio no tiene usuarios autenticados: la
+    publishable key corresponde a `anon`). La configuración pública vive solo en
+    `public/js/core/config.js` (más estricto que «bajo `public/js/core/`»); el
+    ratchet detecta cualquier URL de proyecto Supabase, cualquier publishable
+    key y cualquier site key de Turnstile, con legado exacto `public/app.js`,
+    `public/certificados.js` y `public/validar-certificado.html`. La página
+    valida nombre y correo con los mismos límites que el dominio y la ventana de
+    inscripción con la misma regla; pruebas de paridad comparan caso por caso
+    con `parseRegistrationName`, `Email.parse` y `acceptsRegistrations`. La
+    solicitud a `public-api` no envía la publishable key (la función no verifica
+    JWT).
+  - RED observado antes de cada implementación: catálogo, `deno task test:db`
+    con 4 pasos fallidos en el contrato nuevo (columnas `tipo` y `resumen`
+    ausentes, vista inexistente) y «public view grants differ from the
+    allow-list» en el ratchet de privilegios; cliente, `deno test` falló con
+    `TS2307 Cannot find module .../public/js/core/api.js` y `TS2305` por
+    `ratchetViolations` y `publicSettingsOutsideSource` inexistentes; página,
+    `TS2307` para `turnstile.js`, `container.js`, `model.js` y `view.js`.
+  - Verificación ejecutada: `supabase db reset --local` y `deno task test:db`,
+    12 pruebas (44 pasos) aprobadas, 0 fallidas; incluye lectura por PostgREST
+    con la publishable key local (solo eventos activos y solo las columnas de la
+    lista), 401 `42501` al leer la tabla base y al escribir la vista, y 400
+    `42703` al pedir `nextcloud_directorio`.
+    `supabase gen types typescript
+    --local`, tras `deno fmt`, es idéntico a
+    `database.types.ts` (0 líneas de diferencia). `check_migrations.py` con
+    pglast 7.20 en un entorno virtual temporal: 20 migraciones analizadas sin
+    errores. `deno task check` correcto en cada commit (147 pruebas aprobadas al
+    final, 0 fallidas). `deno task serve`: `inscripcion.html`, sus siete
+    módulos, las hojas de estilo y los logos responden 200. Suites PowerShell
+    heredadas `landing`, `certificate-claim` y `certificate-generation`: OK (la
+    de landing detectó un `font-size: .75rem` nuevo, corregido a `.8rem` antes
+    del commit).
+  - Pendiente: aplicar la migración al remoto (decisión del usuario, antes del
+    merge: sin la vista, la página publicada muestra «No pudimos cargar el
+    evento»); Pages publica la página al mergear; la prueba en vivo solo es
+    posible en producción, porque el CORS de `public-api` acepta un único
+    origen. Ningún evento tiene la ventana abierta ni `tipo` y `resumen`
+    cargados (FN-02-08). Hallazgo: `_shared/http/cors.ts` no expone
+    `Retry-After` (`Access-Control-Expose-Headers`), así que el navegador no
+    puede leer la espera de un 429; la página muestra entonces «Espera unos
+    minutos antes de volver a intentarlo.». Exponer la cabecera es un cambio
+    pequeño de `public-api`, fuera de esta rebanada.
