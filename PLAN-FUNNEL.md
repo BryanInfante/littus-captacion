@@ -1562,6 +1562,14 @@ publicar; no hubo deploy, push ni PR.
 - La primera pasada del chequeo detectó `require-await` por un wrapper sin
   `await`; se quitó `async` y el chequeo final quedó verde. No se generó ni
   provisionó ningún secreto ni se ejecutaron envíos.
+- Revisión nativa de WA-02: concedida y aprobada para el rango del commit
+  `0047b5b` respecto de `0be2f27` (SHA-256 objetivo
+  `b80f4ea81494c6de91b2ee38d4f31373438a8d4a204a68d33a31c88fe3a83638`). Los
+  cuatro revisores (`risk`, `resilience`, `readability`, `reliability`) no
+  reportaron hallazgos; no hubo corrección. La aprobación fue reconocida y la
+  autoridad de revisión quedó consumida. Esto cubre solo ese rango: WA-01 tuvo
+  una revisión declinada y no se aprueba todo F3. La revisión no autoriza
+  publicación ni despliegue.
 - Antes de producción se requiere corte coordinado con pausa de escrituras y
   recuperación de notificaciones pendientes; no habrá modo anónimo de
   transición. No se configuró ningún secreto real, desplegó código ni contactó
