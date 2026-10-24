@@ -1,15 +1,26 @@
-﻿const form = document.querySelector("#certificado-form");
+const form = document.querySelector("#certificado-form");
 const status = document.querySelector(".form-status");
 const spotlights = document.querySelectorAll("[data-spotlight]");
 const certificateModal = document.querySelector("#certificate-ready-modal");
-const certificateModalCloseButton = certificateModal?.querySelector("[data-certificate-modal-close]");
-const certificateDownloadLink = certificateModal?.querySelector("[data-certificate-download-link]");
-const certificateModalTitle = certificateModal?.querySelector("#certificate-ready-title");
-const certificateModalDescription = certificateModal?.querySelector("#certificate-ready-description");
-const certificateModalNote = certificateModal?.querySelector("[data-certificate-modal-note]");
+const certificateModalCloseButton = certificateModal?.querySelector(
+  "[data-certificate-modal-close]",
+);
+const certificateDownloadLink = certificateModal?.querySelector(
+  "[data-certificate-download-link]",
+);
+const certificateModalTitle = certificateModal?.querySelector(
+  "#certificate-ready-title",
+);
+const certificateModalDescription = certificateModal?.querySelector(
+  "#certificate-ready-description",
+);
+const certificateModalNote = certificateModal?.querySelector(
+  "[data-certificate-modal-note]",
+);
 let previouslyFocusedElement = null;
 
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_VrTz-gg1X787doh2KgvX3g_ESS7BzS-";
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_VrTz-gg1X787doh2KgvX3g_ESS7BzS-";
 const ISSUE_CERTIFICATE_ENDPOINT =
   "https://dkvuihkwuuocjjsscuso.supabase.co/functions/v1/issue-certificate";
 const SUPPORT_EMAIL = "formanager@littusgroup.com";
@@ -23,8 +34,11 @@ const showStatus = (state, title, message) => {
   status.focus();
 };
 
-const getCertificateModalFocusableElements = () =>
-  [...certificateModal.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+const getCertificateModalFocusableElements = () => [
+  ...certificateModal.querySelectorAll(
+    'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  ),
+];
 
 const openCertificateModal = ({ certificateUrl, title, description, note }) => {
   if (!certificateModal?.showModal) {
@@ -127,7 +141,10 @@ form?.addEventListener("submit", async (event) => {
       // A platform-level failure (e.g. WORKER_RESOURCE_LIMIT) responds with
       // Supabase's own {code, message} shape instead, and that `message` is
       // raw infra text that must never reach the user directly.
-      throw new Error(result.error || "No se pudo completar la solicitud. Vuelve a intentarlo en unos minutos.");
+      throw new Error(
+        result.error ||
+          "No se pudo completar la solicitud. Vuelve a intentarlo en unos minutos.",
+      );
     }
 
     form.reset();
@@ -142,20 +159,29 @@ form?.addEventListener("submit", async (event) => {
       openCertificateModal({
         certificateUrl: result.certificate_url,
         title: "Tu certificado está listo",
-        description: "Por alta demanda de hoy no pudimos enviarte el correo todavía.",
-        note: "Igual te lo enviaremos por correo en cuanto se libere el cupo diario. Revisa tu bandeja de entrada o spam — puede tardar hasta 48 horas en llegar.",
+        description:
+          "Por alta demanda de hoy no pudimos enviarte el correo todavía.",
+        note:
+          "Igual te lo enviaremos por correo en cuanto se libere el cupo diario. Revisa tu bandeja de entrada o spam — puede tardar hasta 48 horas en llegar.",
       });
-    } else if (result.status === "issued" || result.status === "already_issued") {
+    } else if (
+      result.status === "issued" || result.status === "already_issued"
+    ) {
       showStatus(
         "success",
-        result.status === "already_issued" ? "Certificado ya generado" : "Certificado enviado",
+        result.status === "already_issued"
+          ? "Certificado ya generado"
+          : "Certificado enviado",
         "Revisa tu correo: te enviamos el enlace de descarga y validación del certificado.",
       );
       openCertificateModal({
         certificateUrl: result.certificate_url,
-        title: result.status === "already_issued" ? "Tu certificado ya estaba generado" : "Tu certificado fue enviado",
+        title: result.status === "already_issued"
+          ? "Tu certificado ya estaba generado"
+          : "Tu certificado fue enviado",
         description: "Te enviamos el certificado a tu correo.",
-        note: "Revisa tu bandeja de entrada o la carpeta de spam — a veces llega ahí. También puedes descargarlo con el botón de arriba.",
+        note:
+          "Revisa tu bandeja de entrada o la carpeta de spam — a veces llega ahí. También puedes descargarlo con el botón de arriba.",
       });
     } else {
       showStatus(
@@ -167,12 +193,17 @@ form?.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error("No se pudo solicitar el certificado.", error);
     failedCertificateAttempts += 1;
-    const baseMessage = error.message || "Revisa tu conexión e intenta nuevamente en unos minutos.";
+    const baseMessage = error.message ||
+      "Revisa tu conexión e intenta nuevamente en unos minutos.";
     const supportHint =
       failedCertificateAttempts >= SUPPORT_EMAIL_RETRY_THRESHOLD
         ? ` Si ya lo intentaste varias veces sin éxito, escríbenos a <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> y te ayudamos directamente.`
         : "";
-    showStatus("error", "No pudimos generar tu certificado", baseMessage + supportHint);
+    showStatus(
+      "error",
+      "No pudimos generar tu certificado",
+      baseMessage + supportHint,
+    );
   } finally {
     form.removeAttribute("aria-busy");
     submitButton.disabled = false;

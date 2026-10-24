@@ -10,7 +10,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-body, button, input { font: inherit; }
+button, input { font: inherit; }
 a { color: inherit; }
 img { max-width: 100%; height: auto; }
 svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }

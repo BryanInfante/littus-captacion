@@ -1,0 +1,60 @@
+{
+  "tasks": {
+    "check": "deno fmt --check && deno lint && deno check supabase/functions/ tests/ && deno test --allow-read=supabase/functions/,.github/,supabase/config.toml --permit-no-files --ignore=supabase/functions/tests/db/ supabase/functions/tests/ tests/",
+    "serve": "deno run --allow-net --allow-read=public jsr:@std/http@1.1.4/file-server public"
+  },
+  // Legacy files excluded from `deno check` (also from any other subcommand
+  // that honors this key). Do not add entries; remove each one when fixed.
+  // issue-certificate/index.ts: TS2353 x2 (`characterSpacing` is not a
+  // pdf-lib option in the unpinned version that resolves; fixing it means
+  // deciding the letter-spacing design) and TS2769 (`Uint8Array` body for
+  // `fetch`). Migrates in F4.
+  "exclude": ["supabase/functions/issue-certificate/index.ts"],
+  "fmt": {
+    "include": [
+      "deno.json",
+      "supabase/functions/",
+      "tests/",
+      "public/js/",
+      "public/*.js"
+    ],
+    "exclude": [
+      // Legacy: the static PowerShell suites pin the exact source text of these
+      // files, so formatting them breaks assertions that pass today. Remove
+      // each entry when its pinning assertions are replaced by `deno test`.
+      // tests/certificate-generation.tests.ps1
+      "supabase/functions/download-certificate/index.ts",
+      "supabase/functions/issue-certificate/index.ts",
+      "supabase/functions/validate-certificate/index.ts",
+      // tests/landing.tests.ps1
+      "supabase/functions/send-course-access/index.ts",
+      "supabase/functions/send-registration-confirmation/index.ts",
+      "supabase/functions/send-workshop-reminder/index.ts",
+      "supabase/functions/sync-resend-contact/index.ts"
+    ]
+  },
+  "lint": {
+    "include": [
+      "supabase/functions/",
+      "tests/",
+      "public/js/",
+      "public/*.js"
+    ],
+    "exclude": [
+      // Legacy files that fail `deno lint` today (24 findings in 9 files).
+      // Do not add entries; remove each one when the file is migrated or fixed.
+      "public/app.js",
+      "public/certificados.js",
+      "supabase/functions/download-certificate/index.ts",
+      "supabase/functions/issue-certificate/index.ts",
+      "supabase/functions/send-course-access/index.ts",
+      "supabase/functions/send-registration-confirmation/index.ts",
+      "supabase/functions/send-workshop-reminder/index.ts",
+      "supabase/functions/sync-resend-contact/index.ts",
+      "supabase/functions/validate-certificate/index.ts"
+    ]
+  },
+  "test": {
+    "include": ["supabase/functions/tests/"]
+  }
+}
