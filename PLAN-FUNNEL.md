@@ -470,6 +470,21 @@ simple) y UT2 (inscripción con ficha y foto).
     usuario como valor de `LITTUS_BRAND_KIT`.
   - Prueba en vivo solo en producción después de Pages: CORS acepta un único
     origen. Todos los eventos siguen cerrados.
+- **Curso de Ultrasonido Convencional Nivel II (datos del usuario,
+  2026-10-24).** Inscripción directa al curso, sin preinscripción. Fila de datos
+  (FN-02-08), no migración: `masterclass_codigo = 'ultrasonido-nivel-ii'`,
+  `event_title = 'Ultrasonido Convencional Nivel II'`, `tipo = 'curso'`,
+  `resumen = 'Curso de Ultrasonido Convencional Nivel II.'`,
+  `fecha_texto = 'Del 17 al 25 de octubre de 2026'`,
+  `fecha_evento = '2026-10-17'` (inicio), `duracion = '40 horas'`,
+  `codigo_prefijo = 'ECCIA-UT2-'` (propuesto en `PLAN-INSCRIPCION-UT2.md`),
+  `activo = true`, ventana de inscripción nula (cerrado). Orden según el plan:
+  FN-02-08 carga la fila cerrada; FN-02-06 agrega la ficha del inspector, que es
+  parte de la inscripción directa; F3 agrega la confirmación; abrir la ventana
+  es decisión del usuario (D-06). El curso termina el 2026-10-25, antes de que
+  FN-02-06 y F3 estén listos: los participantes se inscriben después del curso,
+  lo que no afecta la certificación, que es posterior. El cierre de la ventana
+  se define al abrirla.
 - **Eventos como datos.** Las filas de UT2 y del webinar las carga el operador
   con la service role (SQL registrado en Avance), no una migración; para el
   stack local, `supabase/seed.sql`.
