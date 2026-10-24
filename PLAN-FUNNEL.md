@@ -485,6 +485,37 @@ simple) y UT2 (inscripción con ficha y foto).
   FN-02-06 y F3 estén listos: los participantes se inscriben después del curso,
   lo que no afecta la certificación, que es posterior. El cierre de la ventana
   se define al abrirla.
+- **FN-02-06, ficha del inspector (2026-10-24).** Campos según
+  `certgen alta-inspector` (`certgen/src/certgen/domain/alta_inspector.py`,
+  `schemas/alta_inspector.schema.json`): `nombres` y `apellidos` separados (el
+  PDF imprime `APELLIDOS NOMBRES`; juntos, en mayúsculas, forman
+  `nombre_completo` de 5 a 60), `documento` (`^[0-9A-Z-]{6,20}$`, recortado, en
+  mayúsculas y sin espacios), `pais`, `correo` (el de la inscripción),
+  `experiencia_anios` (entero de 0 a 60), empleador declarado en texto o "sin
+  empleador" (el operador lo traduce al slug de certgen), foto JPEG/PNG de hasta
+  5 MB validada por firma de bytes (certgen no la recibe; queda en Nextcloud
+  privado para el operador) y consentimiento de tratamiento de datos obligatorio
+  con su fecha.
+  - El evento declara `requiere_ficha_inspector` (boolean, default `false`,
+    expuesto en `eccia_eventos_publicos`); `ultrasonido-nivel-ii` lo tiene en
+    `true`. Una sola página y una sola ruta: JSON sin ficha, `multipart` con
+    ficha; el caso de uso rechaza una ficha no pedida o una faltante.
+  - Orden: parseo (con tope de `content-length` antes de leer el cuerpo),
+    desafío, límites, evento abierto, y recién entonces la ficha.
+  - Consistencia entre sistemas (máquina de estados persistida, patrón del
+    reclamo de certificados): se inserta la ficha en estado `pendiente_foto` con
+    una ruta reservada derivada de su id (el trigger de integridad crea la
+    inscripción en la misma transacción); se sube la foto a esa ruta; se marca
+    `completa`. Si la subida falla, compensación: se borra la ficha (y su
+    inscripción). Una ficha `pendiente_foto` más vieja que el umbral se trata
+    como intento abandonado y el siguiente intento de la misma persona la retoma
+    con la misma ruta. F3 despacha la confirmación solo para fichas `completa`.
+  - Nextcloud: `NEXTCLOUD_ROOT_DIR` nace en `_shared/config.ts` (D-11); foto en
+    `<raíz>/inscripciones/<evento>/fotos/<DOCUMENTO>_<id>.<ext>`; nunca se
+    registra la ruta ni datos personales en logs.
+  - La tabla `eccia_fichas_inspector` se crea en una migración nueva (la
+    `20261018140000` nunca se aplicó y no está en `main`), sin `insert` de
+    evento y con el trigger de integridad `security definer`.
 - **Eventos como datos.** Las filas de UT2 y del webinar las carga el operador
   con la service role (SQL registrado en Avance), no una migración; para el
   stack local, `supabase/seed.sql`.
