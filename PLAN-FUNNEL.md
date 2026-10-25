@@ -1812,3 +1812,26 @@ publicar; no hubo deploy, push ni PR.
   ya exige el orden de despliegue; 3) el secreto de webhook y
   `functions_base_url` deben estar en `private.eccia_config`, porque el despacho
   los reutiliza; sin ellos el cron emite una advertencia y no encola nada.
+
+### Corte productivo UT2 · preflight de solo lectura (2026-10-24)
+
+- Autorizado por el usuario; Supabase MCP sobre `dkvuihkwuuocjjsscuso`, solo
+  lecturas.
+- Migraciones remotas: la última aplicada es `20261025090000`
+  (`add_inspector_profiles`); faltan `20261025100000` a `20261025130000`. Las
+  versiones remotas anteriores difieren de los nombres locales (deriva conocida
+  de F1).
+- Extensiones: `pg_net` 0.20.4 y `supabase_vault` instaladas; `pg_cron` 1.6.4
+  disponible, sin instalar (la migración `20261025130000` la crea).
+- `private.eccia_config` solo tiene `functions_base_url`; falta
+  `webhook_secret`.
+- Triggers en `eccia_taller_inscripciones`: solo
+  `eccia_sync_resend_contact_after_insert`. El trigger de confirmación ya no
+  existe en producción: hoy no se envía ninguna confirmación. La migración
+  `20261025120000` usa `drop ... if exists`, así que aplica igual.
+- Funciones desplegadas: `public-api` v3 (sin la ficha), sin `db-events`;
+  `send-registration-confirmation` sigue desplegada y se borra con la CLI tras
+  el corte.
+- `ultrasonido-nivel-ii`: `activo = true`, `requiere_ficha_inspector = true`,
+  ventana nula (cerrada).
+- Los nombres de secretos de Edge Functions no se pueden listar por MCP.
