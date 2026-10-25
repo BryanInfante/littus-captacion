@@ -176,7 +176,7 @@ Deno.test("public-api creates and compensates inspector registrations against lo
     assertEquals(typeof profile.id, "string");
     assertEquals(profile.inscripcion_id, successBody.id);
     const relativePath =
-      `inscripciones/${eventCode}/fotos/AB123456_${profile.id}.png`;
+      `inscripciones/${eventCode}/PEREZ ANA MARIA - AB123456/foto.png`;
     assertEquals(profile, {
       id: profile.id,
       inscripcion_id: profile.inscripcion_id,
@@ -207,7 +207,9 @@ Deno.test("public-api creates and compensates inspector registrations against lo
     assertEquals(successfulUpload?.contentType, "image/png");
     assertEquals(
       successfulUpload?.url,
-      `${WEBDAV_URL}/${encodeURIComponent(STORAGE_ROOT)}/${relativePath}`,
+      `${WEBDAV_URL}/${encodeURIComponent(STORAGE_ROOT)}/${
+        relativePath.split("/").map(encodeURIComponent).join("/")
+      }`,
     );
 
     failNextUpload = true;
@@ -235,9 +237,9 @@ Deno.test("public-api creates and compensates inspector registrations against lo
     );
     assertEquals(
       failedDelete?.url.includes(
-        `/${
-          encodeURIComponent(STORAGE_ROOT)
-        }/inscripciones/${eventCode}/fotos/CD654321_`,
+        `/${encodeURIComponent(STORAGE_ROOT)}/inscripciones/${eventCode}/${
+          encodeURIComponent("PEREZ ANA MARIA - CD654321")
+        }/foto.png`,
       ),
       true,
     );

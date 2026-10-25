@@ -1,6 +1,7 @@
 import { assertEquals, assertThrows } from "../dev_deps.ts";
 import {
   parseInspectorProfile,
+  participantFolderName,
   validateInspectorPhoto,
 } from "../../_shared/domain/inspectorProfile.ts";
 
@@ -57,4 +58,24 @@ Deno.test("photo validation accepts JPEG and PNG signatures only, up to five MiB
   assertThrows(() =>
     validateInspectorPhoto(new Uint8Array(5 * 1024 * 1024 + 1))
   );
+});
+
+Deno.test("participant folder is SURNAMES NAMES - DOCUMENT without accents or punctuation", () => {
+  assertEquals(
+    participantFolderName("MUÑOZ PEÑA", "JOSÉ-LUIS", "0912345678"),
+    "MUNOZ PENA JOSE LUIS - 0912345678",
+  );
+  assertEquals(
+    participantFolderName("pérez-gil", "  ana   maría ", "AB12-3456"),
+    "PEREZ GIL ANA MARIA - AB12-3456",
+  );
+  assertEquals(
+    participantFolderName("O'Brien/..", "Zoë (Jr.)", "AB123456"),
+    "O BRIEN ZOE JR - AB123456",
+  );
+});
+
+Deno.test("participant folder falls back to the document when the name has no letters or digits", () => {
+  assertEquals(participantFolderName("--", "..", "AB123456"), "AB123456");
+  assertEquals(participantFolderName("日本", "  ", "AB123456"), "AB123456");
 });

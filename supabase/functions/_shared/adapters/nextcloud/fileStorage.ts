@@ -11,15 +11,25 @@ export type WebDavConfig = {
   readonly rootDirectory: string;
 };
 
+const SAFE_SEGMENT = /^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$/;
+const LEGACY_PHOTO_FILENAME =
+  /^[0-9A-Z-]+_[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$/;
+const PHOTO_FILENAME = /^foto\.(jpg|png)$/;
+// Participant folder: `<SURNAMES NAMES> - <DOCUMENT>` or just `<DOCUMENT>`.
+const PARTICIPANT_FOLDER = /^([A-Z0-9]+( [A-Z0-9]+)* - )?[0-9A-Z-]+$/;
+
 const segments = (path: string): string[] => {
   const values = path.split("/");
+  const last = values.length - 1;
+  // The participant layout is exactly inscripciones/<event>/<folder>/foto.<ext>.
+  const participantPhoto = values.length === 4 &&
+    values[0] === "inscripciones" && PHOTO_FILENAME.test(values[3]) &&
+    PARTICIPANT_FOLDER.test(values[2]);
   if (
     values.some((segment, index) => {
-      const photoFilename = index === values.length - 1 &&
-        /^[0-9A-Z-]+_[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$/
-          .test(segment);
-      return !photoFilename &&
-        !/^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$/.test(segment);
+      if (index === last && participantPhoto) return false;
+      if (index === last && LEGACY_PHOTO_FILENAME.test(segment)) return false;
+      return !SAFE_SEGMENT.test(segment);
     })
   ) {
     throw new Error("Unsafe WebDAV path");

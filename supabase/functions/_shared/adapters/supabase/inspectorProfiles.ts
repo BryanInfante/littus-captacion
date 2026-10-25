@@ -6,8 +6,10 @@ import type { InspectorProfiles } from "../../ports/inspectorProfiles.ts";
 import type { InspectorProfileReservation } from "../../ports/inspectorProfiles.ts";
 
 const SAFE_SEGMENT = /^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$/;
-const PHOTO_FILENAME =
+const LEGACY_PHOTO_FILENAME =
   /^[0-9A-Z-]+_[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$/;
+const PHOTO_FILENAME = /^foto\.(jpg|png)$/;
+const PARTICIPANT_FOLDER = /^([A-Z0-9]+( [A-Z0-9]+)* - )?[0-9A-Z-]+$/;
 
 const rootSegments = (rootDirectory: string): string[] => {
   const segments = rootDirectory.split("/");
@@ -23,10 +25,17 @@ const relativePhotoPath = (
   document: string,
 ): string => {
   const segments = path.split("/");
+  const legacy = segments.length === 4 && segments[2] === "fotos" &&
+    segments[3].startsWith(`${document}_`) &&
+    LEGACY_PHOTO_FILENAME.test(segments[3]);
+  // The folder is either the bare document or ends with " - <document>".
+  const participant = segments.length === 4 &&
+    PARTICIPANT_FOLDER.test(segments[2]) &&
+    (segments[2] === document || segments[2].endsWith(` - ${document}`)) &&
+    PHOTO_FILENAME.test(segments[3]);
   if (
-    segments.length !== 4 || segments[0] !== "inscripciones" ||
-    segments[1] !== eventCode || segments[2] !== "fotos" ||
-    !segments[3].startsWith(`${document}_`) || !PHOTO_FILENAME.test(segments[3])
+    segments[0] !== "inscripciones" || segments[1] !== eventCode ||
+    !(legacy || participant)
   ) {
     throw new Error("Inspector profile photo path is invalid");
   }
