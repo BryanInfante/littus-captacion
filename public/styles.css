@@ -328,7 +328,7 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
     linear-gradient(180deg, rgba(255,255,255,.025), transparent 34%),
     var(--eccia-bg);
 }
-.inscripcion-shell { width: min(calc(100% - 2rem), 680px); margin-inline: auto; padding: clamp(var(--space-2xl), 7vw, var(--space-4xl)) 0; }
+.inscripcion-shell { width: min(calc(100% - 2rem), var(--eccia-layout-container-max-width)); margin-inline: auto; padding: clamp(var(--space-2xl), 7vw, var(--space-4xl)) 0; }
 .inscripcion-card { background: var(--eccia-surface); box-shadow: 0 24px 64px rgba(0,0,0,.24); }
 .inscripcion-evento h1 { margin-bottom: var(--space-sm); font-size: clamp(2rem, 6vw, 3.25rem); overflow-wrap: anywhere; }
 .inscripcion-resumen { max-width: 58ch; margin: 0; color: var(--eccia-text-soft); }
@@ -336,7 +336,7 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .inscripcion-datos dt { color: var(--eccia-muted); font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .inscripcion-datos dd { margin: 0; color: var(--eccia-text); font-weight: 500; }
 .inscripcion-contenido { margin-top: var(--space-xl); padding-top: var(--space-xl); border-top: 1px solid var(--eccia-border); }
-.inscripcion-contenido form { margin-top: 0; }
+.inscripcion-contenido form { display: grid; gap: var(--space-xl); margin-top: 0; }
 .inscripcion-aviso { display: grid; gap: var(--space-2xs); margin: 0; padding: var(--space-lg); border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: rgba(255,255,255,.025); color: var(--eccia-text-soft); }
 .inscripcion-aviso strong { color: var(--eccia-text); }
 .inscripcion-nota { margin: 0; color: var(--eccia-muted); font-size: .875rem; }
@@ -349,6 +349,32 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .inscripcion-exito { margin-top: 0; }
 .inscripcion-exito h2 { margin: 0; color: var(--eccia-success); font-size: 1.5rem; }
 .inscripcion-exito h2:focus { outline: none; }
+/* Form groups: one column on phones, two from 640px for short paired fields. */
+.form-group { min-width: 0; margin: 0; padding: 0; border: 0; }
+.form-group legend { float: left; inline-size: 100%; margin: 0 0 var(--space-md); padding: 0; color: var(--eccia-text); font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; line-height: 1.3; }
+.form-group legend + .form-group__fields { clear: both; }
+.form-group__fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+.form-group__fields > * { min-width: 0; }
+/* Paired fields share a row height; keep label and input at the top instead of stretching. */
+.form-group__fields > .field { align-content: start; }
+.inscripcion-page .input[type="file"] { padding-block: 0.45rem; color: var(--eccia-text-soft); cursor: pointer; }
+.inscripcion-page .input[type="file"]::file-selector-button { margin-right: var(--space-sm); padding: 0.45rem 0.9rem; border: 1px solid var(--eccia-border); border-radius: 6px; background: var(--eccia-surface); color: var(--eccia-text); font: inherit; font-weight: 600; cursor: pointer; transition: border-color 160ms ease; }
+.inscripcion-page .input[type="file"]:hover::file-selector-button { border-color: var(--eccia-accent); }
+.photo-preview { inline-size: 120px; block-size: 120px; object-fit: cover; border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: var(--eccia-bg-soft); }
+.photo-preview[hidden] { display: none; }
+@media (min-width: 640px) {
+  .form-group__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-lg) var(--space-lg); }
+  .form-group__fields > .field--full { grid-column: 1 / -1; }
+}
+/* Wide screens: event summary on the left (sticky when it fits), form on the right. */
+@media (min-width: 960px) {
+  .inscripcion-layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-2xl); align-items: start; }
+  .inscripcion-layout .inscripcion-evento { position: sticky; top: var(--space-lg); }
+  .inscripcion-layout .inscripcion-contenido { margin-top: 0; padding-top: 0; border-top: 0; }
+}
+@media (min-width: 960px) and (max-height: 520px) {
+  .inscripcion-layout .inscripcion-evento { position: static; }
+}
 .mobile-cta { display: none; }
 @media (max-width: 900px) {
   .hero-editorial, .split-layout, .faq-layout, .speaker-layout, .footer-grid, .claim-layout, .course-next__layout, .gift-feature, .replay-layout { grid-template-columns: 1fr; }

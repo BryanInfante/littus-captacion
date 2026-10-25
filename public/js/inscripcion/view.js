@@ -212,6 +212,72 @@ const requiredLabel = (document, forId, text) => {
 };
 
 /**
+ * A titled group of related fields. Fields sit in an inner grid so the layout
+ * does not depend on fieldset being a grid container.
+ *
+ * @param {Document} document
+ * @param {string} legend
+ * @param {Node[]} children
+ */
+const fieldGroup = (document, legend, children) => {
+  const group = create(document, "fieldset", { className: "form-group" });
+  const fields = create(document, "div", { className: "form-group__fields" });
+  fields.append(...children);
+  group.append(create(document, "legend", { text: legend }), fields);
+  return group;
+};
+
+/**
+ * Marks a node as spanning the whole row of its group grid.
+ *
+ * @template {Element} T
+ * @param {T} element
+ * @returns {T}
+ */
+const fullWidth = (element) => {
+  element.classList.add("field--full");
+  return element;
+};
+
+/**
+ * @typedef {object} PreviewUrls
+ * @property {(file: Blob) => string} create
+ * @property {(url: string) => void} revoke
+ */
+
+/** @type {PreviewUrls} */
+const BROWSER_PREVIEW_URLS = {
+  create: (file) => URL.createObjectURL(file),
+  revoke: (url) => URL.revokeObjectURL(url),
+};
+
+/**
+ * Shows the selected image next to the input without changing what is read or
+ * uploaded; the object URL is revoked as soon as it is replaced or cleared.
+ *
+ * @param {HTMLInputElement} input
+ * @param {HTMLImageElement} preview
+ * @param {PreviewUrls} urls
+ */
+const wirePhotoPreview = (input, preview, urls) => {
+  /** @type {string | null} */
+  let current = null;
+  input.addEventListener("change", () => {
+    if (current !== null) urls.revoke(current);
+    current = null;
+    const file = input.files?.[0];
+    if (file === undefined) {
+      preview.hidden = true;
+      preview.removeAttribute("src");
+      return;
+    }
+    current = urls.create(file);
+    preview.src = current;
+    preview.hidden = false;
+  });
+};
+
+/**
  * @param {Document} document
  * @param {string} id
  */
@@ -260,9 +326,14 @@ const textField = (document, field) => {
  *
  * @param {Document} document
  * @param {PublicEvent} event
+ * @param {PreviewUrls} [previewUrls] Object URL functions, injectable for tests.
  * @returns {FormRefs}
  */
-export const renderOpenEvent = (document, event) => {
+export const renderOpenEvent = (
+  document,
+  event,
+  previewUrls = BROWSER_PREVIEW_URLS,
+) => {
   renderEventDetails(document, event);
 
   const form = create(document, "form", {
@@ -305,7 +376,7 @@ export const renderOpenEvent = (document, event) => {
   });
 
   const consentLabel = create(document, "label", {
-    className: "consent-field",
+    className: "consent-field field--full",
     attributes: { for: "marketing-consent" },
   });
   const consent = create(document, "input", {
@@ -319,8 +390,14 @@ export const renderOpenEvent = (document, event) => {
 
   /** @type {FormRefs["inspectorFields"]} */
   let inspectorFields = null;
-  /** @type {Node[]} */
+  /** @type {Node[]} Personal fields that join the "Tus datos" group. */
   const inspectorNodes = [];
+  /** @type {Node[]} */
+  const ficha = [];
+  /** @type {Node[]} */
+  const photoNodes = [];
+  /** @type {Node[]} */
+  const consentNodes = [];
   if (event.requiresInspectorProfile) {
     const names = textField(document, {
       id: "nombres",
@@ -392,7 +469,7 @@ export const renderOpenEvent = (document, event) => {
       },
     });
     const noEmployerLabel = create(document, "label", {
-      className: "consent-field",
+      className: "consent-field field--full",
       attributes: { for: "sin-empleador" },
     });
     const noEmployer = create(document, "input", {
@@ -404,7 +481,9 @@ export const renderOpenEvent = (document, event) => {
       create(document, "span", { text: "No tengo empleador" }),
     );
 
-    const photoWrapper = create(document, "div", { className: "field" });
+    const photoWrapper = create(document, "div", {
+      className: "field field--full",
+    });
     const photo = create(document, "input", {
       className: "input",
       id: "foto",
@@ -416,6 +495,12 @@ export const renderOpenEvent = (document, event) => {
         "aria-describedby": "foto-help foto-error",
       },
     });
+    const photoPreview = create(document, "img", {
+      className: "photo-preview",
+      id: "foto-preview",
+      attributes: { alt: "Vista previa de la foto seleccionada" },
+    });
+    photoPreview.hidden = true;
     photoWrapper.append(
       requiredLabel(document, "foto", "Foto"),
       photo,
@@ -425,10 +510,12 @@ export const renderOpenEvent = (document, event) => {
         text: "Formato JPEG o PNG. Tamaño máximo: 5 MB.",
       }),
       fieldError(document, "foto-error"),
+      photoPreview,
     );
+    wirePhotoPreview(photo, photoPreview, previewUrls);
 
     const dataConsentLabel = create(document, "label", {
-      className: "consent-field",
+      className: "consent-field field--full",
       attributes: { for: "consentimiento-datos" },
     });
     const dataConsent = create(document, "input", {
@@ -440,15 +527,19 @@ export const renderOpenEvent = (document, event) => {
         "aria-describedby": "consentimiento-datos-error",
       },
     });
-    dataConsentLabel.append(
-      dataConsent,
-      create(document, "span", { text: `${INSPECTOR_CONSENT_TEXT} ` }),
+    // The label is a two-column grid (checkbox | text); the required mark must
+    // stay in the text column instead of wrapping into a third grid cell.
+    const dataConsentText = create(document, "span", {
+      text: `${INSPECTOR_CONSENT_TEXT} `,
+    });
+    dataConsentText.append(
       create(document, "span", {
         className: "required-mark",
         text: "*",
         attributes: { "aria-hidden": "true" },
       }),
     );
+    dataConsentLabel.append(dataConsent, dataConsentText);
     const dataConsentError = fieldError(document, "consentimiento-datos-error");
     dataConsentError.setAttribute("aria-live", "polite");
 
@@ -466,18 +557,19 @@ export const renderOpenEvent = (document, event) => {
     inspectorNodes.push(
       names.wrapper,
       surnames.wrapper,
+    );
+    ficha.push(
       documentNumber.wrapper,
       country.wrapper,
       experience.wrapper,
-      employer.wrapper,
+      fullWidth(employer.wrapper),
       noEmployerLabel,
-      photoWrapper,
-      dataConsentLabel,
-      dataConsentError,
     );
+    photoNodes.push(photoWrapper);
+    consentNodes.push(dataConsentLabel, fullWidth(dataConsentError));
   }
 
-  const challenge = create(document, "div", { className: "field" });
+  const challenge = create(document, "div", { className: "field field--full" });
   const challengeSlot = create(document, "div", {
     className: "challenge-slot",
     id: "verificacion",
@@ -510,14 +602,30 @@ export const renderOpenEvent = (document, event) => {
     attributes: { role: "status" },
   });
 
+  const isInspector = event.requiresInspectorProfile;
+  // With the inspector profile the email spans the row between the
+  // name/surname pair above it and the ficha below; otherwise it pairs with
+  // the single name field.
+  if (isInspector) fullWidth(email.wrapper);
   form.append(
     note,
-    ...(name === null ? [] : [name.wrapper]),
-    email.wrapper,
-    consentLabel,
-    ...inspectorNodes,
-    challenge,
-    submit,
+    fieldGroup(document, "Tus datos", [
+      ...(name === null ? [] : [name.wrapper]),
+      email.wrapper,
+      ...inspectorNodes,
+    ]),
+    ...(isInspector
+      ? [
+        fieldGroup(document, "Ficha del inspector", ficha),
+        fieldGroup(document, "Foto", photoNodes),
+      ]
+      : []),
+    fieldGroup(document, "Confirmación", [
+      consentLabel,
+      ...consentNodes,
+      challenge,
+      fullWidth(submit),
+    ]),
     status,
   );
   renderContent(document, [form]);
