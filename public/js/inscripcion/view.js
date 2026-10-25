@@ -527,15 +527,19 @@ export const renderOpenEvent = (
         "aria-describedby": "consentimiento-datos-error",
       },
     });
-    dataConsentLabel.append(
-      dataConsent,
-      create(document, "span", { text: `${INSPECTOR_CONSENT_TEXT} ` }),
+    // The label is a two-column grid (checkbox | text); the required mark must
+    // stay in the text column instead of wrapping into a third grid cell.
+    const dataConsentText = create(document, "span", {
+      text: `${INSPECTOR_CONSENT_TEXT} `,
+    });
+    dataConsentText.append(
       create(document, "span", {
         className: "required-mark",
         text: "*",
         attributes: { "aria-hidden": "true" },
       }),
     );
+    dataConsentLabel.append(dataConsent, dataConsentText);
     const dataConsentError = fieldError(document, "consentimiento-datos-error");
     dataConsentError.setAttribute("aria-live", "polite");
 

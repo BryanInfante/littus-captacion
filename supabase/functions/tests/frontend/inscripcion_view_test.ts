@@ -522,3 +522,13 @@ Deno.test("the selected photo is previewed locally and the URL is revoked on cha
   assertEquals(preview.hasAttribute("hidden"), true);
   assertEquals(preview.hasAttribute("src"), false);
 });
+
+Deno.test("the data consent keeps its required mark inside the text column", async () => {
+  const { document } = await loadRegistrationPage();
+  renderOpenEvent(document, { ...EVENT, requiresInspectorProfile: true });
+  const label = document.querySelector('label[for="consentimiento-datos"]');
+  const children = [...(label?.children ?? [])];
+  assertEquals(children.length, 2);
+  assertEquals(children[0]?.id, "consentimiento-datos");
+  assertEquals(children[1]?.querySelector(".required-mark")?.textContent, "*");
+});

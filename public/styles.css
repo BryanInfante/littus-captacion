@@ -355,6 +355,11 @@ footer { border-top: 1px solid var(--eccia-border); background: var(--eccia-bg-s
 .form-group legend + .form-group__fields { clear: both; }
 .form-group__fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
 .form-group__fields > * { min-width: 0; }
+/* Paired fields share a row height; keep label and input at the top instead of stretching. */
+.form-group__fields > .field { align-content: start; }
+.inscripcion-page .input[type="file"] { padding-block: 0.45rem; color: var(--eccia-text-soft); cursor: pointer; }
+.inscripcion-page .input[type="file"]::file-selector-button { margin-right: var(--space-sm); padding: 0.45rem 0.9rem; border: 1px solid var(--eccia-border); border-radius: 6px; background: var(--eccia-surface); color: var(--eccia-text); font: inherit; font-weight: 600; cursor: pointer; transition: border-color 160ms ease; }
+.inscripcion-page .input[type="file"]:hover::file-selector-button { border-color: var(--eccia-accent); }
 .photo-preview { inline-size: 120px; block-size: 120px; object-fit: cover; border: 1px solid var(--eccia-border); border-radius: var(--eccia-layout-radius); background: var(--eccia-bg-soft); }
 .photo-preview[hidden] { display: none; }
 @media (min-width: 640px) {
