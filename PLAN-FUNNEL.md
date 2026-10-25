@@ -1835,3 +1835,15 @@ publicar; no hubo deploy, push ni PR.
 - `ultrasonido-nivel-ii`: `activo = true`, `requiere_ficha_inspector = true`,
   ventana nula (cerrada).
 - Los nombres de secretos de Edge Functions no se pueden listar por MCP.
+
+### Corte productivo UT2 · paso 2, secretos de funciones (2026-10-24)
+
+- Autorizado por el usuario; Supabase CLI sobre `dkvuihkwuuocjjsscuso`.
+- `supabase secrets list` (solo nombres y digests): ya existían
+  `TURNSTILE_SECRET_KEY`, `NEXTCLOUD_*` (incluido `NEXTCLOUD_ROOT_DIR`),
+  `PUBLIC_SITE_URL`, `REQUEST_LIMIT_HASH_SECRET` y `RESEND_API_KEY`; faltaban
+  los tres de abajo, únicos requeridos por `config.ts` que no estaban.
+- `supabase secrets set`: `ECCIA_WEBHOOK_SECRET` (aleatorio de 32 bytes, nunca
+  impreso), `MAIL_FROM` y `MAIL_REPLY_TO` (los valores de la función de
+  confirmación retirada). Verificado por digest SHA-256 de los tres.
+- El mismo secreto de webhook falta en `private.eccia_config` (paso 4).
