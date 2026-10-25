@@ -346,8 +346,9 @@ export const renderOpenEvent = (document, event) => {
     });
     const documentNumber = textField(document, {
       id: "documento",
-      label: "Documento",
-      help: "De 6 a 20 letras, números o guiones, sin espacios.",
+      label: "Número de documento de identidad",
+      help:
+        "Cédula, pasaporte u otro documento de identidad. De 6 a 20 letras, números o guiones, sin espacios.",
       attributes: {
         type: "text",
         autocomplete: "off",

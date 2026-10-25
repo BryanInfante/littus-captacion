@@ -231,7 +231,7 @@ Deno.test("inspector ficha errors focus the first invalid field and do not submi
   );
   assertEquals(
     text(byId(page.document, "documento-error")),
-    "Escribe tu documento.",
+    "Escribe tu número de cédula, pasaporte u otro documento de identidad.",
   );
   assertEquals(page.focused(), input(page, "nombres"));
 });

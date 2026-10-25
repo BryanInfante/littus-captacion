@@ -239,7 +239,7 @@ Deno.test("inspector events render the accessible required ficha without a gener
     const [id, expected] of [
       ["nombres", "Nombres *"],
       ["apellidos", "Apellidos *"],
-      ["documento", "Documento *"],
+      ["documento", "Número de documento de identidad *"],
       ["pais", "País *"],
       ["experiencia-anios", "Años de experiencia *"],
       ["foto", "Foto *"],
