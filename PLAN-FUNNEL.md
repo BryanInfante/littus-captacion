@@ -1676,3 +1676,35 @@ publicar; no hubo deploy, push ni PR.
   declinó para este candidato. Verificación independiente del padre:
   `deno task check` 213 aprobadas (46 pasos); `supabase db reset --local` y
   `deno task test:db` 18 aprobadas (60 pasos).
+
+### FN-03-03 · trigger de despacho "inscripción creada"
+
+- Ruta: delegado directo (writer Sonnet); entrega `feature-branch-chain`.
+  Commits locales, sin push, PR, despliegue, secretos productivos ni acciones
+  remotas.
+- Pronóstico: 250–350 líneas autorales en una o dos unidades de trabajo (el
+  heurístico de 400 líneas es solo orientativo).
+- `20261018150000` y `send-ut2-registration-confirmation` ya no existen en el
+  repositorio; no hay nada que eliminar de ellos.
+- [x] FN-03-03a: migración `20261025120000_dispatch_registration_created.sql`:
+      elimina el trigger heredado
+      `eccia_send_registration_confirmation_after_insert` y su función, y crea
+      un único trigger de despacho "inscripción creada" sin `WHEN` por evento
+      hacia `db-events/registration-created`.
+- [x] FN-03-03b: pruebas de base de datos (RED contra el esquema actual, luego
+      GREEN): una inscripción encola exactamente una petición `pg_net` a la ruta
+      con la cabecera del secreto y el cuerpo que parsea
+      `parseRegistrationCreated`; ningún trigger de la tabla filtra por evento.
+- [ ] FN-03-03c: eliminar `send-registration-confirmation` y sus referencias
+      (`config.toml`, workflow, listas heredadas, `deno.json`, pruebas).
+      BLOQUEADO: `send-workshop-reminder/index.ts` importa
+      `../send-registration-confirmation/template.ts` (recordatorio), y
+      `deno.json` y `tests/certificate-generation.tests.ps1` referencian la
+      función; ninguno está en las superficies de esta tarea. Pendiente de
+      decisión del padre.
+- [ ] FN-03-03d: sustituir las aserciones de `tests/landing.tests.ps1` sobre la
+      función eliminada y `20260921190000` por pruebas `deno test`.
+- Evidencia (unidad 1, trigger y pruebas): RED observado con
+  `registration_dispatch_test.ts` contra el esquema anterior (0 peticiones a
+  `db-events/registration-created`, trigger con `WHEN`); GREEN tras
+  `supabase db reset --local` con la migración `20261025120000` (4 pasos).
