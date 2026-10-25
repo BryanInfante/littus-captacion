@@ -549,6 +549,9 @@ inscripción sin confirmación entregada no está completa.
 
 ### F4. Certificados
 
+> **Pospuesta** (decisión del usuario, 2026-10-24): F4 y F5 pasan a noviembre de
+> 2026. El resto del plan sigue en orden.
+
 Absorbe `PLAN-CERTIFICADOS-MULTICURSO.md`.
 
 - Grupo `certificates`; `issueCertificate` busca la inscripción por (correo,
@@ -571,6 +574,9 @@ Absorbe `PLAN-CERTIFICADOS-MULTICURSO.md`.
   `public/` junto con el cambio de geometría que las referencia.
 
 ### F5. Regalos y correo masivo de invitación
+
+> **Pospuesta** (decisión del usuario, 2026-10-24): F4 y F5 pasan a noviembre de
+> 2026. El resto del plan sigue en orden.
 
 - `public/regalos.html?evento=<slug>` genérica; los regalos son datos del
   evento; sin regalos, la página lo dice. Concilia con `PLAN-DOMINIO-ECCIA.md`
@@ -1666,3 +1672,7 @@ publicar; no hubo deploy, push ni PR.
   `.github/scripts/check_migrations.py` no se pudo ejecutar (sin Python ni
   `pglast` en este equipo), la migración se validó aplicándola con
   `supabase db reset --local`.
+- Revisión nativa del rango `3353e07`..`1933bf0`: riesgo `high`; el usuario la
+  declinó para este candidato. Verificación independiente del padre:
+  `deno task check` 213 aprobadas (46 pasos); `supabase db reset --local` y
+  `deno task test:db` 18 aprobadas (60 pasos).
