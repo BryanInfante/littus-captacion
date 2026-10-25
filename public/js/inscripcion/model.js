@@ -186,8 +186,10 @@ export const validateRegistration = (
     ) {
       errors.nombres = "El nombre completo debe tener entre 5 y 60 caracteres.";
     }
-    if (documento.length === 0) errors.documento = "Escribe tu documento.";
-    else if (!DOCUMENT_FORMAT.test(documento)) {
+    if (documento.length === 0) {
+      errors.documento =
+        "Escribe tu número de cédula, pasaporte u otro documento de identidad.";
+    } else if (!DOCUMENT_FORMAT.test(documento)) {
       errors.documento =
         "Usa de 6 a 20 letras, números o guiones, sin espacios.";
     }
