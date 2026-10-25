@@ -10,6 +10,7 @@ const EVENTS = new Set([
   "registration.created",
   "request.completed",
   "request.failed",
+  "inspector.photo_upload_failed",
   "inspector.photo_orphaned",
   "inspector.profile_cleanup_failed",
 ]);
@@ -22,6 +23,7 @@ const METHODS = new Set([
   "DELETE",
   "HEAD",
 ]);
+const OPERATIONS = new Set(["directory", "upload", "delete"]);
 const PATHS = new Set(["/registrations", "unmatched"]);
 
 export const createLogger = (
@@ -46,6 +48,11 @@ export const createLogger = (
     }
     if (typeof fields.method === "string" && METHODS.has(fields.method)) {
       entry.method = fields.method;
+    }
+    if (
+      typeof fields.operation === "string" && OPERATIONS.has(fields.operation)
+    ) {
+      entry.operation = fields.operation;
     }
     if (typeof fields.path === "string" && PATHS.has(fields.path)) {
       entry.path = fields.path;

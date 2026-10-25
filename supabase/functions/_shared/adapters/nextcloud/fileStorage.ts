@@ -1,4 +1,8 @@
-import type { FileStorage } from "../../ports/fileStorage.ts";
+import {
+  type FileStorage,
+  type FileStorageOperation,
+  FileStorageUnavailableError,
+} from "../../ports/fileStorage.ts";
 
 export type WebDavConfig = {
   readonly webdavUrl: string;
@@ -23,6 +27,21 @@ const segments = (path: string): string[] => {
   return values;
 };
 
+// Network failures carry no status, and the caught error text is dropped
+// because it may echo the request URL or credentials.
+const send = async (
+  operation: FileStorageOperation,
+  fetcher: typeof fetch,
+  input: string,
+  init: RequestInit,
+): Promise<Response> => {
+  try {
+    return await fetcher(input, init);
+  } catch {
+    throw new FileStorageUnavailableError(operation);
+  }
+};
+
 export const createNextcloudFileStorage = (
   config: WebDavConfig,
   fetcher: typeof fetch = fetch,
@@ -38,7 +57,9 @@ export const createNextcloudFileStorage = (
   const ensureDirectory = async (path: string): Promise<void> => {
     const all = [...basePath, ...segments(path)];
     for (let index = 1; index <= all.length; index++) {
-      const response = await fetcher(
+      const response = await send(
+        "directory",
+        fetcher,
         `${config.webdavUrl.replace(/\/$/, "")}/${
           all.slice(0, index).map(encodeURIComponent).join("/")
         }`,
@@ -48,7 +69,7 @@ export const createNextcloudFileStorage = (
         },
       );
       if (response.status !== 201 && response.status !== 405) {
-        throw new Error("WebDAV directory unavailable");
+        throw new FileStorageUnavailableError("directory", response.status);
       }
     }
   };
@@ -56,22 +77,24 @@ export const createNextcloudFileStorage = (
     upload: async (path, bytes, contentType) => {
       const parts = segments(path);
       await ensureDirectory(parts.slice(0, -1).join("/"));
-      const response = await fetcher(url(path), {
+      const response = await send("upload", fetcher, url(path), {
         method: "PUT",
         headers: { Authorization: authorization, "Content-Type": contentType },
         body: new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], {
           type: contentType,
         }),
       });
-      if (!response.ok) throw new Error("WebDAV upload unavailable");
+      if (!response.ok) {
+        throw new FileStorageUnavailableError("upload", response.status);
+      }
     },
     delete: async (path) => {
-      const response = await fetcher(url(path), {
+      const response = await send("delete", fetcher, url(path), {
         method: "DELETE",
         headers: { Authorization: authorization },
       });
       if (!response.ok && response.status !== 404) {
-        throw new Error("WebDAV delete unavailable");
+        throw new FileStorageUnavailableError("delete", response.status);
       }
     },
   };
