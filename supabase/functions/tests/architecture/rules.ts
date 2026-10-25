@@ -271,6 +271,24 @@ export const publicSettingsOutsideSource = (
     )
   );
 
+// Only the Resend adapter knows the provider host, so a second caller cannot
+// bypass the Mailer port or reach the promotional endpoints by hand. Raw text,
+// like the public settings rule: the host is a string, not a syntax fact.
+const RESEND_ADAPTER = "_shared/adapters/resend/";
+const RESEND_HOST = /api\.resend\.com/i;
+
+export const resendHostOutsideAdapter = (
+  files: readonly SourceFile[],
+): Violation[] =>
+  files.flatMap(({ path, source }) =>
+    path.startsWith(RESEND_ADAPTER) ? [] : source.split("\n").flatMap(
+      (text, index) =>
+        RESEND_HOST.test(text)
+          ? [{ path, line: index + 1, detail: "Resend API host" }]
+          : [],
+    )
+  );
+
 export type RatchetResult = {
   // Violations in files that are not on the legacy list: new code broke the rule.
   readonly unlisted: readonly string[];

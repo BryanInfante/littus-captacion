@@ -143,3 +143,30 @@ export const parseWebhookConfig = (
 
 export const loadWebhookConfig = (): WebhookConfig =>
   parseWebhookConfig(Deno.env.toObject());
+
+export type DbEventsConfig = {
+  readonly supabaseUrl: string;
+  readonly supabaseServiceRoleKey: string;
+  readonly publicSiteUrl: string;
+  readonly resendApiKey: string;
+  readonly mailFrom: string;
+  readonly mailReplyTo: string;
+};
+
+// Loaded only by the db-events group so it does not inherit public-api
+// secrets (Turnstile, request limits) it never uses.
+export const parseDbEventsConfig = (env: Environment): DbEventsConfig => ({
+  supabaseUrl: origin(required(env, "SUPABASE_URL"), "SUPABASE_URL", anyHttp),
+  supabaseServiceRoleKey: serviceRoleKey(env),
+  publicSiteUrl: origin(
+    required(env, "PUBLIC_SITE_URL"),
+    "PUBLIC_SITE_URL",
+    httpsOrLocal,
+  ),
+  resendApiKey: required(env, "RESEND_API_KEY"),
+  mailFrom: required(env, "MAIL_FROM"),
+  mailReplyTo: required(env, "MAIL_REPLY_TO"),
+});
+
+export const loadDbEventsConfig = (): DbEventsConfig =>
+  parseDbEventsConfig(Deno.env.toObject());

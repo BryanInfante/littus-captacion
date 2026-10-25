@@ -8,6 +8,8 @@ import {
   domainImportsStayInDomain,
   envOnlyInConfig,
   ratchet,
+  ratchetViolations,
+  resendHostOutsideAdapter,
   type Rule,
   scanFiles,
   type ScannedFile,
@@ -176,4 +178,40 @@ Deno.test("console is used only in _shared/log.ts", () => {
 
 Deno.test("_shared/domain/ imports nothing outside domain", () => {
   assertRatchet(domainImportsStayInDomain, []);
+});
+
+// Legacy functions that still call Resend directly. The list may only shrink:
+// each entry leaves when its file migrates behind the Mailer port (F3-F5).
+const LEGACY_RESEND_HOST: readonly string[] = [
+  "issue-certificate/index.ts",
+  "send-course-access/index.ts",
+  "send-registration-confirmation/index.ts",
+  "send-workshop-reminder/index.ts",
+  "sync-resend-contact/index.ts",
+];
+
+Deno.test("the Resend API host is referenced only in _shared/adapters/resend/", () => {
+  assertEquals(
+    ratchetViolations(resendHostOutsideAdapter(files), LEGACY_RESEND_HOST),
+    { unlisted: [], stale: [] },
+    "route email through the Mailer port; delete migrated files from the legacy list",
+  );
+});
+
+Deno.test("Resend host rule flags other modules and exempts the adapter", () => {
+  // Built from parts so this test file never contains the host itself.
+  const host = ["https://api", "resend", "com"].join(".");
+  const violations = resendHostOutsideAdapter([
+    {
+      path: "_shared/adapters/resend/mailer.ts",
+      source: `export const URL = "${host}";`,
+    },
+    { path: "feature/index.ts", source: `\nfetch(\`${host}/emails\`);` },
+    { path: "feature/clean.ts", source: "export const ok = 1;" },
+  ]);
+  assertEquals(violations, [{
+    path: "feature/index.ts",
+    line: 2,
+    detail: "Resend API host",
+  }]);
 });
