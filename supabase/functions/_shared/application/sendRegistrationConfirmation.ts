@@ -2,6 +2,7 @@ import {
   confirmationFailed,
   confirmationSucceeded,
   isConfirmationSent,
+  isReadyForConfirmation,
 } from "../domain/confirmation.ts";
 import { DomainError } from "../domain/errors.ts";
 import { renderRegistrationConfirmation } from "../email/registrationConfirmation.ts";
@@ -18,7 +19,10 @@ export type SendRegistrationConfirmationDependencies = {
 
 export type ConfirmationOutcome =
   | { readonly status: "sent"; readonly emailId: string }
-  | { readonly status: "already_sent"; readonly emailId: string | null };
+  | { readonly status: "already_sent"; readonly emailId: string | null }
+  // The registration waits for something else (its inspector profile). Nothing
+  // is sent or recorded: the event that completes it asks again.
+  | { readonly status: "not_ready" };
 
 // Idempotent: the registration row is the source of truth for "already sent",
 // and the provider deduplicates retries by the registration-scoped key.
@@ -30,10 +34,11 @@ export const sendRegistrationConfirmation = async (
   const { registrations, events, mailer, siteUrl } = dependencies;
   const found = await registrations.findForConfirmation(input.registrationId);
   if (found === null) throw new DomainError("REGISTRATION_NOT_FOUND");
-  const { registration, confirmation } = found;
+  const { registration, confirmation, readiness } = found;
   if (isConfirmationSent(confirmation)) {
     return { status: "already_sent", emailId: confirmation.emailId };
   }
+  if (!isReadyForConfirmation(readiness)) return { status: "not_ready" };
 
   const content = await events.findContentByCode(registration.eventCode);
   if (content === null) throw new DomainError("EVENT_NOT_FOUND");

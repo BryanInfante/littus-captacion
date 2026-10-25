@@ -1870,3 +1870,45 @@ publicar; no hubo deploy, push ni PR.
   leyendas (con y sin ficha) y vista previa/revocación. La disposición CSS no es
   verificable con DOM falso; se confirmó solo que la página y sus módulos sirven
   con 200. Pendiente: revisión visual en navegador a 360, 700 y 1280 px.
+
+### Corrección: confirmación tras la ficha y próximos pasos (2026-10-25)
+
+- Rama `fix/confirmation-after-profile`.
+- **Fallo (producción, observado dos veces)**: en eventos con
+  `requiere_ficha_inspector = true`, la ficha inserta primero la inscripción; su
+  trigger de inserción despacha `db-events/registration-created` de inmediato y
+  el correo de confirmación sale antes de subir la foto y de `markComplete`. Si
+  la subida falla, la compensación borra las filas pero el correo ya se envió.
+- **Corrección**:
+  - Regla de dominio `isReadyForConfirmation`: una inscripción está lista si su
+    evento no exige ficha o su ficha está `completa`. `findForConfirmation`
+    devuelve `readiness` (`requiresInspectorProfile`,
+    `inspectorProfileComplete`).
+  - `sendRegistrationConfirmation` devuelve `not_ready` sin enviar, sin contar
+    intento y sin registrar error; la ruta responde 200 con ese estado. El
+    reconciliador lo cuenta como `skipped`.
+  - Migración `20261025140000_dispatch_inspector_profile_completed.sql`: trigger
+    de despacho "ficha completada" (después de actualizar `estado` a `completa`,
+    y después de insertar ya completa), una sola llamada a
+    `private.eccia_post_to_edge_function('db-events/registration-created', ...)`
+    con el id de la inscripción; `SECURITY DEFINER`, `search_path` vacío,
+    ejecución revocada a `public`, `anon` y `authenticated`.
+- **Próximos pasos como contenido del evento**: migración
+  `20261025150000_add_event_next_steps.sql` añade
+  `eccia_eventos.siguientes_pasos_texto` (nulo, 1 a 400 caracteres, fuera de
+  `eccia_eventos_publicos`). `EventContent.nextStepsText` y la plantilla
+  muestran el bloque "Próximos pasos" solo si hay texto. Instantánea de UT2 con
+  texto; la de Scan A no cambia.
+- **Pruebas**: dominio, caso de uso, ruta y reconciliador (memoria); contrato
+  del puerto y trigger en la pila local (una petición `pg_net` con el id y la
+  cabecera de secreto al completar; ninguna en actualizaciones que no completan;
+  definer, `search_path` y privilegios). Se observó RED antes de implementar.
+- **Seguimiento FN-03-05**: `sync-resend-contact` tiene el mismo hueco de
+  despacho temprano; no se modifica aquí. Riesgo conocido del reconciliador: las
+  filas no listas se examinan en cada ciclo (sin gastar intentos) y comparten el
+  lote de 50; la compensación las borra si la ficha falla, por lo que se espera
+  que sean pocas.
+- **Pasos de producción**: 1) desplegar las funciones (`db-events` con la regla
+  de preparación); 2) aplicar ambas migraciones; 3) cargar
+  `siguientes_pasos_texto` de `ultrasonido-nivel-ii` (dato del operador, no va
+  en migración).

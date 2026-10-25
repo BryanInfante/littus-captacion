@@ -3,6 +3,7 @@ import type { Database } from "../../database.types.ts";
 import {
   CONFIRMATION_MAX_ATTEMPTS,
   type ConfirmationFailureCode,
+  type ConfirmationReadiness,
   confirmationRetryBounds,
   type ConfirmationState,
 } from "../../domain/confirmation.ts";
@@ -57,7 +58,7 @@ const registrationFromRow = (
 });
 
 const EVENT_CONTENT_COLUMNS =
-  "masterclass_codigo,event_title,tipo,fecha_texto,duracion,horario_texto,modalidad_texto,incluye_texto,comunidad_url,transmision_url,aula_url";
+  "masterclass_codigo,event_title,tipo,fecha_texto,duracion,horario_texto,modalidad_texto,incluye_texto,comunidad_url,transmision_url,aula_url,siguientes_pasos_texto";
 
 const contentFromRow = (
   row: Pick<
@@ -73,6 +74,7 @@ const contentFromRow = (
     | "comunidad_url"
     | "transmision_url"
     | "aula_url"
+    | "siguientes_pasos_texto"
   >,
 ): EventContent => ({
   code: row.masterclass_codigo,
@@ -86,6 +88,7 @@ const contentFromRow = (
   communityUrl: row.comunidad_url,
   streamUrl: row.transmision_url,
   classroomUrl: row.aula_url,
+  nextStepsText: row.siguientes_pasos_texto,
 });
 
 const CONFIRMATION_COLUMNS =
@@ -103,6 +106,7 @@ const failureCodeFromColumn = (
     : "UNEXPECTED_ERROR";
 
 const confirmationFromRow = (
+  readiness: ConfirmationReadiness,
   row: Pick<
     RegistrationRow,
     | "id"
@@ -118,6 +122,7 @@ const confirmationFromRow = (
   >,
 ): RegistrationConfirmation => ({
   registration: registrationFromRow(row),
+  readiness,
   confirmation: {
     sentAt: row.confirmation_sent_at === null
       ? null
@@ -157,6 +162,31 @@ export const createSupabasePorts = (config: {
       detectSessionInUrl: false,
     },
   });
+  // Whether the event collects an inspector profile and, if so, whether this
+  // registration's profile is complete (see isReadyForConfirmation).
+  const readinessOf = async (
+    registrationId: string,
+    eventCode: string,
+  ): Promise<ConfirmationReadiness> => {
+    const { data: event, error: eventError } = await client
+      .from("eccia_eventos").select("requiere_ficha_inspector")
+      .eq("masterclass_codigo", eventCode).maybeSingle();
+    if (eventError !== null) throw new Error("Event repository unavailable");
+    const requiresInspectorProfile = event?.requiere_ficha_inspector ?? false;
+    if (!requiresInspectorProfile) {
+      return { requiresInspectorProfile, inspectorProfileComplete: false };
+    }
+    const { data: profile, error: profileError } = await client
+      .from("eccia_fichas_inspector").select("estado")
+      .eq("inscripcion_id", registrationId).maybeSingle();
+    if (profileError !== null) {
+      throw new Error("Inspector profile repository unavailable");
+    }
+    return {
+      requiresInspectorProfile,
+      inspectorProfileComplete: profile?.estado === "completa",
+    };
+  };
   return {
     events: {
       findByCode: async (code) => {
@@ -207,7 +237,9 @@ export const createSupabasePorts = (config: {
         if (error !== null) {
           throw new Error("Registration repository unavailable");
         }
-        return data === null ? null : confirmationFromRow(data);
+        if (data === null) return null;
+        const readiness = await readinessOf(data.id, data.taller_codigo);
+        return confirmationFromRow(readiness, data);
       },
       saveConfirmation: async (id, state) => {
         // The sent_at guard keeps a concurrent replay from overwriting the

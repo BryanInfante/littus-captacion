@@ -80,6 +80,11 @@ export const renderRegistrationConfirmation = (
               ${buttons}
             </table>`;
 
+  const nextStepsText = content.nextStepsText?.trim() ?? "";
+  const nextStepsBlock = nextStepsText === "" ? "" : `
+            <p style="margin:0 0 8px;color:#111318;font-weight:700">Próximos pasos</p>
+            <p style="margin:0 0 24px">${escapeHtml(nextStepsText)}</p>`;
+
   const classroomUrl = httpsUrlOrNull(content.classroomUrl);
   const classroomLink = classroomUrl === null ? "" : `
             <a href="${
@@ -111,7 +116,7 @@ export const renderRegistrationConfirmation = (
           </td></tr>
           <tr><td style="padding:16px 32px 40px;color:#2D333B;font-size:16px;line-height:1.7">
             <p style="margin:0 0 20px">Hola ${firstName},</p>
-            <p style="margin:0 0 20px">Registramos correctamente tu participación en <strong>${title}</strong>.</p>${detailsBlock}${accessBlock}
+            <p style="margin:0 0 20px">Registramos correctamente tu participación en <strong>${title}</strong>.</p>${detailsBlock}${accessBlock}${nextStepsBlock}
             <p style="margin:0">Si necesitas ayuda con tu inscripción, responde directamente a este correo.</p>
           </td></tr>
           <tr><td style="padding:28px 32px;border-top:1px solid #1E2329;background:#0A0E13">

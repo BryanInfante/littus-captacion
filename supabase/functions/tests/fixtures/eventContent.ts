@@ -17,6 +17,7 @@ export const scanAContent: EventContent = {
   communityUrl: "https://community.example.invalid/scan-a",
   streamUrl: "https://stream.example.invalid/scan-a",
   classroomUrl: "https://classroom.example.invalid/",
+  nextStepsText: null,
 };
 
 export const ut2Content: EventContent = {
@@ -31,4 +32,6 @@ export const ut2Content: EventContent = {
   communityUrl: null,
   streamUrl: null,
   classroomUrl: "https://classroom.example.invalid/",
+  nextStepsText:
+    "En breve recibirás tu usuario y contraseña para acceder al aula virtual, donde tendrás disponibles el material del curso y las evaluaciones.",
 };

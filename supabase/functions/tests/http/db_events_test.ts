@@ -78,6 +78,44 @@ Deno.test("registration created sends the confirmation and replays idempotently"
   assertEquals(mailer.sent.length, 1);
 });
 
+Deno.test("registration created for a profile that is not complete answers 200 not_ready and sends nothing", async () => {
+  const events = new MemoryEvents(
+    [openEvent({ code: SCAN_A_CODE, requiresInspectorProfile: true })],
+    [scanAContent],
+  );
+  const registrations = new MemoryRegistrations(events, () => NOW);
+  const mailer = new MemoryMailer();
+  const entries: LogEntry[] = [];
+  const handler = createHandler({
+    events,
+    registrations,
+    mailer,
+    siteUrl: SITE_URL,
+    now: () => NOW,
+    logger: createLogger((entry) => entries.push(entry)),
+    requestId: () => "request-fixture-003",
+    webhookSecret: () => SECRET,
+  });
+  const registration = await registrations.create({
+    eventCode: SCAN_A_CODE,
+    name: "Ana Pérez",
+    email: Email.parse("ana@example.invalid"),
+    marketingConsent: false,
+  });
+
+  const response = await handler(webhook({ id: registration.id }));
+
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), { status: "not_ready" });
+  assertEquals(mailer.sent.length, 0);
+  assertEquals(
+    (await registrations.findForConfirmation(registration.id))?.confirmation
+      .attempts,
+    0,
+  );
+  assertEquals(JSON.stringify(entries).includes(registration.id), false);
+});
+
 Deno.test("the Supabase-prefixed path reaches the same route", async () => {
   const { handler, registration } = await setup();
   const response = await handler(

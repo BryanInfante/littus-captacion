@@ -4,6 +4,7 @@ import { MemoryMailer } from "../../_shared/adapters/memory/mailer.ts";
 import { MemoryRegistrations } from "../../_shared/adapters/memory/registrations.ts";
 import { sendRegistrationConfirmation } from "../../_shared/application/sendRegistrationConfirmation.ts";
 import { Email } from "../../_shared/domain/email.ts";
+import { INITIAL_CONFIRMATION } from "../../_shared/domain/confirmation.ts";
 import { DomainError } from "../../_shared/domain/errors.ts";
 import { NOW, openEvent } from "../fixtures/registration.ts";
 import {
@@ -16,10 +17,18 @@ import {
 
 const setup = () => {
   const events = new MemoryEvents(
-    [openEvent({ code: SCAN_A_CODE }), openEvent({ code: UT2_CODE })],
+    [
+      openEvent({ code: SCAN_A_CODE }),
+      openEvent({ code: UT2_CODE, requiresInspectorProfile: true }),
+    ],
     [scanAContent, ut2Content],
   );
-  const registrations = new MemoryRegistrations(events);
+  const completeProfiles = new Set<string>();
+  const registrations = new MemoryRegistrations(
+    events,
+    () => new Date(),
+    (registrationId) => completeProfiles.has(registrationId),
+  );
   const mailer = new MemoryMailer();
   const register = (eventCode: string, email = "ana@example.invalid") =>
     registrations.create({
@@ -34,7 +43,7 @@ const setup = () => {
       { registrations, events, mailer, siteUrl: SITE_URL },
       now,
     );
-  return { events, registrations, mailer, register, run };
+  return { events, registrations, mailer, register, run, completeProfiles };
 };
 
 const stateOf = async (
@@ -48,7 +57,7 @@ Deno.test("sends the event's confirmation once and persists the sent state", asy
 
   const result = await run(id);
 
-  assertEquals(result.status, "sent");
+  if (result.status !== "sent") throw new Error("expected a sent outcome");
   assertEquals(mailer.sent.length, 1);
   const [message] = mailer.sent;
   assertEquals(message.to.value, "ana@example.invalid");
@@ -75,6 +84,7 @@ Deno.test("a replay of a sent confirmation short-circuits without mailing", asyn
   const { mailer, register, run } = setup();
   const { id } = await register(SCAN_A_CODE);
   const first = await run(id);
+  if (first.status !== "sent") throw new Error("expected a sent outcome");
 
   const replay = await run(id, new Date(NOW.getTime() + 60_000));
 
@@ -83,8 +93,10 @@ Deno.test("a replay of a sent confirmation short-circuits without mailing", asyn
 });
 
 Deno.test("each event renders its own content from the event row", async () => {
-  const { mailer, register, run } = setup();
-  await run((await register(UT2_CODE)).id);
+  const { mailer, register, run, completeProfiles } = setup();
+  const { id } = await register(UT2_CODE);
+  completeProfiles.add(id);
+  await run(id);
 
   const [message] = mailer.sent;
   assertEquals(
@@ -162,4 +174,34 @@ Deno.test("an unexpected mailer error is recorded as a fixed code and rethrown",
   const state = await stateOf(registrations, id);
   assertEquals(state?.lastError, "UNEXPECTED_ERROR");
   assertEquals(JSON.stringify(state).includes("example.invalid"), false);
+});
+
+Deno.test("a registration whose profile is not complete is not ready: nothing is sent, counted or recorded", async () => {
+  const { registrations, mailer, register, run } = setup();
+  const { id } = await register(UT2_CODE);
+
+  const result = await run(id);
+
+  assertEquals(result, { status: "not_ready" });
+  assertEquals(mailer.sent.length, 0);
+  assertEquals(await stateOf(registrations, id), INITIAL_CONFIRMATION);
+});
+
+Deno.test("the confirmation is sent once the profile is complete", async () => {
+  const { registrations, mailer, register, run, completeProfiles } = setup();
+  const { id } = await register(UT2_CODE);
+  assertEquals((await run(id)).status, "not_ready");
+
+  completeProfiles.add(id);
+  assertEquals((await run(id)).status, "sent");
+  assertEquals((await run(id)).status, "already_sent");
+
+  assertEquals(mailer.sent.length, 1);
+  assertEquals((await stateOf(registrations, id))?.attempts, 1);
+});
+
+Deno.test("an event that needs no profile is ready without one", async () => {
+  const { mailer, register, run } = setup();
+  assertEquals((await run((await register(SCAN_A_CODE)).id)).status, "sent");
+  assertEquals(mailer.sent.length, 1);
 });
