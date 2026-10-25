@@ -4,7 +4,8 @@ import { DomainError } from "../../_shared/domain/errors.ts";
 import type { InspectorProfileReservation } from "../../_shared/ports/inspectorProfiles.ts";
 import { MemoryInspectorProfiles } from "../../_shared/adapters/memory/inspectorProfiles.ts";
 import { MemoryFileStorage } from "../../_shared/adapters/memory/fileStorage.ts";
-import { createLogger } from "../../_shared/log.ts";
+import { FileStorageUnavailableError } from "../../_shared/ports/fileStorage.ts";
+import { createLogger, type LogEntry } from "../../_shared/log.ts";
 import { memoryPorts, NOW, openEvent } from "../fixtures/registration.ts";
 
 const makeProfile = () => ({
@@ -146,5 +147,62 @@ Deno.test("completion failure deletes both uploaded photo and pending registrati
       NOW,
     )).kind,
     "claimed",
+  );
+});
+
+Deno.test("failed upload logs the WebDAV status and operation without personal data", async () => {
+  const entries: LogEntry[] = [];
+  const ports = setup();
+  const storage = {
+    upload: () =>
+      Promise.reject(new FileStorageUnavailableError("upload", 507)),
+    delete: () =>
+      Promise.reject(new FileStorageUnavailableError("delete", 403)),
+  };
+  await assertRejects(
+    () =>
+      registerInspectorProfile(
+        input(),
+        { ...ports, storage, logger: createLogger((e) => entries.push(e)) },
+        NOW,
+      ),
+    DomainError,
+    "PHOTO_UPLOAD_FAILED",
+  );
+  const failed = entries.find((e) =>
+    e.event === "inspector.photo_upload_failed"
+  );
+  assertEquals(failed?.status, 507);
+  assertEquals(failed?.operation, "upload");
+  const orphaned = entries.find((e) => e.event === "inspector.photo_orphaned");
+  assertEquals(orphaned?.status, 403);
+  assertEquals(orphaned?.operation, "delete");
+  const text = JSON.stringify(entries);
+  for (const secret of ["AB123456", "ana@example", "ANA", "inscripciones"]) {
+    assertEquals(text.includes(secret), false);
+  }
+});
+
+Deno.test("upload failure without a known status logs no status and keeps the 500 orphan fallback", async () => {
+  const entries: LogEntry[] = [];
+  const ports = setup();
+  ports.storage.failUpload = true;
+  ports.storage.failDelete = true;
+  await assertRejects(
+    () =>
+      registerInspectorProfile(
+        input(),
+        { ...ports, logger: createLogger((e) => entries.push(e)) },
+        NOW,
+      ),
+    DomainError,
+  );
+  const failed = entries.find((e) =>
+    e.event === "inspector.photo_upload_failed"
+  );
+  assertEquals(failed !== undefined && !("status" in failed), true);
+  assertEquals(
+    entries.find((e) => e.event === "inspector.photo_orphaned")?.status,
+    500,
   );
 });

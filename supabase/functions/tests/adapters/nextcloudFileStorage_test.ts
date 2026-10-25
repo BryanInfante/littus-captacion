@@ -1,4 +1,5 @@
 import { assertEquals, assertRejects } from "../dev_deps.ts";
+import { FileStorageUnavailableError } from "../../_shared/ports/fileStorage.ts";
 import { createNextcloudFileStorage } from "../../_shared/adapters/nextcloud/fileStorage.ts";
 
 const config = {
@@ -56,6 +57,62 @@ Deno.test("Nextcloud storage rejects unsafe relative paths and unexpected WebDAV
         "image/jpeg",
       ),
     Error,
-    "WebDAV directory unavailable",
+    "File storage directory unavailable",
   );
+});
+
+const photoPath =
+  "inscripciones/event/fotos/AB123456_11111111-1111-4111-8111-111111111111.jpg";
+const failure = async (
+  fn: () => Promise<void>,
+): Promise<FileStorageUnavailableError> => {
+  try {
+    await fn();
+  } catch (error) {
+    if (error instanceof FileStorageUnavailableError) return error;
+    throw error;
+  }
+  throw new Error("expected FileStorageUnavailableError");
+};
+const upload = (fetcher: typeof fetch) =>
+  createNextcloudFileStorage(config, fetcher).upload(
+    photoPath,
+    new Uint8Array([1]),
+    "image/jpeg",
+  );
+
+Deno.test("Nextcloud storage reports the WebDAV status of a failed MKCOL", async () => {
+  const error = await failure(() =>
+    upload(() => Promise.resolve(new Response(null, { status: 401 })))
+  );
+  assertEquals([error.operation, error.status], ["directory", 401]);
+});
+
+Deno.test("Nextcloud storage reports the WebDAV status of a failed PUT", async () => {
+  const error = await failure(() =>
+    upload((_input, init) =>
+      Promise.resolve(
+        new Response(null, { status: init?.method === "PUT" ? 507 : 201 }),
+      )
+    )
+  );
+  assertEquals([error.operation, error.status], ["upload", 507]);
+});
+
+Deno.test("Nextcloud storage reports the WebDAV status of a failed DELETE", async () => {
+  const storage = createNextcloudFileStorage(
+    config,
+    () => Promise.resolve(new Response(null, { status: 403 })),
+  );
+  const error = await failure(() => storage.delete(photoPath));
+  assertEquals([error.operation, error.status], ["delete", 403]);
+});
+
+Deno.test("Nextcloud storage omits status and the cause text on network failures", async () => {
+  const error = await failure(() =>
+    upload(() => Promise.reject(new Error("connect fixture-password")))
+  );
+  assertEquals([error.operation, error.status], ["directory", undefined]);
+  assertEquals(error.message.includes("fixture-password"), false);
+  assertEquals(error.cause, undefined);
 });

@@ -4,7 +4,10 @@ import type {
   InspectorProfile,
 } from "../domain/inspectorProfile.ts";
 import type { Registration } from "../domain/registration.ts";
-import type { FileStorage } from "../ports/fileStorage.ts";
+import {
+  type FileStorage,
+  FileStorageUnavailableError,
+} from "../ports/fileStorage.ts";
 import type { InspectorProfiles } from "../ports/inspectorProfiles.ts";
 import type { Logger } from "../log.ts";
 
@@ -47,7 +50,11 @@ export const registerInspectorProfile = async (input: {
       input.photo.bytes,
       input.photo.contentType,
     );
-  } catch {
+  } catch (error) {
+    ports.logger.log(claim.id, {
+      event: "inspector.photo_upload_failed",
+      ...storageDiagnostics(error),
+    });
     await compensate(claim.id, claim.photoPath, ports);
     throw new DomainError("PHOTO_UPLOAD_FAILED");
   }
@@ -60,6 +67,14 @@ export const registerInspectorProfile = async (input: {
   return claim.registration;
 };
 
+// Only the typed storage error is read; any other error text stays unlogged.
+const storageDiagnostics = (
+  error: unknown,
+): { status?: number; operation?: string } =>
+  error instanceof FileStorageUnavailableError
+    ? { status: error.status, operation: error.operation }
+    : {};
+
 const compensate = async (
   id: string,
   photoPath: string,
@@ -71,8 +86,13 @@ const compensate = async (
 ): Promise<void> => {
   try {
     await ports.storage.delete(photoPath);
-  } catch {
-    ports.logger.log(id, { event: "inspector.photo_orphaned", status: 500 });
+  } catch (error) {
+    const { status, operation } = storageDiagnostics(error);
+    ports.logger.log(id, {
+      event: "inspector.photo_orphaned",
+      status: status ?? 500,
+      operation,
+    });
   }
   try {
     await ports.profiles.delete(id);
