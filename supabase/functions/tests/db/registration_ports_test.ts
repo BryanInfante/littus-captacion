@@ -45,6 +45,7 @@ const contentFor = (code: string, full: boolean): EventContent => ({
   communityUrl: full ? "https://community.example.invalid/x" : null,
   streamUrl: full ? "https://stream.example.invalid/x" : null,
   classroomUrl: full ? "https://classroom.example.invalid/" : null,
+  nextStepsText: full ? "Recibirás tu acceso al aula en breve." : null,
 });
 
 const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
@@ -113,7 +114,8 @@ const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
           (masterclass_codigo, event_title, codigo_prefijo, activo,
            inscripcion_abre_en, inscripcion_cierra_en, requiere_ficha_inspector,
            tipo, fecha_texto, duracion, horario_texto, modalidad_texto,
-           incluye_texto, comunidad_url, transmision_url, aula_url)
+           incluye_texto, comunidad_url, transmision_url, aula_url,
+           siguientes_pasos_texto)
         values (${event.code}, ${content.title}, 'ECCIA-TEST-', ${event.active},
                 ${event.registrationOpensAt}, ${event.registrationClosesAt}, ${
         event.requiresInspectorProfile ?? false
@@ -121,7 +123,8 @@ const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
                 ${content.kind}, ${content.dateText}, ${content.durationText},
                 ${content.scheduleText}, ${content.modalityText},
                 ${content.includesText}, ${content.communityUrl},
-                ${content.streamUrl}, ${content.classroomUrl})
+                ${content.streamUrl}, ${content.classroomUrl},
+                ${content.nextStepsText})
       `;
     }
     return {
@@ -197,6 +200,10 @@ for (const adapter of ["memory", "supabase"] as const) {
           assertEquals(await registrations.findForConfirmation(created.id), {
             registration: created,
             confirmation: INITIAL_CONFIRMATION,
+            readiness: {
+              requiresInspectorProfile: true,
+              inspectorProfileComplete: false,
+            },
           });
           assertEquals(
             await registrations.findForConfirmation(crypto.randomUUID()),

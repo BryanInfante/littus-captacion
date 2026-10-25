@@ -147,3 +147,46 @@ Deno.test("a row sent by the webhook after the query is skipped, not sent twice"
   });
   assertEquals(mailer.sent.length, 0);
 });
+
+Deno.test("a registration still waiting for its profile is skipped without spending an attempt", async () => {
+  let clock = NOW;
+  const events = new MemoryEvents(
+    [openEvent({ code: SCAN_A_CODE, requiresInspectorProfile: true })],
+    [scanAContent],
+  );
+  const completeProfiles = new Set<string>();
+  const registrations = new MemoryRegistrations(
+    events,
+    () => clock,
+    (registrationId) => completeProfiles.has(registrationId),
+  );
+  const mailer = new MemoryMailer();
+  const { id } = await registrations.create({
+    eventCode: SCAN_A_CODE,
+    name: "Ana Pérez",
+    email: Email.parse("a@example.invalid"),
+    marketingConsent: false,
+  });
+  const run = () =>
+    reconcilePendingConfirmations(
+      { limit: 50 },
+      { registrations, events, mailer, siteUrl: SITE_URL },
+      clock,
+    );
+
+  clock = new Date(clock.getTime() + CONFIRMATION_RETRY_AFTER_MS);
+  for (let cycle = 0; cycle < CONFIRMATION_MAX_ATTEMPTS + 1; cycle++) {
+    assertEquals(await run(), { attempted: 1, sent: 0, failed: 0, skipped: 1 });
+  }
+  assertEquals(mailer.sent.length, 0);
+  assertEquals((await registrations.findForConfirmation(id))?.confirmation, {
+    sentAt: null,
+    emailId: null,
+    attempts: 0,
+    lastAttemptAt: null,
+    lastError: null,
+  });
+
+  completeProfiles.add(id);
+  assertEquals(await run(), { attempted: 1, sent: 1, failed: 0, skipped: 0 });
+});

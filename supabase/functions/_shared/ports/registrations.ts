@@ -1,4 +1,7 @@
-import type { ConfirmationState } from "../domain/confirmation.ts";
+import type {
+  ConfirmationReadiness,
+  ConfirmationState,
+} from "../domain/confirmation.ts";
 import type {
   Registration,
   RegistrationDetails,
@@ -7,6 +10,7 @@ import type {
 export type RegistrationConfirmation = {
   readonly registration: Registration;
   readonly confirmation: ConfirmationState;
+  readonly readiness: ConfirmationReadiness;
 };
 
 export interface Registrations {

@@ -21,9 +21,13 @@ export class MemoryRegistrations implements Registrations {
   private readonly createdAt = new Map<string, Date>();
 
   // The clock stamps creation, like the database default does.
+  // `isProfileComplete` stands in for the inspector profile table, which the
+  // in-memory registrations do not own.
   constructor(
     private readonly events: Events,
     private readonly clock: () => Date = () => new Date(),
+    private readonly isProfileComplete: (registrationId: string) => boolean =
+      () => false,
   ) {}
 
   async create(input: RegistrationDetails): Promise<Registration> {
@@ -41,16 +45,23 @@ export class MemoryRegistrations implements Registrations {
     return { ...registration };
   }
 
-  findForConfirmation(id: string): Promise<RegistrationConfirmation | null> {
+  async findForConfirmation(
+    id: string,
+  ): Promise<RegistrationConfirmation | null> {
     const registration = [...this.records.values()].find((record) =>
       record.id === id
     );
     const confirmation = this.confirmations.get(id);
-    return Promise.resolve(
-      registration === undefined || confirmation === undefined
-        ? null
-        : { registration: { ...registration }, confirmation },
-    );
+    if (registration === undefined || confirmation === undefined) return null;
+    const event = await this.events.findByCode(registration.eventCode);
+    return {
+      registration: { ...registration },
+      confirmation,
+      readiness: {
+        requiresInspectorProfile: event?.requiresInspectorProfile ?? false,
+        inspectorProfileComplete: this.isProfileComplete(id),
+      },
+    };
   }
 
   saveConfirmation(id: string, state: ConfirmationState): Promise<void> {

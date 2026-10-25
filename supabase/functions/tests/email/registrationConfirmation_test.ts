@@ -50,10 +50,26 @@ Deno.test("event links and details come only from the event content", () => {
   ) assertEquals(html.includes(expected ?? ""), true, expected ?? "");
 });
 
-Deno.test("sections without event data are omitted", () => {
+Deno.test("the next steps block shows the event's text under its own title", () => {
   const { html } = render(ut2Content);
+  assertEquals(html.includes("Próximos pasos"), true);
+  assertEquals(html.includes(ut2Content.nextStepsText ?? ""), true);
+});
+
+Deno.test("the next steps text is HTML-escaped", () => {
+  const { html } = render({
+    ...ut2Content,
+    nextStepsText: "<b>Aula</b> & más",
+  });
+  assertEquals(html.includes("<b>Aula</b>"), false);
+  assertEquals(html.includes("&lt;b&gt;Aula&lt;/b&gt; &amp; más"), true);
+});
+
+Deno.test("sections without event data are omitted", () => {
+  const { html } = render({ ...ut2Content, nextStepsText: null });
   for (
     const absent of [
+      "Próximos pasos",
       "Horario",
       "Modalidad",
       "Incluye",
@@ -62,6 +78,7 @@ Deno.test("sections without event data are omitted", () => {
       "community.example",
     ]
   ) assertEquals(html.includes(absent), false, absent);
+  assertEquals(render(scanAContent).html.includes("Próximos pasos"), false);
 });
 
 Deno.test("recipient name and event text are HTML-escaped", () => {

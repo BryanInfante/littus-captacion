@@ -53,6 +53,7 @@ export type Database = {
           "nextcloud_directorio": string | null;
           "requiere_ficha_inspector": boolean;
           "resumen": string | null;
+          "siguientes_pasos_texto": string | null;
           "tipo": string | null;
           "transmision_url": string | null;
         };
@@ -79,6 +80,7 @@ export type Database = {
           "nextcloud_directorio"?: string | null;
           "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
+          "siguientes_pasos_texto"?: string | null;
           "tipo"?: string | null;
           "transmision_url"?: string | null;
         };
@@ -104,6 +106,7 @@ export type Database = {
           "nextcloud_directorio"?: string | null;
           "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
+          "siguientes_pasos_texto"?: string | null;
           "tipo"?: string | null;
           "transmision_url"?: string | null;
         };

@@ -9,6 +9,7 @@ import {
   INITIAL_CONFIRMATION,
   isConfirmationRetryDue,
   isConfirmationSent,
+  isReadyForConfirmation,
 } from "../../_shared/domain/confirmation.ts";
 import { DomainError } from "../../_shared/domain/errors.ts";
 
@@ -171,4 +172,19 @@ Deno.test("the retry bounds are the exact instants the rule flips", () => {
     now.getTime() - createdAfter.getTime(),
     CONFIRMATION_RETRY_WINDOW_MS,
   );
+});
+
+Deno.test("a registration is ready unless its event needs a profile that is not complete", () => {
+  const ready = (
+    requiresInspectorProfile: boolean,
+    inspectorProfileComplete: boolean,
+  ) =>
+    isReadyForConfirmation({
+      requiresInspectorProfile,
+      inspectorProfileComplete,
+    });
+  assertEquals(ready(false, false), true);
+  assertEquals(ready(false, true), true);
+  assertEquals(ready(true, true), true);
+  assertEquals(ready(true, false), false);
 });

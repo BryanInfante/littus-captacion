@@ -26,6 +26,21 @@ export const INITIAL_CONFIRMATION: ConfirmationState = {
 export const isConfirmationSent = (state: ConfirmationState): boolean =>
   state.sentAt !== null;
 
+// What decides whether a registration may be confirmed yet. An event that
+// collects an inspector profile registers the person before the photo upload,
+// so the registration exists (and its creation is announced) while the profile
+// can still fail and be rolled back; confirming then would mail someone whose
+// registration is deleted a moment later.
+export type ConfirmationReadiness = {
+  readonly requiresInspectorProfile: boolean;
+  readonly inspectorProfileComplete: boolean;
+};
+
+export const isReadyForConfirmation = (
+  readiness: ConfirmationReadiness,
+): boolean =>
+  !readiness.requiresInspectorProfile || readiness.inspectorProfileComplete;
+
 export const confirmationSucceeded = (
   state: ConfirmationState,
   emailId: string,

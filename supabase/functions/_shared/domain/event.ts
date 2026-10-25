@@ -26,4 +26,5 @@ export type EventContent = {
   readonly communityUrl: string | null;
   readonly streamUrl: string | null;
   readonly classroomUrl: string | null;
+  readonly nextStepsText: string | null;
 };
