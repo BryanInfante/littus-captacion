@@ -218,6 +218,34 @@ Deno.test("inspector profile invariants and public access are enforced by Postgr
           }),
           "eccia_fichas_inspector_foto_path_check",
         );
+        const folderPath = (folder: string, file = "foto.jpg") =>
+          `Test Root/inscripciones/ultrasonido-nivel-ii/${folder}/${file}`;
+        assertEquals(
+          await check({ fotoPath: folderPath("PEREZ ANA - AB123456") }),
+          "accepted",
+        );
+        assertEquals(
+          await check({ fotoPath: folderPath("AB123456", "foto.png") }),
+          "accepted",
+        );
+        for (
+          const fotoPath of [
+            folderPath("PEREZ ANA - OTHER12345"),
+            folderPath("PEREZ ANA AB123456"),
+            folderPath("Perez Ana - AB123456"),
+            folderPath("PEREZ  ANA - AB123456"),
+            folderPath("PEREZ ANA - AB123456", "foto.gif"),
+            folderPath("PEREZ ANA - AB123456", "otra.jpg"),
+            folderPath("PEREZ/ANA - AB123456"),
+            folderPath("PEREZ ANA - AB123456/.."),
+            `Test Root/inscripciones/otro-evento/PEREZ ANA - AB123456/foto.jpg`,
+          ]
+        ) {
+          assertEquals(
+            await check({ fotoPath }),
+            "eccia_fichas_inspector_foto_path_check",
+          );
+        }
         assertEquals(await check({ consentimiento: null }), "23502");
         assertEquals(await check({}), "accepted");
         assertEquals(

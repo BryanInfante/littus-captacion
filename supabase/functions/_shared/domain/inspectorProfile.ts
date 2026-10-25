@@ -108,3 +108,20 @@ export const validateInspectorPhoto = (bytes: Uint8Array): InspectorPhoto => {
   }
   throw new DomainError("INVALID_INPUT");
 };
+
+// Folder shown to the operator in the external registry. Diacritics are
+// stripped for the folder only; the database keeps the accented name. The
+// document is unique per event, so the folder is unique per live registration.
+export const participantFolderName = (
+  apellidos: string,
+  nombres: string,
+  documento: string,
+): string => {
+  const words = `${apellidos} ${nombres}`
+    .toLocaleUpperCase("es")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^A-Z0-9]+/gu, " ")
+    .trim();
+  return words === "" ? documento : `${words} - ${documento}`;
+};

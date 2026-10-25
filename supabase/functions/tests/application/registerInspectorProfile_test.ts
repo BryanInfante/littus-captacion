@@ -44,8 +44,10 @@ Deno.test("inspector registration reserves a path before upload and completes af
   assertEquals(registration.marketingConsent, true);
   assertEquals(ports.storage.files.size, 1);
   const [path] = ports.storage.files.keys();
-  assertEquals(path.includes(`/${makeProfile().documento}_`), true);
-  assertEquals(path.endsWith(".jpg"), true);
+  assertEquals(
+    path,
+    `inscripciones/${openEvent().code}/PEREZ ANA - AB123456/foto.jpg`,
+  );
 });
 
 Deno.test("completed profile duplicates are rejected without another upload", async () => {
@@ -64,7 +66,7 @@ Deno.test("fresh pending profiles conflict, while stale pending profiles retry t
   const first = input();
   const staleId = "11111111-1111-4111-8111-111111111111";
   const reservedPath =
-    `inscripciones/${first.eventCode}/fotos/${first.profile.documento}_${staleId}.jpg`;
+    `inscripciones/${first.eventCode}/PEREZ ANA - ${first.profile.documento}/foto.jpg`;
   const reservation: InspectorProfileReservation = {
     ...first.profile,
     id: staleId,
@@ -94,6 +96,55 @@ Deno.test("fresh pending profiles conflict, while stale pending profiles retry t
     pending.kind === "claimed" ? pending.registration.id : "",
   );
   assertEquals([...ports.storage.files.keys()], [reservedPath]);
+});
+
+Deno.test("the folder carries the document, so another person never shares a folder within an event", async () => {
+  const ports = setup();
+  await registerInspectorProfile(input(), ports, NOW);
+  const other = input();
+  const second = {
+    ...other,
+    email: "otra@example.invalid",
+    profile: {
+      ...other.profile,
+      nombres: "LUIS",
+      apellidos: "MUÑOZ",
+      nombreCompleto: "LUIS MUÑOZ",
+      documento: "CD654321",
+    },
+  };
+  await registerInspectorProfile(second, ports, NOW);
+  assertEquals(ports.storage.files.size, 2);
+  const folders = [...ports.storage.files.keys()].map((p) => p.split("/")[2]);
+  assertEquals(folders.sort(), [
+    "MUNOZ LUIS - CD654321",
+    "PEREZ ANA - AB123456",
+  ]);
+});
+
+Deno.test("a duplicate registration never overwrites or deletes the completed photo", async () => {
+  const ports = setup();
+  await registerInspectorProfile(input(), ports, NOW);
+  const [path] = ports.storage.files.keys();
+  const original = ports.storage.files.get(path);
+  const again = input();
+  await assertRejects(
+    () =>
+      registerInspectorProfile(
+        {
+          ...again,
+          photo: {
+            ...again.photo,
+            bytes: new Uint8Array([0xff, 0xd8, 0xff, 1]),
+          },
+        },
+        ports,
+        NOW,
+      ),
+    DomainError,
+    "ALREADY_REGISTERED",
+  );
+  assertEquals(ports.storage.files.get(path), original);
 });
 
 Deno.test("failed upload compensates the pending profile and leaves no photo", async () => {
@@ -140,8 +191,7 @@ Deno.test("completion failure deletes both uploaded photo and pending registrati
         eventCode: input().eventCode,
         email: input().email,
         marketingConsent: true,
-        photoPath:
-          "inscripciones/event/fotos/AB123456_22222222-2222-4222-8222-222222222222.jpg",
+        photoPath: "inscripciones/event/PEREZ ANA - AB123456/foto.jpg",
       },
       new Date(NOW.getTime() - 120_000),
       NOW,

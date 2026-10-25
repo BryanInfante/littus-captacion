@@ -1912,3 +1912,23 @@ publicar; no hubo deploy, push ni PR.
   de preparación); 2) aplicar ambas migraciones; 3) cargar
   `siguientes_pasos_texto` de `ultrasonido-nivel-ii` (dato del operador, no va
   en migración).
+
+### Carpeta por participante (2026-10-25)
+
+- [x] La foto de la ficha se guarda en
+      `<raíz>/inscripciones/<evento>/<APELLIDOS NOMBRES> - <DOCUMENTO>/foto.<jpg|png>`
+      para que el operador identifique de quién es cada archivo y pueda sumar
+      más adjuntos en la misma carpeta. El nombre de la carpeta va en
+      mayúsculas, sin tildes (Ñ pasa a N), solo `A-Z0-9` con espacios simples;
+      si el nombre queda vacío, la carpeta es solo el documento. La base de
+      datos conserva el nombre con tildes. La función de dominio es
+      `participantFolderName`.
+- La ruta del archivo queda atada al documento (único por evento), por lo que
+  dos inscripciones vivas nunca comparten carpeta. Un reintento de una ficha
+  pendiente reutiliza la ruta almacenada de su propia fila; una inscripción
+  completa se rechaza antes de subir nada, así que no se sobrescribe ni se borra
+  su foto.
+- Migración `20261025160000_participant_folder_photo_path.sql`: el `CHECK` de
+  `foto_path` acepta el formato nuevo y el anterior
+  (`fotos/<DOCUMENTO>_<id>.<ext>`). No se renombra ningún archivo existente; las
+  filas anteriores conservan su ruta.

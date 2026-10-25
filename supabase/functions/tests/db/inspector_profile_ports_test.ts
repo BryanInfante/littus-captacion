@@ -42,7 +42,8 @@ Deno.test("Supabase inspector profile claim is atomic, retries the reserved path
       empleadorDeclarado: null,
       sinEmpleador: true,
       consentimientoDatosEn: now.toISOString(),
-      photoPath: `inscripciones/${code}/fotos/${reservationDocument}_${id}.jpg`,
+      photoPath:
+        `inscripciones/${code}/PEREZ ANA - ${reservationDocument}/foto.jpg`,
     });
     const first = await profile.claim(
       reservation(crypto.randomUUID()),
@@ -55,7 +56,7 @@ Deno.test("Supabase inspector profile claim is atomic, retries the reserved path
     }
     assertEquals(
       first.photoPath,
-      `inscripciones/${code}/fotos/${document}_${first.id}.jpg`,
+      `inscripciones/${code}/PEREZ ANA - ${document}/foto.jpg`,
     );
     const [stored] = await sql<{ foto_path: string }[]>`
       select foto_path from public.eccia_fichas_inspector where id = ${first.id}

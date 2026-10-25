@@ -1,7 +1,8 @@
 import { DomainError } from "../domain/errors.ts";
-import type {
-  InspectorPhoto,
-  InspectorProfile,
+import {
+  type InspectorPhoto,
+  type InspectorProfile,
+  participantFolderName,
 } from "../domain/inspectorProfile.ts";
 import type { Registration } from "../domain/registration.ts";
 import {
@@ -25,8 +26,16 @@ export const registerInspectorProfile = async (input: {
   readonly logger: Logger;
 }, now: Date): Promise<Registration> => {
   const id = crypto.randomUUID();
+  // The document is unique per event (see the claim), so a second attempt for
+  // the same person reuses the stored path of its own pending row and a
+  // completed registration is rejected before any upload.
+  const folder = participantFolderName(
+    input.profile.apellidos,
+    input.profile.nombres,
+    input.profile.documento,
+  );
   const photoPath =
-    `inscripciones/${input.eventCode}/fotos/${input.profile.documento}_${id}.${input.photo.extension}`;
+    `inscripciones/${input.eventCode}/${folder}/foto.${input.photo.extension}`;
   const claim = await ports.profiles.claim(
     {
       ...input.profile,

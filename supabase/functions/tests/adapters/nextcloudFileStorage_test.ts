@@ -22,7 +22,7 @@ Deno.test("Nextcloud storage creates directories accepting 201 and 405, then upl
     return Promise.resolve(new Response(null, { status }));
   });
   const path =
-    "inscripciones/ultrasonido-nivel-ii/fotos/AB123456_11111111-1111-4111-8111-111111111111.jpg";
+    "inscripciones/ultrasonido-nivel-ii/MUNOZ PENA JOSE LUIS - 0912345678/foto.jpg";
   await storage.upload(path, new Uint8Array([0xff, 0xd8, 0xff]), "image/jpeg");
   await storage.delete(path);
   assertEquals(calls[0].method, "MKCOL");
@@ -35,7 +35,7 @@ Deno.test("Nextcloud storage creates directories accepting 201 and 405, then upl
     ),
     true,
   );
-  assertEquals(calls.some((call) => call.url.includes("AB123456")), true);
+  assertEquals(calls.some((call) => call.url.includes("0912345678")), true);
 });
 
 Deno.test("Nextcloud storage rejects unsafe relative paths and unexpected WebDAV statuses", async () => {
@@ -52,7 +52,7 @@ Deno.test("Nextcloud storage rejects unsafe relative paths and unexpected WebDAV
   await assertRejects(
     () =>
       storage.upload(
-        "inscripciones/event/fotos/AB123456_11111111-1111-4111-8111-111111111111.jpg",
+        "inscripciones/event/PEREZ ANA - AB123456/foto.jpg",
         new Uint8Array([1]),
         "image/jpeg",
       ),
@@ -61,8 +61,67 @@ Deno.test("Nextcloud storage rejects unsafe relative paths and unexpected WebDAV
   );
 });
 
-const photoPath =
-  "inscripciones/event/fotos/AB123456_11111111-1111-4111-8111-111111111111.jpg";
+Deno.test("Nextcloud storage keeps accepting the legacy photo layout", async () => {
+  const urls: string[] = [];
+  const storage = createNextcloudFileStorage(config, (input) => {
+    urls.push(String(input));
+    return Promise.resolve(new Response(null, { status: 201 }));
+  });
+  await storage.upload(
+    "inscripciones/event/fotos/AB123456_11111111-1111-4111-8111-111111111111.jpg",
+    new Uint8Array([1]),
+    "image/jpeg",
+  );
+  assertEquals(
+    urls.at(-1)?.endsWith("/AB123456_11111111-1111-4111-8111-111111111111.jpg"),
+    true,
+  );
+});
+
+Deno.test("Nextcloud storage encodes the participant folder and rejects unsafe folders or filenames", async () => {
+  const urls: string[] = [];
+  const storage = createNextcloudFileStorage(config, (input) => {
+    urls.push(String(input));
+    return Promise.resolve(new Response(null, { status: 201 }));
+  });
+  await storage.upload(
+    "inscripciones/event/MUNOZ PENA - AB123456/foto.png",
+    new Uint8Array([1]),
+    "image/png",
+  );
+  assertEquals(
+    urls.at(-1)?.endsWith(
+      "/inscripciones/event/MUNOZ%20PENA%20-%20AB123456/foto.png",
+    ),
+    true,
+  );
+  const calls = urls.length;
+  for (
+    const path of [
+      "inscripciones/event/MUNOZ PENA - AB123456/foto.gif",
+      "inscripciones/event/MUNOZ PENA - AB123456/foto.jpg.png",
+      "inscripciones/event/MUNOZ PENA - AB123456/otra.jpg",
+      "inscripciones/event/MUNOZ PENA - AB123456/../foto.jpg",
+      "inscripciones/event/MUNOZ  PENA - AB123456/foto.jpg",
+      "inscripciones/event/MUNOZ PENA - AB123456 /foto.jpg",
+      "inscripciones/event/muñoz pena - AB123456/foto.jpg",
+      "inscripciones/event/MUNOZ.PENA - AB123456/foto.jpg",
+      "inscripciones/event/MUNOZ/PENA - AB123456/foto.jpg",
+      "inscripciones/event/MUNOZ_PENA - AB123456/foto.jpg",
+      "inscripciones/event/MUNOZ PENA - AB123456/",
+      "inscripciones/event//foto.jpg",
+    ]
+  ) {
+    await assertRejects(
+      () => storage.upload(path, new Uint8Array([1]), "image/jpeg"),
+      Error,
+      "Unsafe WebDAV path",
+    );
+  }
+  assertEquals(urls.length, calls);
+});
+
+const photoPath = "inscripciones/event/PEREZ ANA - AB123456/foto.jpg";
 const failure = async (
   fn: () => Promise<void>,
 ): Promise<FileStorageUnavailableError> => {
