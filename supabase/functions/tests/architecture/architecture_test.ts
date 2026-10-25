@@ -7,6 +7,7 @@ import {
   devDepsOnlyInTests,
   domainImportsStayInDomain,
   envOnlyInConfig,
+  noCrossFunctionImports,
   ratchet,
   ratchetViolations,
   resendHostOutsideAdapter,
@@ -68,7 +69,6 @@ const LEGACY_FUNCTIONS = [
   "download-certificate/index.ts",
   "issue-certificate/index.ts",
   "send-course-access/index.ts",
-  "send-registration-confirmation/index.ts",
   "send-workshop-reminder/index.ts",
   "sync-resend-contact/index.ts",
   "validate-certificate/index.ts",
@@ -172,6 +172,10 @@ Deno.test("Deno.env is read only in _shared/config.ts", () => {
   assertRatchet(envOnlyInConfig, LEGACY_ENV);
 });
 
+Deno.test("no function imports from another function's directory", () => {
+  assertRatchet(noCrossFunctionImports, []);
+});
+
 Deno.test("console is used only in _shared/log.ts", () => {
   assertRatchet(consoleOnlyInLog, LEGACY_CONSOLE);
 });
@@ -185,7 +189,6 @@ Deno.test("_shared/domain/ imports nothing outside domain", () => {
 const LEGACY_RESEND_HOST: readonly string[] = [
   "issue-certificate/index.ts",
   "send-course-access/index.ts",
-  "send-registration-confirmation/index.ts",
   "send-workshop-reminder/index.ts",
   "sync-resend-contact/index.ts",
 ];

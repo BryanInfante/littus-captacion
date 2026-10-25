@@ -631,7 +631,7 @@ cerrar.
 | FN-02-11  | Marcar `PLAN-INSCRIPCION-UT2.md` como reemplazado por F2 y F3.                                                                                                                                                                                                                                                                                                                                                                     | pendiente                                                                                              | FN-02-09                  |             |
 | FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | WA-01/WA-02 locales; activación productiva pendiente                                                   | FN-02-05b                 |             |
 | FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | implementado localmente (pendiente FN-03-03)                                                           | FN-03-01                  | 3353e07, +1 |
-| FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | pendiente                                                                                              | FN-03-02                  |             |
+| FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | implementado localmente; corte productivo pendiente                                                    | FN-03-02                  |             |
 | FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-03-02                  |             |
 | FN-03-05  | `sync-resend-contact` dentro de `db-events` con la regla de consentimiento en el caso de uso.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-04                  |             |
 | FN-04-01  | `certificates`: `issueCertificate` por (correo, evento), datos del evento, columnas del subplan.                                                                                                                                                                                                                                                                                                                                   | pendiente                                                                                              | FN-02-03, FN-02-06        |             |
@@ -1695,16 +1695,37 @@ publicar; no hubo deploy, push ni PR.
       GREEN): una inscripción encola exactamente una petición `pg_net` a la ruta
       con la cabecera del secreto y el cuerpo que parsea
       `parseRegistrationCreated`; ningún trigger de la tabla filtra por evento.
-- [ ] FN-03-03c: eliminar `send-registration-confirmation` y sus referencias
-      (`config.toml`, workflow, listas heredadas, `deno.json`, pruebas).
-      BLOQUEADO: `send-workshop-reminder/index.ts` importa
-      `../send-registration-confirmation/template.ts` (recordatorio), y
-      `deno.json` y `tests/certificate-generation.tests.ps1` referencian la
-      función; ninguno está en las superficies de esta tarea. Pendiente de
-      decisión del padre.
-- [ ] FN-03-03d: sustituir las aserciones de `tests/landing.tests.ps1` sobre la
+- [x] FN-03-03c: `send-registration-confirmation` eliminada con todas sus
+      referencias (`config.toml`, workflow, `deno.json`, lista heredada del host
+      de Resend, `LEGACY_FUNCTIONS`, `legacyConfirmation_test.ts`). Decisión del
+      padre: `renderWorkshopReminderEmail` se movió a
+      `send-workshop-reminder/template.ts` (FN-05-02 lo consolidará en
+      `_shared`).
+- [x] FN-03-03d: sustituir las aserciones de `tests/landing.tests.ps1` sobre la
       función eliminada y `20260921190000` por pruebas `deno test`.
 - Evidencia (unidad 1, trigger y pruebas): RED observado con
   `registration_dispatch_test.ts` contra el esquema anterior (0 peticiones a
   `db-events/registration-created`, trigger con `WHEN`); GREEN tras
   `supabase db reset --local` con la migración `20261025120000` (4 pasos).
+- Evidencia (unidad 2, eliminación): se añadieron pruebas `deno test` para lo
+  que sigue existiendo: la plantilla del recordatorio
+  (`workshopReminder_test.ts`), la ausencia de la función retirada en
+  `config.toml`, workflow y directorios (`deploy_workflow_test.ts`), la regla de
+  arquitectura "ninguna función importa del directorio de otra"
+  (`noCrossFunctionImports`, lista heredada vacía) y que el trigger de
+  `sync-resend-contact` sigue intacto. Estas pruebas se escribieron después de
+  la eliminación, sin RED previo propio; la regla de importaciones cruzadas
+  habría fallado con el import anterior del recordatorio. En `landing.tests.ps1`
+  se quitaron las aserciones sobre la función eliminada y sobre `20260921190000`
+  y se redirigió a la nueva ruta la de la plantilla del recordatorio; en
+  `certificate-generation.tests.ps1` se quitó la del bloque de `config.toml`. No
+  se añadió ninguna aserción a `.ps1`.
+- Prerrequisitos del corte productivo (coordinado, como FN-03-01): 1) desplegar
+  primero `db-events` (el workflow despliega las funciones antes que las
+  migraciones); 2) cargar con la service role el contenido de cada evento
+  (horario, modalidad, enlaces de comunidad, transmisión y aula); 3) definir los
+  secretos `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, `PUBLIC_SITE_URL` y
+  el secreto de webhook (también en `private.eccia_config`); 4) aplicar las
+  migraciones en orden hasta `20261025120000`; 5) borrar con la CLI la función
+  remota `send-registration-confirmation` (el MCP no puede borrar funciones).
+  Hasta entonces nada de esto se ejecuta: todo es local.

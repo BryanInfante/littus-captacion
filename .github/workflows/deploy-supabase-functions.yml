@@ -29,7 +29,6 @@ jobs:
         validate-certificate
         download-certificate
         sync-resend-contact
-        send-registration-confirmation
         send-workshop-reminder
         issue-certificate
         send-course-access

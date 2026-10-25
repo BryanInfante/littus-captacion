@@ -30,7 +30,6 @@
       "supabase/functions/validate-certificate/index.ts",
       // tests/landing.tests.ps1
       "supabase/functions/send-course-access/index.ts",
-      "supabase/functions/send-registration-confirmation/index.ts",
       "supabase/functions/send-workshop-reminder/index.ts",
       "supabase/functions/sync-resend-contact/index.ts"
     ]
@@ -49,7 +48,6 @@
       "supabase/functions/download-certificate/index.ts",
       "supabase/functions/issue-certificate/index.ts",
       "supabase/functions/send-course-access/index.ts",
-      "supabase/functions/send-registration-confirmation/index.ts",
       "supabase/functions/send-workshop-reminder/index.ts",
       "supabase/functions/sync-resend-contact/index.ts",
       "supabase/functions/validate-certificate/index.ts"

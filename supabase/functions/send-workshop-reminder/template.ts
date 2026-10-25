@@ -1,31 +1,4 @@
-import type { EventContent } from "../_shared/domain/event.ts";
 import { escapeHtml } from "../_shared/email/html.ts";
-import { renderRegistrationConfirmation } from "../_shared/email/registrationConfirmation.ts";
-
-// Legacy Scan A confirmation: this function predates event-driven content, so
-// the Scan A copy that used to live in the template is pinned here until
-// FN-03-03 retires the function in favor of db-events.
-const LEGACY_SCAN_A_CONTENT: EventContent = {
-  code: "ultrasonido-industrial-scan-a",
-  title: "Domina la lectura del Scan A",
-  kind: "webinar",
-  dateText: "03 de julio",
-  durationText: null,
-  scheduleText: "15h00 a 17h00",
-  modalityText: "Online y en directo",
-  includesText: "Certificado de participación",
-  communityUrl: "https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD",
-  streamUrl: "https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_",
-  classroomUrl: "https://cursos.littusgroup.com/",
-};
-const LEGACY_SITE_URL = "https://preinscripcion.littusgroup.com";
-
-export const renderConfirmationEmail = (fullName: string) =>
-  renderRegistrationConfirmation({
-    content: LEGACY_SCAN_A_CONTENT,
-    recipientName: fullName,
-    siteUrl: LEGACY_SITE_URL,
-  }).html;
 
 const WORKSHOP_STREAM_URL =
   "https://youtube.com/live/yW3OQFl76kg?feature=share";

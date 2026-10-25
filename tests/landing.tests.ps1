@@ -8,13 +8,11 @@ $emailTemplatePath = Join-Path $PSScriptRoot "..\emails\eccia-base.html"
 $emailGuidePath = Join-Path $PSScriptRoot "..\EMAIL_OPERATIONS.md"
 $resendSyncPath = Join-Path $PSScriptRoot "..\supabase\functions\sync-resend-contact\index.ts"
 $confirmationEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-registration-confirmation.html"
-$confirmationFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\index.ts"
-$confirmationTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\template.ts"
+$confirmationTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-workshop-reminder\template.ts"
 $reminderFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-workshop-reminder\index.ts"
 $courseAccessEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-end-vtptmt-acceso.html"
 $courseAccessFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-course-access\index.ts"
 $courseAccessTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-course-access\template.ts"
-$triggerScopeMigrationPath = Join-Path $PSScriptRoot "..\supabase\migrations\20260921190000_scope_registration_confirmation_trigger.sql"
 $functionsConfigPath = Join-Path $PSScriptRoot "..\supabase\config.toml"
 
 if (-not (Test-Path -LiteralPath $indexPath)) {
@@ -45,11 +43,6 @@ $confirmationEmail = if (Test-Path -LiteralPath $confirmationEmailPath) {
 } else {
     ""
 }
-$confirmationFunction = if (Test-Path -LiteralPath $confirmationFunctionPath) {
-    Get-Content -LiteralPath $confirmationFunctionPath -Raw -Encoding UTF8
-} else {
-    ""
-}
 $confirmationTemplate = if (Test-Path -LiteralPath $confirmationTemplatePath) {
     Get-Content -LiteralPath $confirmationTemplatePath -Raw -Encoding UTF8
 } else {
@@ -72,11 +65,6 @@ $courseAccessFunction = if (Test-Path -LiteralPath $courseAccessFunctionPath) {
 }
 $courseAccessTemplate = if (Test-Path -LiteralPath $courseAccessTemplatePath) {
     Get-Content -LiteralPath $courseAccessTemplatePath -Raw -Encoding UTF8
-} else {
-    ""
-}
-$triggerScopeMigration = if (Test-Path -LiteralPath $triggerScopeMigrationPath) {
-    Get-Content -LiteralPath $triggerScopeMigrationPath -Raw -Encoding UTF8
 } else {
     ""
 }
@@ -316,15 +304,6 @@ Assert-True ($confirmationEmail.Contains('Visitar el aula virtual')) "El enlace 
 Assert-True (-not $confirmationEmail.Contains('cuando esté disponible')) "La confirmación no debe conservar el texto obsoleto sobre el acceso."
 Assert-True (-not $confirmationEmail.Contains('RESEND_UNSUBSCRIBE_URL')) "Una confirmación operativa no debe incluir baja promocional."
 Assert-True (-not $confirmationEmail.Contains('aceptaste comunicaciones')) "Una confirmación operativa no debe afirmar consentimiento comercial."
-Assert-True (Test-Path -LiteralPath $confirmationFunctionPath) "Falta la Edge Function de confirmación."
-Assert-True ($confirmationFunction.Contains("`${RESEND_API_URL}/emails")) "La confirmación debe usar POST /emails de Resend."
-Assert-True ($confirmationFunction.Contains("'Idempotency-Key'")) "La confirmación debe usar una clave de idempotencia."
-Assert-True ($confirmationFunction.Contains('registration-confirmation/')) "La clave de idempotencia debe estar vinculada a la inscripción."
-Assert-True ($confirmationFunction.Contains('confirmation_sent_at')) "La función debe registrar la fecha de confirmación."
-Assert-True ($confirmationFunction.Contains('confirmation_resend_email_id')) "La función debe auditar el identificador de Resend."
-Assert-True ($confirmationFunction.Contains('confirmation_error')) "La función debe registrar el último error."
-Assert-True (-not $confirmationFunction.Contains('marketing_consent')) "El envío operativo no debe depender del consentimiento comercial."
-Assert-True (-not $confirmationFunction.Contains('/contacts')) "La confirmación individual no debe crear ni modificar Contacts."
 Assert-True (Test-Path -LiteralPath $confirmationTemplatePath) "Falta el template de la confirmación."
 Assert-True (-not $confirmationTemplate.Contains('marketing_consent')) "El template operativo no debe depender del consentimiento comercial."
 Assert-True ($confirmationTemplate.Contains('renderWorkshopReminderEmail')) "El template TS debe reutilizar la marca para el recordatorio operativo."
@@ -350,9 +329,6 @@ Assert-True (-not $reminderFunction.Contains('RESEND_UNSUBSCRIBE_URL')) "El reco
 # El trigger de confirmación disparaba en CADA insert y mandaba el correo del
 # taller de julio a cualquier curso nuevo. Esta es la prueba que impide que
 # vuelva a quedar sin filtro.
-Assert-True (Test-Path -LiteralPath $triggerScopeMigrationPath) "Falta la migración que acota el trigger de confirmación a su propio taller."
-Assert-True ($triggerScopeMigration.Contains("when (new.taller_codigo = 'domina-scan-a')")) "El trigger de confirmación debe filtrar por taller_codigo: su plantilla es específica de Domina el Scan A."
-Assert-True (-not $triggerScopeMigration.Contains("drop trigger if exists eccia_sync_resend_contact_after_insert")) "El gate de consentimiento vive dentro de sync-resend-contact, no en su trigger."
 
 Assert-True (Test-Path -LiteralPath $courseAccessEmailPath) "Falta la plantilla HTML del correo de acceso al aula virtual."
 Assert-True ($courseAccessEmail.Contains('{{FIRST_NAME}}')) "El correo de acceso debe personalizar el saludo."

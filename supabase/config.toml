@@ -23,9 +23,6 @@ verify_jwt = false
 # Invocadas por pg_net desde los triggers, sin Authorization.
 # Ver private.eccia_post_to_edge_function en la migración 20260904140000.
 
-[functions.send-registration-confirmation]
-verify_jwt = false
-
 [functions.sync-resend-contact]
 verify_jwt = false
 

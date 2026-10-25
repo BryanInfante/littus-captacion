@@ -111,6 +111,22 @@ Deno.test("registration inserts dispatch one db-events webhook, whatever the eve
     );
 
     await t.step(
+      "the sync-resend-contact trigger is untouched and still self-gates in its function",
+      async () => {
+        const triggers = await sql<{ name: string }[]>`
+          select t.tgname::text as name
+          from pg_trigger t
+          join pg_proc p on p.oid = t.tgfoid
+          where t.tgrelid = ${TABLE}::regclass and not t.tgisinternal
+            and p.proname = 'eccia_sync_resend_contact'
+        `;
+        assertEquals(triggers.map((r) => r.name), [
+          "eccia_sync_resend_contact_after_insert",
+        ]);
+      },
+    );
+
+    await t.step(
       "the dispatch function runs as owner with an empty search path and closed to API roles",
       async () => {
         const [state] = await sql<{

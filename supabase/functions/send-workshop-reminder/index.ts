@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { renderWorkshopReminderEmail } from '../send-registration-confirmation/template.ts'
+import { renderWorkshopReminderEmail } from './template.ts'
 
 const RESEND_API_URL = 'https://api.resend.com'
 const TABLE_NAME = 'eccia_taller_inscripciones'
