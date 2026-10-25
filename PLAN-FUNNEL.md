@@ -654,7 +654,7 @@ cerrar.
 | FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | WA-01/WA-02 locales; activación productiva pendiente                                                   | FN-02-05b                 |             |
 | FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | implementado localmente (pendiente FN-03-03)                                                           | FN-03-01                  | 3353e07, +1 |
 | FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | implementado localmente; corte productivo pendiente                                                    | FN-03-02                  |             |
-| FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-03-02                  |             |
+| FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | implementado localmente; corte productivo pendiente                                                    |                           | FN-03-02    |
 | FN-03-05  | `sync-resend-contact` dentro de `db-events` con la regla de consentimiento en el caso de uso.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-04                  |             |
 | FN-04-01  | `certificates`: `issueCertificate` por (correo, evento), datos del evento, columnas del subplan.                                                                                                                                                                                                                                                                                                                                   | pendiente                                                                                              | FN-02-03, FN-02-06        |             |
 | FN-04-02  | Renderer PDF y QR como adaptadores con versiones exactas e `import()` dinámico.                                                                                                                                                                                                                                                                                                                                                    | pendiente                                                                                              | FN-04-01                  |             |
@@ -1751,3 +1751,64 @@ publicar; no hubo deploy, push ni PR.
   migraciones en orden hasta `20261025120000`; 5) borrar con la CLI la función
   remota `send-registration-confirmation` (el MCP no puede borrar funciones).
   Hasta entonces nada de esto se ejecuta: todo es local.
+
+### FN-03-04 · reconciliador `pg_cron` de confirmaciones
+
+- Ruta: delegado directo (writer Sonnet); entrega `feature-branch-chain`.
+  Commits locales, sin push, PR, despliegue, secretos productivos ni acciones
+  remotas.
+- Pronóstico: 450–600 líneas autorales entre código, pruebas y plan en una o dos
+  unidades de trabajo (el heurístico de 400 líneas es solo orientativo).
+- Regla de reintento (dominio, constantes con nombre): una inscripción es
+  reintentable si `confirmation_sent_at` es nulo, tiene menos de 5 intentos, su
+  último intento (o, si nunca hubo, su creación) tiene al menos 10 minutos de
+  antigüedad y fue creada hace menos de 48 horas. Los 10 minutos dejan que el
+  webhook inmediato termine antes de reintentar; 5 intentos acotan el gasto ante
+  una falla persistente. La ventana de 48 horas evita que el primer ciclo envíe
+  confirmaciones a inscripciones históricas que nunca se confirmaron. No hay
+  retroceso exponencial: la regla es idéntica en dominio, adaptador de memoria y
+  consulta SQL, y el cron corre cada 5 minutos.
+- [x] FN-03-04a: dominio `isConfirmationRetryDue` y constantes.
+- [x] FN-03-04b: puerto `findPendingConfirmations({ now, limit })`, adaptadores
+      de memoria y Supabase, prueba de contrato en la pila local e índice
+      parcial.
+- [x] FN-03-04c: caso de uso `reconcilePendingConfirmations` (reutiliza
+      `sendRegistrationConfirmation`, aísla fallas por fila, devuelve conteos).
+- [x] FN-03-04d: ruta `POST db-events/reconcile` tras `withWebhookAuth`.
+- [x] FN-03-04e: migración `20261025130000_schedule_confirmation_reconciler.sql`
+      (pg_cron, función de despacho definer, trabajo cada 5 minutos) y pruebas
+      de base de datos.
+- Evidencia RED: las pruebas se escribieron antes del código. `deno test` sobre
+  `confirmation_test.ts`, `reconcilePendingConfirmations_test.ts` y
+  `db_events_test.ts` falló en la comprobación de tipos (símbolos de dominio,
+  puerto y caso de uso inexistentes). `confirmation_reconciler_test.ts`, con
+  `--no-check` contra la pila anterior a la migración, falló en 4 de sus 5 pasos
+  (`relation "cron.job" does not exist`, función de despacho inexistente); el
+  quinto, de limpieza, no tiene objeto previo que le falte. GREEN: tras
+  implementar, `deno task check` 226 aprobadas (46 pasos), y tras
+  `supabase db reset --local`, `deno task test:db` 20 aprobadas (72 pasos),
+  incluida la prueba de contrato `findPendingConfirmations` para memoria y
+  Supabase y la reaplicación idempotente de la migración (un solo trabajo).
+- Decisiones: la ruta `POST db-events/reconcile` (con y sin prefijo
+  `/functions/v1`) ignora el cuerpo y devuelve solo
+  `{attempted, sent, failed, skipped}`; lotes de 50 filas por ciclo; el caso de
+  uso reutiliza `sendRegistrationConfirmation` (idempotente), y una fila ya
+  enviada entre la consulta y el envío cuenta como `skipped`. La migración
+  `20261025130000` crea `pg_cron`, un índice parcial sobre `creado_en` para
+  filas sin enviar, la función
+  `private.eccia_dispatch_confirmation_reconciliation()` (definer, `search_path`
+  vacío, sin `execute` para `public`, `anon` ni `authenticated`) y el trabajo
+  `eccia-reconcile-registration-confirmations` cada 5 minutos. El adaptador en
+  memoria recibe un reloj inyectable para fijar la fecha de creación, como lo
+  hace `creado_en` en la base.
+- Límite conocido: si el evento de una inscripción no existe, el caso de uso
+  falla antes de contar el intento, de modo que la fila se reintenta en cada
+  ciclo hasta salir de la ventana de 48 horas. Una clave foránea hacia
+  `eccia_eventos` lo vuelve improbable; contarlo como intento fallido queda como
+  mejora si aparece.
+- Prerrequisitos productivos (no se ejecuta nada remoto): 1) habilitar `pg_cron`
+  en el proyecto remoto (Database > Extensions) antes de aplicar la migración;
+  2) desplegar `db-events` (con la ruta `reconcile`) antes de la migración, como
+  ya exige el orden de despliegue; 3) el secreto de webhook y
+  `functions_base_url` deben estar en `private.eccia_config`, porque el despacho
+  los reutiliza; sin ellos el cron emite una advertencia y no encola nada.

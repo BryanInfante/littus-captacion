@@ -35,6 +35,7 @@ export const registrationsStub = (
   create,
   findForConfirmation: unused,
   saveConfirmation: unused,
+  findPendingConfirmations: unused,
 });
 
 export const eventsStub = (findByCode: Events["findByCode"]): Events => ({

@@ -8,10 +8,15 @@ import { createSupabasePorts } from "../../_shared/adapters/supabase/registratio
 import { memoryPorts, openEvent } from "../fixtures/registration.ts";
 import type { EventContent } from "../../_shared/domain/event.ts";
 import {
+  CONFIRMATION_MAX_ATTEMPTS,
+  CONFIRMATION_RETRY_AFTER_MS,
+  CONFIRMATION_RETRY_WINDOW_MS,
   confirmationFailed,
   confirmationSucceeded,
   INITIAL_CONFIRMATION,
 } from "../../_shared/domain/confirmation.ts";
+
+const CONFIRMATION_RETRY_AFTER_MINUTES = CONFIRMATION_RETRY_AFTER_MS / 60000;
 
 // Fixed local destinations, never an environment-supplied project or key.
 const LOCAL_DATABASE_URL =
@@ -233,6 +238,99 @@ for (const adapter of ["memory", "supabase"] as const) {
             (await registrations.findForConfirmation(created.id))
               ?.confirmation,
             sent,
+          );
+        },
+      );
+      await t.step(
+        "Registrations lists pending confirmations by the same rule as the domain",
+        async () => {
+          const minutes = (count: number) => count * 60 * 1000;
+          const created = await registrations.create({
+            eventCode: firstCode,
+            name: "Pending Probe",
+            email: Email.parse("pending@example.invalid"),
+            marketingConsent: false,
+          });
+          const pendingAt = async (offsetMs: number) =>
+            await registrations.findPendingConfirmations({
+              now: new Date(Date.now() + offsetMs),
+              limit: 1000,
+            });
+
+          // Fresh rows wait for the immediate webhook; stale ones are listed.
+          assertEquals((await pendingAt(0)).includes(created.id), false);
+          assertEquals(
+            (await pendingAt(minutes(CONFIRMATION_RETRY_AFTER_MINUTES + 1)))
+              .includes(created.id),
+            true,
+          );
+          assertEquals(
+            (await registrations.findPendingConfirmations({
+              now: new Date(Date.now() + minutes(60)),
+              limit: 1,
+            })).length,
+            1,
+          );
+
+          // A failed attempt restarts the wait from the attempt itself.
+          const failed = confirmationFailed(
+            INITIAL_CONFIRMATION,
+            new DomainError("MAIL_DELIVERY_FAILED"),
+            new Date(),
+          );
+          await registrations.saveConfirmation(created.id, failed);
+          assertEquals(
+            (await pendingAt(minutes(CONFIRMATION_RETRY_AFTER_MINUTES - 1)))
+              .includes(created.id),
+            false,
+          );
+          assertEquals(
+            (await pendingAt(minutes(CONFIRMATION_RETRY_AFTER_MINUTES + 1)))
+              .includes(created.id),
+            true,
+          );
+
+          // Exhausted rows are no longer listed.
+          await registrations.saveConfirmation(created.id, {
+            ...failed,
+            attempts: CONFIRMATION_MAX_ATTEMPTS,
+          });
+          assertEquals(
+            (await pendingAt(minutes(60))).includes(created.id),
+            false,
+          );
+
+          // Sent rows are never listed; neither is anything past the window.
+          const other = await registrations.create({
+            eventCode: firstCode,
+            name: "Sent Probe",
+            email: Email.parse("sent@example.invalid"),
+            marketingConsent: false,
+          });
+          assertEquals(
+            (await pendingAt(minutes(60))).includes(other.id),
+            true,
+          );
+          await registrations.saveConfirmation(
+            other.id,
+            confirmationSucceeded(INITIAL_CONFIRMATION, "email-3", new Date()),
+          );
+          assertEquals(
+            (await pendingAt(minutes(60))).includes(other.id),
+            false,
+          );
+          const unsent = await registrations.create({
+            eventCode: firstCode,
+            name: "Old Probe",
+            email: Email.parse("old@example.invalid"),
+            marketingConsent: false,
+          });
+          assertEquals(
+            (await registrations.findPendingConfirmations({
+              now: new Date(Date.now() + CONFIRMATION_RETRY_WINDOW_MS + 1000),
+              limit: 1000,
+            })).includes(unsent.id),
+            false,
           );
         },
       );

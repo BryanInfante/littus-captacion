@@ -1,6 +1,7 @@
 import {
   type ConfirmationState,
   INITIAL_CONFIRMATION,
+  isConfirmationRetryDue,
   isConfirmationSent,
 } from "../../domain/confirmation.ts";
 import { DomainError } from "../../domain/errors.ts";
@@ -17,8 +18,13 @@ import type {
 export class MemoryRegistrations implements Registrations {
   private readonly records = new Map<string, Registration>();
   private readonly confirmations = new Map<string, ConfirmationState>();
+  private readonly createdAt = new Map<string, Date>();
 
-  constructor(private readonly events: Events) {}
+  // The clock stamps creation, like the database default does.
+  constructor(
+    private readonly events: Events,
+    private readonly clock: () => Date = () => new Date(),
+  ) {}
 
   async create(input: RegistrationDetails): Promise<Registration> {
     if (await this.events.findByCode(input.eventCode) === null) {
@@ -31,6 +37,7 @@ export class MemoryRegistrations implements Registrations {
     const registration: Registration = { ...input, id: crypto.randomUUID() };
     this.records.set(key, registration);
     this.confirmations.set(registration.id, INITIAL_CONFIRMATION);
+    this.createdAt.set(registration.id, this.clock());
     return { ...registration };
   }
 
@@ -52,5 +59,20 @@ export class MemoryRegistrations implements Registrations {
       this.confirmations.set(id, state);
     }
     return Promise.resolve();
+  }
+
+  findPendingConfirmations(
+    query: { readonly now: Date; readonly limit: number },
+  ): Promise<readonly string[]> {
+    const due: { id: string; createdAt: Date }[] = [];
+    for (const [id, state] of this.confirmations) {
+      const createdAt = this.createdAt.get(id);
+      if (
+        createdAt !== undefined &&
+        isConfirmationRetryDue(createdAt, state, query.now)
+      ) due.push({ id, createdAt });
+    }
+    due.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return Promise.resolve(due.slice(0, query.limit).map(({ id }) => id));
   }
 }

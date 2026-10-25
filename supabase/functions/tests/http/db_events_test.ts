@@ -21,7 +21,7 @@ const setup = async () => {
   const events = new MemoryEvents([openEvent({ code: SCAN_A_CODE })], [
     scanAContent,
   ]);
-  const registrations = new MemoryRegistrations(events);
+  const registrations = new MemoryRegistrations(events, () => NOW);
   const mailer = new MemoryMailer();
   const entries: LogEntry[] = [];
   const handler = createHandler({
@@ -173,6 +173,84 @@ Deno.test("an unexpected failure is a 500 with no internal details or personal d
   assertEquals(await response.json(), { error: "INTERNAL_ERROR" });
   assertEquals(entries.length > 0, true);
   const logged = JSON.stringify(entries);
+  assertEquals(logged.includes("example.invalid"), false);
+  assertEquals(logged.includes(registration.id), false);
+  assertEquals(logged.includes(SECRET), false);
+});
+
+const RECONCILE_ROUTE = "https://edge.example.invalid/db-events/reconcile";
+const reconcileRequest = (
+  secret: string | null = SECRET,
+  url = RECONCILE_ROUTE,
+) => {
+  const headers = new Headers({ "content-type": "application/json" });
+  if (secret !== null) headers.set("x-eccia-webhook-secret", secret);
+  return new Request(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ type: "INSERT", record: { id: null } }),
+  });
+};
+
+Deno.test("reconcile requires the webhook secret", async () => {
+  const { handler, mailer } = await setup();
+  const response = await handler(reconcileRequest(null));
+  assertEquals(response.status, 401);
+  assertEquals(mailer.sent.length, 0);
+});
+
+Deno.test("reconcile returns only counts and sends nothing for fresh registrations", async () => {
+  const { handler, mailer } = await setup();
+  const response = await handler(reconcileRequest());
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), {
+    attempted: 0,
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+  });
+  assertEquals(mailer.sent.length, 0);
+});
+
+Deno.test("reconcile retries a stale pending confirmation, on both path prefixes, with no personal data in the response or the log", async () => {
+  const entries: LogEntry[] = [];
+  const events = new MemoryEvents([openEvent({ code: SCAN_A_CODE })], [
+    scanAContent,
+  ]);
+  const registrations = new MemoryRegistrations(
+    events,
+    () => new Date(NOW.getTime() - 11 * 60 * 1000),
+  );
+  const mailer = new MemoryMailer();
+  const registration = await registrations.create({
+    eventCode: SCAN_A_CODE,
+    name: "Ana Pérez",
+    email: Email.parse("ana@example.invalid"),
+    marketingConsent: false,
+  });
+  const handler = createHandler({
+    events,
+    registrations,
+    mailer,
+    siteUrl: SITE_URL,
+    now: () => NOW,
+    logger: createLogger((entry) => entries.push(entry)),
+    requestId: () => "request-fixture-002",
+    webhookSecret: () => SECRET,
+  });
+
+  const response = await handler(
+    reconcileRequest(
+      SECRET,
+      "https://edge.example.invalid/functions/v1/db-events/reconcile",
+    ),
+  );
+
+  assertEquals(response.status, 200);
+  const body = await response.json();
+  assertEquals(body, { attempted: 1, sent: 1, failed: 0, skipped: 0 });
+  assertEquals(mailer.sent.length, 1);
+  const logged = JSON.stringify([body, entries]);
   assertEquals(logged.includes("example.invalid"), false);
   assertEquals(logged.includes(registration.id), false);
   assertEquals(logged.includes(SECRET), false);

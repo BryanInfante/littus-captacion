@@ -1,7 +1,9 @@
 import { createClient } from "../../deps.ts";
 import type { Database } from "../../database.types.ts";
 import {
+  CONFIRMATION_MAX_ATTEMPTS,
   type ConfirmationFailureCode,
+  confirmationRetryBounds,
   type ConfirmationState,
 } from "../../domain/confirmation.ts";
 import { Email } from "../../domain/email.ts";
@@ -216,6 +218,25 @@ export const createSupabasePorts = (config: {
         if (error !== null) {
           throw new Error("Registration repository unavailable");
         }
+      },
+      findPendingConfirmations: async ({ now, limit }) => {
+        // Same rule as isConfirmationRetryDue, expressed as a query.
+        const { dueBefore, createdAfter } = confirmationRetryBounds(now);
+        const due = dueBefore.toISOString();
+        const { data, error } = await client.from("eccia_taller_inscripciones")
+          .select("id")
+          .is("confirmation_sent_at", null)
+          .lt("confirmation_attempts", CONFIRMATION_MAX_ATTEMPTS)
+          .gt("creado_en", createdAfter.toISOString())
+          .or(
+            `and(confirmation_last_attempt_at.is.null,creado_en.lte.${due}),confirmation_last_attempt_at.lte.${due}`,
+          )
+          .order("creado_en", { ascending: true })
+          .limit(limit);
+        if (error !== null) {
+          throw new Error("Registration repository unavailable");
+        }
+        return data.map((row) => row.id);
       },
     },
   };

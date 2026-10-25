@@ -1,3 +1,7 @@
+import {
+  reconcilePendingConfirmations,
+  RECONCILIATION_BATCH_SIZE,
+} from "../_shared/application/reconcilePendingConfirmations.ts";
 import { sendRegistrationConfirmation } from "../_shared/application/sendRegistrationConfirmation.ts";
 import { loadDbEventsConfig } from "../_shared/config.ts";
 import { errorResponse } from "../_shared/http/errors.ts";
@@ -35,10 +39,21 @@ export const createHandler = (
     );
     return Response.json({ status: outcome.status });
   };
+  // The body is ignored: the scheduler only says "run a cycle".
+  const reconcile = async (): Promise<Response> =>
+    Response.json(
+      await reconcilePendingConfirmations(
+        { limit: RECONCILIATION_BATCH_SIZE },
+        dependencies,
+        dependencies.now(),
+      ),
+    );
   // Kong strips /functions/v1 before forwarding; unit callers may retain it.
   const routes = new Map([
     ["/functions/v1/db-events/registration-created", registrationCreated],
     ["/db-events/registration-created", registrationCreated],
+    ["/functions/v1/db-events/reconcile", reconcile],
+    ["/db-events/reconcile", reconcile],
   ]);
   const handle = async (request: Request): Promise<Response> => {
     const requestId = dependencies.requestId();
