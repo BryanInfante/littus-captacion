@@ -6,6 +6,12 @@ import type { Events } from "../../_shared/ports/events.ts";
 import type { Registrations } from "../../_shared/ports/registrations.ts";
 import { createSupabasePorts } from "../../_shared/adapters/supabase/registrationPorts.ts";
 import { memoryPorts, openEvent } from "../fixtures/registration.ts";
+import type { EventContent } from "../../_shared/domain/event.ts";
+import {
+  confirmationFailed,
+  confirmationSucceeded,
+  INITIAL_CONFIRMATION,
+} from "../../_shared/domain/confirmation.ts";
 
 // Fixed local destinations, never an environment-supplied project or key.
 const LOCAL_DATABASE_URL =
@@ -19,6 +25,22 @@ type Fixture = {
   secondCode: string;
   cleanup: () => Promise<void>;
 };
+
+// Event copy that the confirmation email renders; the second event leaves every
+// optional field empty to prove nulls round-trip.
+const contentFor = (code: string, full: boolean): EventContent => ({
+  code,
+  title: "Port contract fixture",
+  kind: full ? "curso" : null,
+  dateText: full ? "Del 1 al 2 de enero" : null,
+  durationText: full ? "8 horas" : null,
+  scheduleText: full ? "10h00 a 12h00" : null,
+  modalityText: full ? "Online" : null,
+  includesText: full ? "Certificado" : null,
+  communityUrl: full ? "https://community.example.invalid/x" : null,
+  streamUrl: full ? "https://stream.example.invalid/x" : null,
+  classroomUrl: full ? "https://classroom.example.invalid/" : null,
+});
 
 const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
   const firstCode = `contract-${crypto.randomUUID()}`;
@@ -35,7 +57,10 @@ const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
   ];
   if (adapter === "memory") {
     return {
-      ...memoryPorts(seed),
+      ...memoryPorts(seed, [
+        contentFor(firstCode, true),
+        contentFor(secondCode, false),
+      ]),
       firstCode,
       secondCode,
       cleanup: () => Promise.resolve(),
@@ -77,14 +102,21 @@ const fixture = async (adapter: "memory" | "supabase"): Promise<Fixture> => {
       "Use an isolated local stack with webhook dispatch unconfigured",
     );
     for (const event of seed) {
+      const content = contentFor(event.code, event.code === firstCode);
       await sql`
         insert into public.eccia_eventos
           (masterclass_codigo, event_title, codigo_prefijo, activo,
-           inscripcion_abre_en, inscripcion_cierra_en, requiere_ficha_inspector)
-        values (${event.code}, 'Port contract fixture', 'ECCIA-TEST-', ${event.active},
+           inscripcion_abre_en, inscripcion_cierra_en, requiere_ficha_inspector,
+           tipo, fecha_texto, duracion, horario_texto, modalidad_texto,
+           incluye_texto, comunidad_url, transmision_url, aula_url)
+        values (${event.code}, ${content.title}, 'ECCIA-TEST-', ${event.active},
                 ${event.registrationOpensAt}, ${event.registrationClosesAt}, ${
         event.requiresInspectorProfile ?? false
-      })
+      },
+                ${content.kind}, ${content.dateText}, ${content.durationText},
+                ${content.scheduleText}, ${content.modalityText},
+                ${content.includesText}, ${content.communityUrl},
+                ${content.streamUrl}, ${content.classroomUrl})
       `;
     }
     return {
@@ -131,6 +163,79 @@ for (const adapter of ["memory", "supabase"] as const) {
       await t.step("Events returns null for an unknown event", async () => {
         assertEquals(await events.findByCode("unknown-contract-event"), null);
       });
+      await t.step(
+        "Events returns confirmation content, with empty fields as null",
+        async () => {
+          assertEquals(
+            await events.findContentByCode(firstCode),
+            contentFor(firstCode, true),
+          );
+          assertEquals(
+            await events.findContentByCode(secondCode),
+            contentFor(secondCode, false),
+          );
+          assertEquals(
+            await events.findContentByCode("unknown-contract-event"),
+            null,
+          );
+        },
+      );
+      await t.step(
+        "Registrations persists confirmation state and never overwrites a sent one",
+        async () => {
+          const created = await registrations.create({
+            eventCode: firstCode,
+            name: "Confirmation Probe",
+            email: Email.parse("confirmation@example.invalid"),
+            marketingConsent: false,
+          });
+          assertEquals(await registrations.findForConfirmation(created.id), {
+            registration: created,
+            confirmation: INITIAL_CONFIRMATION,
+          });
+          assertEquals(
+            await registrations.findForConfirmation(crypto.randomUUID()),
+            null,
+          );
+
+          const failedAt = new Date("2026-10-25T12:00:00.000Z");
+          const failed = confirmationFailed(
+            INITIAL_CONFIRMATION,
+            new DomainError("MAIL_DELIVERY_FAILED"),
+            failedAt,
+          );
+          await registrations.saveConfirmation(created.id, failed);
+          assertEquals(
+            (await registrations.findForConfirmation(created.id))
+              ?.confirmation,
+            failed,
+          );
+
+          const sentAt = new Date("2026-10-25T12:05:00.000Z");
+          const sent = confirmationSucceeded(failed, "email-1", sentAt);
+          await registrations.saveConfirmation(created.id, sent);
+          assertEquals(
+            (await registrations.findForConfirmation(created.id))
+              ?.confirmation,
+            sent,
+          );
+
+          // A late failure or a concurrent replay cannot undo the sent state.
+          await registrations.saveConfirmation(
+            created.id,
+            confirmationFailed(failed, new Error("late"), sentAt),
+          );
+          await registrations.saveConfirmation(
+            created.id,
+            confirmationSucceeded(failed, "email-2", sentAt),
+          );
+          assertEquals(
+            (await registrations.findForConfirmation(created.id))
+              ?.confirmation,
+            sent,
+          );
+        },
+      );
       await t.step(
         "Registrations creates normalized email and preserves consent",
         async () => {

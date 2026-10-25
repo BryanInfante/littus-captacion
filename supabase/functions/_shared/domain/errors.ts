@@ -9,7 +9,9 @@ export type DomainErrorCode =
   | "INSPECTOR_PROFILE_UNEXPECTED"
   | "INSPECTOR_PROFILE_IN_PROGRESS"
   | "PHOTO_UPLOAD_FAILED"
-  | "PAYLOAD_TOO_LARGE";
+  | "PAYLOAD_TOO_LARGE"
+  | "REGISTRATION_NOT_FOUND"
+  | "MAIL_DELIVERY_FAILED";
 
 export class DomainError extends Error {
   // Whole seconds until the exhausted limit resets; only RATE_LIMITED has one.

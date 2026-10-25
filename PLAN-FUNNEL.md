@@ -624,7 +624,7 @@ cerrar.
 | FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | hecho localmente (2026-10-24); landing sin publicar                                                    | FN-02-07                  |           |
 | FN-02-11  | Marcar `PLAN-INSCRIPCION-UT2.md` como reemplazado por F2 y F3.                                                                                                                                                                                                                                                                                                                                                                     | pendiente                                                                                              | FN-02-09                  |           |
 | FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | WA-01/WA-02 locales; activación productiva pendiente                                                   | FN-02-05b                 |           |
-| FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-01                  |           |
+| FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | en curso (delegado directo)                                                                            | FN-03-01                  |           |
 | FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | pendiente                                                                                              | FN-03-02                  |           |
 | FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-03-02                  |           |
 | FN-03-05  | `sync-resend-contact` dentro de `db-events` con la regla de consentimiento en el caso de uso.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-04                  |           |
@@ -1575,3 +1575,52 @@ publicar; no hubo deploy, push ni PR.
   transición. No se configuró ningún secreto real, desplegó código ni contactó
   servicios externos; WA-01/WA-02 están implementados localmente, no activados
   en producción.
+
+### FN-03-02 · `db-events` y `sendRegistrationConfirmation`
+
+- Ruta: delegado directo (writer Sonnet); entrega `feature-branch-chain`. Se
+  extiende la plantilla y el contrato del envío existente; no se copian. Commits
+  locales, sin push, PR, despliegue, secretos productivos ni envíos externos.
+- Pronóstico: 1300–1600 líneas autorales en dos unidades de trabajo (el
+  heurístico de 400 líneas es solo orientativo): (1) núcleo de confirmación
+  (dominio, puertos, adaptadores memoria y Supabase, migración, caso de uso,
+  plantilla compartida y sus pruebas); (2) borde (adaptador Resend, ruta
+  `db-events`, configuración, despliegue, ratchet, plantilla heredada y plan).
+- Decisión de diseño: `confirmation_error` ya existe (`20260621173138`) y cumple
+  el papel de "último error"; no se duplica con `confirmation_last_error`. La
+  migración añade solo `confirmation_attempts` y `confirmation_last_attempt_at`
+  en `eccia_taller_inscripciones`.
+- Decisión de diseño: el contenido propio del evento que hoy está fijo en la
+  plantilla (horario, modalidad, qué incluye, enlaces de comunidad, transmisión
+  y aula) pasa a columnas nulas de `eccia_eventos`, con `check` de HTTPS. No se
+  exponen en `eccia_eventos_publicos`. Los valores de producción son datos del
+  operador, no una migración.
+- [x] FN-03-02a: dominio de confirmación (estado, idempotencia, error saneado) y
+      errores tipados.
+- [x] FN-03-02b: puertos `Mailer`, `Registrations` y `Events` ampliados solo con
+      lo que consume el caso de uso; adaptadores memoria.
+- [x] FN-03-02c: migración (columnas de intentos y de contenido del evento),
+      `database.types.ts`, adaptador Supabase y prueba de contrato en el stack
+      local.
+- [x] FN-03-02d: plantilla compartida parametrizada por el evento con snapshots
+      de Scan A y UT2.
+- [x] FN-03-02e: caso de uso `sendRegistrationConfirmation`.
+- [ ] FN-03-02f: adaptador Resend (`/emails`, solo correo operativo) con `fetch`
+      inyectado.
+- [ ] FN-03-02g: grupo `db-events` con la ruta "inscripción creada" tras
+      `withWebhookAuth`; `config.toml` y workflow de despliegue.
+- [ ] FN-03-02h: ratchet del host de Resend con lista heredada decreciente; la
+      plantilla heredada reutiliza la compartida; aserciones PowerShell movidas
+      reemplazadas por pruebas `deno test`.
+- Evidencia de la unidad 1 (núcleo): RED observado para el dominio
+  (`confirmation_test.ts`), la plantilla (`registrationConfirmation_test.ts`) y
+  el caso de uso (`sendRegistrationConfirmation_test.ts`) con módulos ausentes
+  antes de implementar; GREEN con `deno task check` (194 pruebas, 46 pasos) y
+  `deno task test:db` (18 pruebas, 60 pasos) tras `supabase db reset --local`.
+  La prueba de contrato del adaptador Supabase se escribió junto con el
+  adaptador, sin RED previo; se comprobó su sensibilidad quitando la guarda
+  `confirmation_sent_at is null` del `update`, lo que hizo fallar el paso "never
+  overwrites a sent one".
+- Los snapshots viven en `tests/email/snapshots/*.snap` (no `.html`) porque
+  `deno fmt` reformatea HTML y rompería la igualdad exacta. Se actualizan de
+  forma deliberada, nunca desde la prueba.

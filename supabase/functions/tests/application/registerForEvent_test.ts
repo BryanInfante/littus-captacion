@@ -2,7 +2,12 @@ import { assertEquals, assertRejects } from "../dev_deps.ts";
 import { Email } from "../../_shared/domain/email.ts";
 import { DomainError } from "../../_shared/domain/errors.ts";
 import { registerForEvent } from "../../_shared/application/registerForEvent.ts";
-import { memoryPorts, NOW, openEvent } from "../fixtures/registration.ts";
+import {
+  memoryPorts,
+  NOW,
+  openEvent,
+  registrationsStub,
+} from "../fixtures/registration.ts";
 
 const input = (email = "person@example.invalid") => ({
   eventCode: openEvent().code,
@@ -43,12 +48,10 @@ Deno.test("registerForEvent rejects an unknown event without creating a registra
   const error = await assertRejects(() =>
     registerForEvent(input(), {
       events: ports.events,
-      registrations: {
-        create: () => {
-          writes++;
-          throw new Error("Unexpected write");
-        },
-      },
+      registrations: registrationsStub(() => {
+        writes++;
+        throw new Error("Unexpected write");
+      }),
     }, NOW), DomainError);
   if (!(error instanceof DomainError)) {
     throw new Error("Expected DomainError", { cause: error });
@@ -63,12 +66,10 @@ Deno.test("registerForEvent rejects a closed event without creating a registrati
   const error = await assertRejects(() =>
     registerForEvent(input(), {
       events: ports.events,
-      registrations: {
-        create: () => {
-          writes++;
-          throw new Error("Unexpected write");
-        },
-      },
+      registrations: registrationsStub(() => {
+        writes++;
+        throw new Error("Unexpected write");
+      }),
     }, NOW), DomainError);
   if (!(error instanceof DomainError)) {
     throw new Error("Expected DomainError", { cause: error });

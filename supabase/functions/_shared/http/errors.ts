@@ -12,6 +12,8 @@ const STATUS: Readonly<Record<DomainErrorCode, number>> = {
   INSPECTOR_PROFILE_IN_PROGRESS: 409,
   PHOTO_UPLOAD_FAILED: 502,
   PAYLOAD_TOO_LARGE: 413,
+  REGISTRATION_NOT_FOUND: 404,
+  MAIL_DELIVERY_FAILED: 502,
 };
 
 export const errorResponse = (error: unknown, headers: Headers): Response => {

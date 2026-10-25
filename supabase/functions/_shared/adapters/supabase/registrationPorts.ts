@@ -1,11 +1,18 @@
 import { createClient } from "../../deps.ts";
 import type { Database } from "../../database.types.ts";
+import {
+  type ConfirmationFailureCode,
+  type ConfirmationState,
+} from "../../domain/confirmation.ts";
 import { Email } from "../../domain/email.ts";
 import { DomainError } from "../../domain/errors.ts";
-import type { Event } from "../../domain/event.ts";
+import type { Event, EventContent } from "../../domain/event.ts";
 import type { Registration } from "../../domain/registration.ts";
 import type { Events } from "../../ports/events.ts";
-import type { Registrations } from "../../ports/registrations.ts";
+import type {
+  RegistrationConfirmation,
+  Registrations,
+} from "../../ports/registrations.ts";
 
 type EventRow = Database["public"]["Tables"]["eccia_eventos"]["Row"];
 type RegistrationRow =
@@ -47,6 +54,95 @@ const registrationFromRow = (
   marketingConsent: row.marketing_consent,
 });
 
+const EVENT_CONTENT_COLUMNS =
+  "masterclass_codigo,event_title,tipo,fecha_texto,duracion,horario_texto,modalidad_texto,incluye_texto,comunidad_url,transmision_url,aula_url";
+
+const contentFromRow = (
+  row: Pick<
+    EventRow,
+    | "masterclass_codigo"
+    | "event_title"
+    | "tipo"
+    | "fecha_texto"
+    | "duracion"
+    | "horario_texto"
+    | "modalidad_texto"
+    | "incluye_texto"
+    | "comunidad_url"
+    | "transmision_url"
+    | "aula_url"
+  >,
+): EventContent => ({
+  code: row.masterclass_codigo,
+  title: row.event_title,
+  kind: row.tipo,
+  dateText: row.fecha_texto,
+  durationText: row.duracion,
+  scheduleText: row.horario_texto,
+  modalityText: row.modalidad_texto,
+  includesText: row.incluye_texto,
+  communityUrl: row.comunidad_url,
+  streamUrl: row.transmision_url,
+  classroomUrl: row.aula_url,
+});
+
+const CONFIRMATION_COLUMNS =
+  "id,nombre,correo,taller_codigo,marketing_consent,confirmation_sent_at,confirmation_resend_email_id,confirmation_attempts,confirmation_last_attempt_at,confirmation_error";
+
+// The legacy function stored free-form provider text in confirmation_error;
+// anything that is not a known code reads back as an unexpected error.
+const failureCodeFromColumn = (
+  value: string | null,
+): ConfirmationFailureCode | null =>
+  value === null
+    ? null
+    : value === "MAIL_DELIVERY_FAILED"
+    ? value
+    : "UNEXPECTED_ERROR";
+
+const confirmationFromRow = (
+  row: Pick<
+    RegistrationRow,
+    | "id"
+    | "nombre"
+    | "correo"
+    | "taller_codigo"
+    | "marketing_consent"
+    | "confirmation_sent_at"
+    | "confirmation_resend_email_id"
+    | "confirmation_attempts"
+    | "confirmation_last_attempt_at"
+    | "confirmation_error"
+  >,
+): RegistrationConfirmation => ({
+  registration: registrationFromRow(row),
+  confirmation: {
+    sentAt: row.confirmation_sent_at === null
+      ? null
+      : new Date(row.confirmation_sent_at),
+    emailId: row.confirmation_resend_email_id,
+    attempts: row.confirmation_attempts,
+    lastAttemptAt: row.confirmation_last_attempt_at === null
+      ? null
+      : new Date(row.confirmation_last_attempt_at),
+    lastError: failureCodeFromColumn(row.confirmation_error),
+  },
+});
+
+const confirmationUpdate = (
+  state: ConfirmationState,
+): Database["public"]["Tables"]["eccia_taller_inscripciones"]["Update"] => ({
+  confirmation_sent_at: state.sentAt === null
+    ? null
+    : state.sentAt.toISOString(),
+  confirmation_resend_email_id: state.emailId,
+  confirmation_attempts: state.attempts,
+  confirmation_last_attempt_at: state.lastAttemptAt === null
+    ? null
+    : state.lastAttemptAt.toISOString(),
+  confirmation_error: state.lastError,
+});
+
 export const createSupabasePorts = (config: {
   readonly url: string;
   readonly serviceRoleKey: string;
@@ -69,6 +165,13 @@ export const createSupabasePorts = (config: {
           .eq("masterclass_codigo", code).maybeSingle();
         if (error !== null) throw new Error("Event repository unavailable");
         return data === null ? null : eventFromRow(data);
+      },
+      findContentByCode: async (code) => {
+        const { data, error } = await client.from("eccia_eventos")
+          .select(EVENT_CONTENT_COLUMNS)
+          .eq("masterclass_codigo", code).maybeSingle();
+        if (error !== null) throw new Error("Event repository unavailable");
+        return data === null ? null : contentFromRow(data);
       },
     },
     registrations: {
@@ -95,6 +198,24 @@ export const createSupabasePorts = (config: {
           throw new Error("Registration repository returned no row");
         }
         return registrationFromRow(data);
+      },
+      findForConfirmation: async (id) => {
+        const { data, error } = await client.from("eccia_taller_inscripciones")
+          .select(CONFIRMATION_COLUMNS).eq("id", id).maybeSingle();
+        if (error !== null) {
+          throw new Error("Registration repository unavailable");
+        }
+        return data === null ? null : confirmationFromRow(data);
+      },
+      saveConfirmation: async (id, state) => {
+        // The sent_at guard keeps a concurrent replay from overwriting the
+        // winner's email id.
+        const { error } = await client.from("eccia_taller_inscripciones")
+          .update(confirmationUpdate(state)).eq("id", id)
+          .is("confirmation_sent_at", null);
+        if (error !== null) {
+          throw new Error("Registration repository unavailable");
+        }
       },
     },
   };

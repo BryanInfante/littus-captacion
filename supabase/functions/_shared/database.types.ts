@@ -33,7 +33,9 @@ export type Database = {
       "eccia_eventos": {
         Row: {
           "activo": boolean;
+          "aula_url": string | null;
           "codigo_prefijo": string | null;
+          "comunidad_url": string | null;
           "creado_en": string;
           "descripcion": string | null;
           "duracion": string | null;
@@ -42,18 +44,24 @@ export type Database = {
           "event_title_linea_2": string | null;
           "fecha_evento": string | null;
           "fecha_texto": string | null;
+          "horario_texto": string | null;
+          "incluye_texto": string | null;
           "inscripcion_abre_en": string | null;
           "inscripcion_cierra_en": string | null;
           "masterclass_codigo": string;
+          "modalidad_texto": string | null;
           "nextcloud_directorio": string | null;
           "requiere_ficha_inspector": boolean;
           "resumen": string | null;
           "tipo": string | null;
+          "transmision_url": string | null;
         };
         ComputedFields: never;
         Insert: {
           "activo"?: boolean;
+          "aula_url"?: string | null;
           "codigo_prefijo"?: string | null;
+          "comunidad_url"?: string | null;
           "creado_en"?: string;
           "descripcion"?: string | null;
           "duracion"?: string | null;
@@ -62,17 +70,23 @@ export type Database = {
           "event_title_linea_2"?: string | null;
           "fecha_evento"?: string | null;
           "fecha_texto"?: string | null;
+          "horario_texto"?: string | null;
+          "incluye_texto"?: string | null;
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo": string;
+          "modalidad_texto"?: string | null;
           "nextcloud_directorio"?: string | null;
           "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
           "tipo"?: string | null;
+          "transmision_url"?: string | null;
         };
         Update: {
           "activo"?: boolean;
+          "aula_url"?: string | null;
           "codigo_prefijo"?: string | null;
+          "comunidad_url"?: string | null;
           "creado_en"?: string;
           "descripcion"?: string | null;
           "duracion"?: string | null;
@@ -81,13 +95,17 @@ export type Database = {
           "event_title_linea_2"?: string | null;
           "fecha_evento"?: string | null;
           "fecha_texto"?: string | null;
+          "horario_texto"?: string | null;
+          "incluye_texto"?: string | null;
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string;
+          "modalidad_texto"?: string | null;
           "nextcloud_directorio"?: string | null;
           "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
           "tipo"?: string | null;
+          "transmision_url"?: string | null;
         };
         Relationships: [];
       };
@@ -285,7 +303,9 @@ export type Database = {
       };
       "eccia_taller_inscripciones": {
         Row: {
+          "confirmation_attempts": number;
           "confirmation_error": string | null;
+          "confirmation_last_attempt_at": string | null;
           "confirmation_resend_email_id": string | null;
           "confirmation_sent_at": string | null;
           "correo": string;
@@ -301,7 +321,9 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          "confirmation_attempts"?: number;
           "confirmation_error"?: string | null;
+          "confirmation_last_attempt_at"?: string | null;
           "confirmation_resend_email_id"?: string | null;
           "confirmation_sent_at"?: string | null;
           "correo": string;
@@ -316,7 +338,9 @@ export type Database = {
           "taller_codigo": string;
         };
         Update: {
+          "confirmation_attempts"?: number;
           "confirmation_error"?: string | null;
+          "confirmation_last_attempt_at"?: string | null;
           "confirmation_resend_email_id"?: string | null;
           "confirmation_sent_at"?: string | null;
           "correo"?: string;

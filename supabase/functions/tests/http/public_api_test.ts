@@ -4,7 +4,12 @@ import { createLogger } from "../../_shared/log.ts";
 import type { LogEntry } from "../../_shared/log.ts";
 import type { RegistrationDetails } from "../../_shared/domain/registration.ts";
 import type { Registrations } from "../../_shared/ports/registrations.ts";
-import { memoryPorts, NOW, openEvent } from "../fixtures/registration.ts";
+import {
+  memoryPorts,
+  NOW,
+  openEvent,
+  registrationsStub,
+} from "../fixtures/registration.ts";
 import { MemoryHumanChallenge } from "../../_shared/adapters/memory/humanChallenge.ts";
 import { MemoryRequestLimits } from "../../_shared/adapters/memory/requestLimits.ts";
 import type { HumanChallenge } from "../../_shared/ports/humanChallenge.ts";
@@ -52,13 +57,12 @@ const setup = (options: {
   ]);
   const stored: Awaited<ReturnType<Registrations["create"]>>[] = [];
   const entries: Readonly<Record<string, unknown>>[] = [];
-  const registrations: Registrations = options.registrations ?? {
-    create: async (input: RegistrationDetails) => {
+  const registrations: Registrations = options.registrations ??
+    registrationsStub(async (input: RegistrationDetails) => {
       const result = await ports.registrations.create(input);
       stored.push(result);
       return result;
-    },
-  };
+    });
   const handler = createHandler({
     events: ports.events,
     registrations,
@@ -392,11 +396,9 @@ Deno.test("public-api returns 500 without internal details or personal data in l
   const secret =
     "database password=private-secret Private Test Person private.person@example.invalid";
   const { handler, entries } = setup({
-    registrations: {
-      create: () => {
-        throw new Error(secret);
-      },
-    },
+    registrations: registrationsStub(() => {
+      throw new Error(secret);
+    }),
   });
   const response = await handler(request());
   assertEquals(response.status, 500);
