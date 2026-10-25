@@ -1847,3 +1847,26 @@ publicar; no hubo deploy, push ni PR.
   impreso), `MAIL_FROM` y `MAIL_REPLY_TO` (los valores de la función de
   confirmación retirada). Verificado por digest SHA-256 de los tres.
 - El mismo secreto de webhook falta en `private.eccia_config` (paso 4).
+
+### Inscripción · diseño responsive del formulario (2026-10-24)
+
+- Rama `feat/inscripcion-responsive-layout`, sobre `fix/ficha-document-label`.
+  Sin cambios de comportamiento: mismos ids, `name`, textos, validación y
+  payloads.
+- `inscripcion.html`: el `article` suma la clase `inscripcion-layout`. El
+  contenedor pasa de 680 px a 1200 px máximo (token
+  `--eccia-layout-container-max-width`), con márgenes de 16 px.
+- Desde 960 px: dos columnas (resumen del evento a la izquierda, fija al hacer
+  scroll; formulario a la derecha). Por debajo, apilado.
+- El formulario se agrupa en `fieldset` con `legend`: "Tus datos", "Ficha del
+  inspector" (solo si el evento la exige), "Foto" y "Confirmación". Dentro de
+  cada grupo, una columna en móvil y dos desde 640 px; ancho completo para
+  empleador, foto, consentimientos, verificación y botón.
+- Cambio de orden de foco: el consentimiento de marketing pasa del inicio al
+  grupo "Confirmación", antes del consentimiento de datos y la verificación.
+- Foto: vista previa local con `URL.createObjectURL`, revocada al cambiar o
+  vaciar la selección. No altera lo que se valida ni se sube.
+- Pruebas: `inscripcion_view_test.ts` cubre envoltorio de layout, grupos y
+  leyendas (con y sin ficha) y vista previa/revocación. La disposición CSS no es
+  verificable con DOM falso; se confirmó solo que la página y sus módulos sirven
+  con 200. Pendiente: revisión visual en navegador a 360, 700 y 1280 px.

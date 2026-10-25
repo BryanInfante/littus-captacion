@@ -409,3 +409,116 @@ Deno.test("success replaces the form and moves focus to its heading", async () =
   assertEquals(text(title(page.document)), "Webinar de ultrasonido");
   assertEquals(/correo/i.test(text(content(page.document))), false);
 });
+
+const groups = (document: Document) =>
+  [...document.querySelectorAll("form > fieldset")].map((group) => ({
+    legend: text(group.querySelector(":scope > legend")),
+    ids: [...group.querySelectorAll("[id]")]
+      .map((element) => element.id)
+      .filter((id) => !/-(help|error)$|-label$/.test(id)),
+  }));
+
+Deno.test("the page markup exposes the two-column layout wrapper", async () => {
+  const { document } = await loadRegistrationPage();
+  const layout = document.querySelector("article.inscripcion-layout");
+  assertEquals(layout !== null, true);
+  assertEquals(
+    [...(layout?.children ?? [])].map((child) => child.id),
+    ["inscripcion-evento", "inscripcion-contenido"],
+  );
+});
+
+Deno.test("a plain event groups its fields into labelled fieldsets", async () => {
+  const { document } = await loadRegistrationPage();
+  renderOpenEvent(document, EVENT);
+  assertEquals(groups(document), [
+    { legend: "Tus datos", ids: ["nombre", "correo"] },
+    {
+      legend: "Confirmación",
+      ids: [
+        "marketing-consent",
+        "verificacion",
+        "inscripcion-enviar",
+      ],
+    },
+  ]);
+  assertEquals(
+    document.querySelector("#inscripcion-estado")?.closest("fieldset"),
+    null,
+  );
+});
+
+Deno.test("an inspector event adds the ficha and photo fieldsets in order", async () => {
+  const { document } = await loadRegistrationPage();
+  renderOpenEvent(document, { ...EVENT, requiresInspectorProfile: true });
+  assertEquals(groups(document), [
+    { legend: "Tus datos", ids: ["correo", "nombres", "apellidos"] },
+    {
+      legend: "Ficha del inspector",
+      ids: [
+        "documento",
+        "pais",
+        "experiencia-anios",
+        "empleador-declarado",
+        "sin-empleador",
+      ],
+    },
+    { legend: "Foto", ids: ["foto", "foto-preview"] },
+    {
+      legend: "Confirmación",
+      ids: [
+        "marketing-consent",
+        "consentimiento-datos",
+        "verificacion",
+        "inscripcion-enviar",
+      ],
+    },
+  ]);
+});
+
+Deno.test("the selected photo is previewed locally and the URL is revoked on change", async () => {
+  const { document, window, dispatch } = await loadRegistrationPage();
+  const created: string[] = [];
+  const revoked: string[] = [];
+  const refs = renderOpenEvent(
+    document,
+    { ...EVENT, requiresInspectorProfile: true },
+    {
+      create: (_file: Blob) => {
+        const url = `blob:preview-${created.length}`;
+        created.push(url);
+        return url;
+      },
+      revoke: (url: string) => revoked.push(url),
+    },
+  );
+  const photo = refs.inspectorFields!.foto;
+  const preview = byId(document, "foto-preview") as HTMLImageElement;
+  assertEquals(preview.hasAttribute("hidden"), true);
+
+  const select = (files: File[]) => {
+    Object.defineProperty(photo, "files", { value: files, configurable: true });
+    dispatch(photo, "change");
+  };
+  const file = new (window as unknown as typeof globalThis).File(
+    ["x"],
+    "a.png",
+    { type: "image/png" },
+  );
+  select([file]);
+  assertEquals(preview.getAttribute("src"), "blob:preview-0");
+  assertEquals(
+    preview.getAttribute("alt"),
+    "Vista previa de la foto seleccionada",
+  );
+  assertEquals(preview.hasAttribute("hidden"), false);
+
+  select([file]);
+  assertEquals(revoked, ["blob:preview-0"]);
+  assertEquals(preview.getAttribute("src"), "blob:preview-1");
+
+  select([]);
+  assertEquals(revoked, ["blob:preview-0", "blob:preview-1"]);
+  assertEquals(preview.hasAttribute("hidden"), true);
+  assertEquals(preview.hasAttribute("src"), false);
+});
