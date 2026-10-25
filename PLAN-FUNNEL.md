@@ -595,6 +595,28 @@ Absorbe `PLAN-CERTIFICADOS-MULTICURSO.md`.
 - Mover firmas y plantilla debajo de `NEXTCLOUD_ROOT_DIR` (NC-02), corte de
   dominio y redirector de QR (DOM-04 a DOM-06 del subplan).
 
+### Orden vigente (decisión del usuario, 2026-10-24)
+
+Prioridad: dejar operativa la inscripción directa al curso
+`ultrasonido-nivel-ii` (`inscripcion.html?evento=` con ficha del inspector). La
+preinscripción al webinar Scan A (landing) queda para después.
+
+1. FN-03-03: trigger único "inscripción creada" y retiro de
+   `send-registration-confirmation`.
+2. FN-03-04: reconciliador `pg_cron`; sin él, una confirmación fallida no se
+   reintenta.
+3. Corte productivo coordinado: secreto de webhook en la base y en las
+   funciones, despliegue de funciones primero, textos y enlaces de UT2 en la
+   fila del evento, secretos `MAIL_FROM`, `MAIL_REPLY_TO`, Nextcloud y
+   Turnstile, y después las migraciones en orden.
+4. Publicación de la ficha en Pages.
+5. Prueba en vivo: navegador, Turnstile, 429 y foto en Nextcloud.
+6. Apertura de la ventana de UT2 (decisión del usuario, D-06).
+
+Después: FN-03-05, FN-01-07/08, FN-02-09, publicación de FN-02-10, FN-02-11 y
+F6. F4 y F5 pasan a noviembre de 2026. Cada paso remoto requiere autorización
+explícita.
+
 ## Tareas
 
 Cada tarea cierra con al menos un commit (Conventional Commits) con pruebas y
