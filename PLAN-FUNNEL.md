@@ -470,6 +470,52 @@ simple) y UT2 (inscripción con ficha y foto).
     usuario como valor de `LITTUS_BRAND_KIT`.
   - Prueba en vivo solo en producción después de Pages: CORS acepta un único
     origen. Todos los eventos siguen cerrados.
+- **Curso de Ultrasonido Convencional Nivel II (datos del usuario,
+  2026-10-24).** Inscripción directa al curso, sin preinscripción. Fila de datos
+  (FN-02-08), no migración: `masterclass_codigo = 'ultrasonido-nivel-ii'`,
+  `event_title = 'Ultrasonido Convencional Nivel II'`, `tipo = 'curso'`,
+  `resumen = 'Curso de Ultrasonido Convencional Nivel II.'`,
+  `fecha_texto = 'Del 17 al 25 de octubre de 2026'`,
+  `fecha_evento = '2026-10-17'` (inicio), `duracion = '40 horas'`,
+  `codigo_prefijo = null` (certgen emite el certificado del curso),
+  `activo = true`, ventana de inscripción nula (cerrado). Orden según el plan:
+  FN-02-08 carga la fila cerrada; FN-02-06 agrega la ficha del inspector, que es
+  parte de la inscripción directa; F3 agrega la confirmación; abrir la ventana
+  es decisión del usuario (D-06). El curso termina el 2026-10-25, antes de que
+  FN-02-06 y F3 estén listos: los participantes se inscriben después del curso,
+  lo que no afecta la certificación, que es posterior. El cierre de la ventana
+  se define al abrirla.
+- **FN-02-06, ficha del inspector (2026-10-24).** Campos según
+  `certgen alta-inspector` (`certgen/src/certgen/domain/alta_inspector.py`,
+  `schemas/alta_inspector.schema.json`): `nombres` y `apellidos` separados (el
+  PDF imprime `APELLIDOS NOMBRES`; juntos, en mayúsculas, forman
+  `nombre_completo` de 5 a 60), `documento` (`^[0-9A-Z-]{6,20}$`, recortado, en
+  mayúsculas y sin espacios), `pais`, `correo` (el de la inscripción),
+  `experiencia_anios` (entero de 0 a 60), empleador declarado en texto o "sin
+  empleador" (el operador lo traduce al slug de certgen), foto JPEG/PNG de hasta
+  5 MB validada por firma de bytes (certgen no la recibe; queda en Nextcloud
+  privado para el operador) y consentimiento de tratamiento de datos obligatorio
+  con su fecha.
+  - El evento declara `requiere_ficha_inspector` (boolean, default `false`,
+    expuesto en `eccia_eventos_publicos`); `ultrasonido-nivel-ii` lo tiene en
+    `true`. Una sola página y una sola ruta: JSON sin ficha, `multipart` con
+    ficha; el caso de uso rechaza una ficha no pedida o una faltante.
+  - Orden: parseo (con tope de `content-length` antes de leer el cuerpo),
+    desafío, límites, evento abierto, y recién entonces la ficha.
+  - Consistencia entre sistemas (máquina de estados persistida, patrón del
+    reclamo de certificados): se inserta la ficha en estado `pendiente_foto` con
+    una ruta reservada derivada de su id (el trigger de integridad crea la
+    inscripción en la misma transacción); se sube la foto a esa ruta; se marca
+    `completa`. Si la subida falla, compensación: se borra la ficha (y su
+    inscripción). Una ficha `pendiente_foto` más vieja que el umbral se trata
+    como intento abandonado y el siguiente intento de la misma persona la retoma
+    con la misma ruta. F3 despacha la confirmación solo para fichas `completa`.
+  - Nextcloud: `NEXTCLOUD_ROOT_DIR` nace en `_shared/config.ts` (D-11); foto en
+    `<raíz>/inscripciones/<evento>/fotos/<DOCUMENTO>_<id>.<ext>`; nunca se
+    registra la ruta ni datos personales en logs.
+  - La tabla `eccia_fichas_inspector` se crea en una migración nueva (la
+    `20261018140000` nunca se aplicó y no está en `main`), sin `insert` de
+    evento y con el trigger de integridad `security definer`.
 - **Eventos como datos.** Las filas de UT2 y del webinar las carga el operador
   con la service role (SQL registrado en Avance), no una migración; para el
   stack local, `supabase/seed.sql`.
@@ -503,6 +549,9 @@ inscripción sin confirmación entregada no está completa.
 
 ### F4. Certificados
 
+> **Pospuesta** (decisión del usuario, 2026-10-24): F4 y F5 pasan a noviembre de
+> 2026. El resto del plan sigue en orden.
+
 Absorbe `PLAN-CERTIFICADOS-MULTICURSO.md`.
 
 - Grupo `certificates`; `issueCertificate` busca la inscripción por (correo,
@@ -526,6 +575,9 @@ Absorbe `PLAN-CERTIFICADOS-MULTICURSO.md`.
 
 ### F5. Regalos y correo masivo de invitación
 
+> **Pospuesta** (decisión del usuario, 2026-10-24): F4 y F5 pasan a noviembre de
+> 2026. El resto del plan sigue en orden.
+
 - `public/regalos.html?evento=<slug>` genérica; los regalos son datos del
   evento; sin regalos, la página lo dice. Concilia con `PLAN-DOMINIO-ECCIA.md`
   ("regalos se apaga"): la página fija actual sale de `public/`.
@@ -543,56 +595,78 @@ Absorbe `PLAN-CERTIFICADOS-MULTICURSO.md`.
 - Mover firmas y plantilla debajo de `NEXTCLOUD_ROOT_DIR` (NC-02), corte de
   dominio y redirector de QR (DOM-04 a DOM-06 del subplan).
 
+### Orden vigente (decisión del usuario, 2026-10-24)
+
+Prioridad: dejar operativa la inscripción directa al curso
+`ultrasonido-nivel-ii` (`inscripcion.html?evento=` con ficha del inspector). La
+preinscripción al webinar Scan A (landing) queda para después.
+
+1. FN-03-03: trigger único "inscripción creada" y retiro de
+   `send-registration-confirmation`.
+2. FN-03-04: reconciliador `pg_cron`; sin él, una confirmación fallida no se
+   reintenta.
+3. Corte productivo coordinado: secreto de webhook en la base y en las
+   funciones, despliegue de funciones primero, textos y enlaces de UT2 en la
+   fila del evento, secretos `MAIL_FROM`, `MAIL_REPLY_TO`, Nextcloud y
+   Turnstile, y después las migraciones en orden.
+4. Publicación de la ficha en Pages.
+5. Prueba en vivo: navegador, Turnstile, 429 y foto en Nextcloud.
+6. Apertura de la ventana de UT2 (decisión del usuario, D-06).
+
+Después: FN-03-05, FN-01-07/08, FN-02-09, publicación de FN-02-10, FN-02-11 y
+F6. F4 y F5 pasan a noviembre de 2026. Cada paso remoto requiere autorización
+explícita.
+
 ## Tareas
 
 Cada tarea cierra con al menos un commit (Conventional Commits) con pruebas y
 documentación junto al comportamiento. La columna "Commit" se completa al
 cerrar.
 
-| ID        | Tarea                                                                                                                                                                                                                                                                                                                                                                                                                              | Estado                                                          | Depende de                | Commit    |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------- | --------- |
-| FN-00-01  | Consulta en vivo de solo lectura: privilegios por columna (C1), certificados por estado, `codigo_certificado` y `creado_en` de los `external` (C3). Registrar en Avance.                                                                                                                                                                                                                                                           | hecho (2026-10-18)                                              | —                         |           |
-| FN-00-02  | Migración que revoca `anon`/`authenticated` en certificados, elimina la política abierta y cierra los defaults de tablas de `postgres` en `public`; ratchet `deno task test:db`; `deno.json` y `deps.ts`; eliminar `certificate-claim.tests.ps1:98-99`.                                                                                                                                                                            | hecho (2026-10-18)                                              | FN-00-01, DU-03           | `f4b1f49` |
-| FN-00-03  | Usuario aplica `20261018130000` con `apply_migration` del MCP (no `db push`, ver FN-01-07); antes y después, consultas de solo lectura: conteo por `certificate_status`, `has_table_privilege`/`has_column_privilege` de `anon`/`authenticated` sobre las tablas de `public`, `pg_policies` y `pg_default_acl` de `postgres`.                                                                                                      | hecho (2026-10-19; remoto `20261019002307`)                     | FN-00-02                  |           |
-| FN-00-04  | Procedimiento del operador para registrar un certificado `external` con service role (`README.md`).                                                                                                                                                                                                                                                                                                                                | hecho (2026-10-19)                                              | FN-00-03                  |           |
-| FN-01-01  | Usuario instala Deno, Supabase CLI y Docker (DU-01).                                                                                                                                                                                                                                                                                                                                                                               | hecho (2026-10-18, DU-01)                                       | DU-01                     |           |
-| FN-01-02  | Primer `deno fmt` del legado en commit propio y ampliación de `fmt`/`lint` de `deno.json` (creado en FN-00-02); tarea para servir `public/`.                                                                                                                                                                                                                                                                                       | hecho (`7c6ad5b`, `8635acc`, `e4549b9`)                         | FN-01-01                  |           |
-| FN-01-03  | Primer `deno check` del legado; correcciones o lista de legado.                                                                                                                                                                                                                                                                                                                                                                    | hecho (`dc75769`, `cd48426`)                                    | FN-01-02                  |           |
-| FN-01-04  | Ratchets de arquitectura con lista de legado decreciente (el de privilegios públicos ya existe, FN-00-02).                                                                                                                                                                                                                                                                                                                         | hecho (`e6b6ee0`)                                               | FN-01-02                  |           |
-| FN-01-05  | Job `check` en CI (Deno + pglast); `needs: check` en todo despliegue.                                                                                                                                                                                                                                                                                                                                                              | implementado, pendiente de primera ejecución en CI              | FN-01-04                  |           |
-| FN-01-06  | Workflow de despliegue de las funciones de producción, con exclusiones explícitas.                                                                                                                                                                                                                                                                                                                                                 | implementado, pendiente de primera ejecución en CI              | FN-01-05                  |           |
-| FN-01-07  | Reconciliar el historial de migraciones remoto con los archivos locales (hallazgo de deriva en Avance, 2026-10-18), con decisión del usuario sobre el método; hasta entonces las migraciones llegan una a una por `apply_migration`.                                                                                                                                                                                               | pendiente                                                       | FN-00-03                  |           |
-| FN-01-08  | Incorporar HTML, CSS y YAML al alcance de `deno fmt` (hoy fuera: marcado de marca y workflows), cuando las suites PowerShell que fijan su texto estén reemplazadas; vaciar las listas de legado de `fmt` y `lint` de `deno.json`.                                                                                                                                                                                                  | pendiente                                                       | FN-01-04                  |           |
-| FN-02-01  | Consulta en vivo: inscripciones por `taller_codigo`; usuario confirma DU-04.                                                                                                                                                                                                                                                                                                                                                       | hecho (2026-10-19)                                              | DU-04                     |           |
-| FN-02-02  | Migración de datos idempotente de la clave del webinar; conteos.                                                                                                                                                                                                                                                                                                                                                                   | hecho (2026-10-19)                                              | FN-02-01                  |           |
-| FN-02-12  | Migración de datos idempotente que crea en `eccia_eventos` las filas de los cursos `end-vt-pt-mt-2026-09` (11 inscripciones) y `end-vt-ii-pt-ii-ut-i-2026-10` (2), como eventos pasados: `activo = false`, título derivado del código, `codigo_prefijo` provisorio y `fecha_evento`, `fecha_texto` y `duracion` nulos (sin datos inventados); requisito de la FK. Decisión del usuario 2026-10-19: conservar las 13 inscripciones. | hecho (2026-10-19)                                              | FN-02-01                  |           |
-| FN-02-03  | Migración: quitar default, FK `not valid`, privilegios y política según DU-02; migración aparte con `validate`.                                                                                                                                                                                                                                                                                                                    | hecho (2026-10-19)                                              | FN-02-02, FN-02-12, DU-02 |           |
-| FN-02-04  | Columnas del evento que la rebanada lee y vista `eccia_eventos_publicos`.                                                                                                                                                                                                                                                                                                                                                          | hecho localmente (2026-10-24); sin desplegar ni aplicar         | FN-01-05                  |           |
-| FN-02-05a | Inscripción vertical en `public-api`: dominio (`Email`, ventana de inscripción), puertos `Events`/`Registrations`, adaptadores de memoria y Supabase, HTTP, configuración y registro seguro; migración de `inscripcion_abre_en`/`inscripcion_cierra_en` y pruebas de contrato locales. Sin despliegue ni protección contra abuso en esta rebanada.                                                                                 | hecho localmente (2026-10-19); sin desplegar                    | FN-02-03                  |           |
-| FN-02-05b | Protección contra abuso: puertos `HumanChallenge`/`RequestLimits`, Turnstile y memoria, HMAC-SHA-256 y consumo atómico en Postgres; 5 intentos por correo/hora y 20 por IP/hora. Fase 1: pruebas; fase 2: implementación y migración tras RED observado. Sin despliegue (FN-02-13).                                                                                                                                                | hecho localmente (2026-10-24); sin desplegar                    | FN-02-05a                 |           |
-| FN-02-13  | Primer despliegue de `public-api`, separado del desarrollo: usuario crea widget Turnstile y configura `TURNSTILE_SECRET_KEY`, `REQUEST_LIMIT_HASH_SECRET` y `PUBLIC_SITE_URL` como secretos de Edge Function. Con autorización de despliegue, actualizar workflow y `NOT_DEPLOYED` juntos; verificar CORS real y rechazos 403/429. No abrir eventos.                                                                               | hecho (2026-10-24); 429 extremo a extremo pendiente de FN-02-07 | FN-02-05b                 |           |
-| FN-02-06  | Paso de ficha del inspector: `InspectorProfiles`, `FileStorage` Nextcloud, compensación; reescritura de `20261018140000`; validación movida a `domain/`.                                                                                                                                                                                                                                                                           | pendiente                                                       | FN-02-05b                 |           |
-| FN-02-07  | Página `public/inscripcion.html?evento=` con `js/core/` y `js/inscripcion/`; ratchet del cliente API.                                                                                                                                                                                                                                                                                                                              | hecho localmente (2026-10-24); sin desplegar ni aplicar         | FN-02-05b                 |           |
-| FN-02-08  | Filas de eventos como datos (operador) y `supabase/seed.sql` local.                                                                                                                                                                                                                                                                                                                                                                | pendiente                                                       | FN-02-04                  |           |
-| FN-02-09  | Retirar `public/inscripcion-ut2.*`, `submit-ficha-inspector` y su suite.                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                       | FN-02-06, FN-02-07        |           |
-| FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | pendiente                                                       | FN-02-07                  |           |
-| FN-02-11  | Marcar `PLAN-INSCRIPCION-UT2.md` como reemplazado por F2 y F3.                                                                                                                                                                                                                                                                                                                                                                     | pendiente                                                       | FN-02-09                  |           |
-| FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | pendiente                                                       | FN-02-05b                 |           |
-| FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                       | FN-03-01                  |           |
-| FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | pendiente                                                       | FN-03-02                  |           |
-| FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                       | FN-03-02                  |           |
-| FN-03-05  | `sync-resend-contact` dentro de `db-events` con la regla de consentimiento en el caso de uso.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                       | FN-03-04                  |           |
-| FN-04-01  | `certificates`: `issueCertificate` por (correo, evento), datos del evento, columnas del subplan.                                                                                                                                                                                                                                                                                                                                   | pendiente                                                       | FN-02-03, FN-02-06        |           |
-| FN-04-02  | Renderer PDF y QR como adaptadores con versiones exactas e `import()` dinámico.                                                                                                                                                                                                                                                                                                                                                    | pendiente                                                       | FN-04-01                  |           |
-| FN-04-03  | `download-certificate` y `validate-certificate` como adaptadores delgados con URL congeladas.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                       | FN-04-01                  |           |
-| FN-04-04  | Generación de plantillas (salida elegida del subplan).                                                                                                                                                                                                                                                                                                                                                                             | pendiente                                                       | FN-04-02                  |           |
-| FN-04-05  | Certificado de curso activado por evento, con acción del operador.                                                                                                                                                                                                                                                                                                                                                                 | pendiente                                                       | FN-04-02                  |           |
-| FN-04-06  | Sacar las referencias de diseño del certificado de `public/`.                                                                                                                                                                                                                                                                                                                                                                      | pendiente                                                       | FN-04-02                  |           |
-| FN-05-01  | Página de regalos genérica y reclamo de certificado por evento.                                                                                                                                                                                                                                                                                                                                                                    | pendiente                                                       | FN-04-01                  |           |
-| FN-05-02  | `operator`: invitación por Broadcasts con `segment_id`; absorber `send-workshop-reminder` y `send-course-access`.                                                                                                                                                                                                                                                                                                                  | pendiente                                                       | FN-03-05                  |           |
-| FN-06-01  | Revisar `PLAN-DOMINIO-ECCIA.md` contra `CLAUDE.md`.                                                                                                                                                                                                                                                                                                                                                                                | pendiente                                                       | —                         |           |
-| FN-06-02  | `PUBLIC_SITE_URL` en el legado restante; mover firmas y plantilla (NC-02).                                                                                                                                                                                                                                                                                                                                                         | pendiente                                                       | FN-06-01, FN-04-01        |           |
-| FN-06-03  | Corte de dominio y redirector de QR (DOM-04 a DOM-06 revisados).                                                                                                                                                                                                                                                                                                                                                                   | pendiente                                                       | FN-06-02, FN-05-01        |           |
+| ID        | Tarea                                                                                                                                                                                                                                                                                                                                                                                                                              | Estado                                                                                                 | Depende de                | Commit      |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------- | ----------- |
+| FN-00-01  | Consulta en vivo de solo lectura: privilegios por columna (C1), certificados por estado, `codigo_certificado` y `creado_en` de los `external` (C3). Registrar en Avance.                                                                                                                                                                                                                                                           | hecho (2026-10-18)                                                                                     | —                         |             |
+| FN-00-02  | Migración que revoca `anon`/`authenticated` en certificados, elimina la política abierta y cierra los defaults de tablas de `postgres` en `public`; ratchet `deno task test:db`; `deno.json` y `deps.ts`; eliminar `certificate-claim.tests.ps1:98-99`.                                                                                                                                                                            | hecho (2026-10-18)                                                                                     | FN-00-01, DU-03           | `f4b1f49`   |
+| FN-00-03  | Usuario aplica `20261018130000` con `apply_migration` del MCP (no `db push`, ver FN-01-07); antes y después, consultas de solo lectura: conteo por `certificate_status`, `has_table_privilege`/`has_column_privilege` de `anon`/`authenticated` sobre las tablas de `public`, `pg_policies` y `pg_default_acl` de `postgres`.                                                                                                      | hecho (2026-10-19; remoto `20261019002307`)                                                            | FN-00-02                  |             |
+| FN-00-04  | Procedimiento del operador para registrar un certificado `external` con service role (`README.md`).                                                                                                                                                                                                                                                                                                                                | hecho (2026-10-19)                                                                                     | FN-00-03                  |             |
+| FN-01-01  | Usuario instala Deno, Supabase CLI y Docker (DU-01).                                                                                                                                                                                                                                                                                                                                                                               | hecho (2026-10-18, DU-01)                                                                              | DU-01                     |             |
+| FN-01-02  | Primer `deno fmt` del legado en commit propio y ampliación de `fmt`/`lint` de `deno.json` (creado en FN-00-02); tarea para servir `public/`.                                                                                                                                                                                                                                                                                       | hecho (`7c6ad5b`, `8635acc`, `e4549b9`)                                                                | FN-01-01                  |             |
+| FN-01-03  | Primer `deno check` del legado; correcciones o lista de legado.                                                                                                                                                                                                                                                                                                                                                                    | hecho (`dc75769`, `cd48426`)                                                                           | FN-01-02                  |             |
+| FN-01-04  | Ratchets de arquitectura con lista de legado decreciente (el de privilegios públicos ya existe, FN-00-02).                                                                                                                                                                                                                                                                                                                         | hecho (`e6b6ee0`)                                                                                      | FN-01-02                  |             |
+| FN-01-05  | Job `check` en CI (Deno + pglast); `needs: check` en todo despliegue.                                                                                                                                                                                                                                                                                                                                                              | implementado, pendiente de primera ejecución en CI                                                     | FN-01-04                  |             |
+| FN-01-06  | Workflow de despliegue de las funciones de producción, con exclusiones explícitas.                                                                                                                                                                                                                                                                                                                                                 | implementado, pendiente de primera ejecución en CI                                                     | FN-01-05                  |             |
+| FN-01-07  | Reconciliar el historial de migraciones remoto con los archivos locales (hallazgo de deriva en Avance, 2026-10-18), con decisión del usuario sobre el método; hasta entonces las migraciones llegan una a una por `apply_migration`.                                                                                                                                                                                               | pendiente                                                                                              | FN-00-03                  |             |
+| FN-01-08  | Incorporar HTML, CSS y YAML al alcance de `deno fmt` (hoy fuera: marcado de marca y workflows), cuando las suites PowerShell que fijan su texto estén reemplazadas; vaciar las listas de legado de `fmt` y `lint` de `deno.json`.                                                                                                                                                                                                  | pendiente                                                                                              | FN-01-04                  |             |
+| FN-02-01  | Consulta en vivo: inscripciones por `taller_codigo`; usuario confirma DU-04.                                                                                                                                                                                                                                                                                                                                                       | hecho (2026-10-19)                                                                                     | DU-04                     |             |
+| FN-02-02  | Migración de datos idempotente de la clave del webinar; conteos.                                                                                                                                                                                                                                                                                                                                                                   | hecho (2026-10-19)                                                                                     | FN-02-01                  |             |
+| FN-02-12  | Migración de datos idempotente que crea en `eccia_eventos` las filas de los cursos `end-vt-pt-mt-2026-09` (11 inscripciones) y `end-vt-ii-pt-ii-ut-i-2026-10` (2), como eventos pasados: `activo = false`, título derivado del código, `codigo_prefijo` provisorio y `fecha_evento`, `fecha_texto` y `duracion` nulos (sin datos inventados); requisito de la FK. Decisión del usuario 2026-10-19: conservar las 13 inscripciones. | hecho (2026-10-19)                                                                                     | FN-02-01                  |             |
+| FN-02-03  | Migración: quitar default, FK `not valid`, privilegios y política según DU-02; migración aparte con `validate`.                                                                                                                                                                                                                                                                                                                    | hecho (2026-10-19)                                                                                     | FN-02-02, FN-02-12, DU-02 |             |
+| FN-02-04  | Columnas del evento que la rebanada lee y vista `eccia_eventos_publicos`.                                                                                                                                                                                                                                                                                                                                                          | hecho y publicado (2026-10-24)                                                                         | FN-01-05                  |             |
+| FN-02-05a | Inscripción vertical en `public-api`: dominio (`Email`, ventana de inscripción), puertos `Events`/`Registrations`, adaptadores de memoria y Supabase, HTTP, configuración y registro seguro; migración de `inscripcion_abre_en`/`inscripcion_cierra_en` y pruebas de contrato locales. Sin despliegue ni protección contra abuso en esta rebanada.                                                                                 | hecho localmente (2026-10-19); sin desplegar                                                           | FN-02-03                  |             |
+| FN-02-05b | Protección contra abuso: puertos `HumanChallenge`/`RequestLimits`, Turnstile y memoria, HMAC-SHA-256 y consumo atómico en Postgres; 5 intentos por correo/hora y 20 por IP/hora. Fase 1: pruebas; fase 2: implementación y migración tras RED observado. Sin despliegue (FN-02-13).                                                                                                                                                | hecho localmente (2026-10-24); sin desplegar                                                           | FN-02-05a                 |             |
+| FN-02-13  | Primer despliegue de `public-api`, separado del desarrollo: usuario crea widget Turnstile y configura `TURNSTILE_SECRET_KEY`, `REQUEST_LIMIT_HASH_SECRET` y `PUBLIC_SITE_URL` como secretos de Edge Function. Con autorización de despliegue, actualizar workflow y `NOT_DEPLOYED` juntos; verificar CORS real y rechazos 403/429. No abrir eventos.                                                                               | hecho (2026-10-24); 429 extremo a extremo pendiente de FN-02-07                                        | FN-02-05b                 |             |
+| FN-02-06  | Paso de ficha del inspector: `InspectorProfiles`, `FileStorage` Nextcloud, compensación; reescritura de `20261018140000`; validación movida a `domain/`.                                                                                                                                                                                                                                                                           | implementado local; migración aplicada; flag UT2=true                                                  | FN-02-05b                 |             |
+| FN-02-07  | Página `public/inscripcion.html?evento=` con `js/core/` y `js/inscripcion/`; ratchet del cliente API.                                                                                                                                                                                                                                                                                                                              | hecho y publicado (2026-10-24)                                                                         | FN-02-05b                 |             |
+| FN-02-08  | Filas de eventos como datos (operador) y `supabase/seed.sql` local.                                                                                                                                                                                                                                                                                                                                                                | fila UT2 cargada; ruta corregida; integración handler local aprobada; browser/Turnstile real pendiente | FN-02-04                  |             |
+| FN-02-09  | Retirar `public/inscripcion-ut2.*`, `submit-ficha-inspector` y su suite.                                                                                                                                                                                                                                                                                                                                                           | pendiente                                                                                              | FN-02-06, FN-02-07        |             |
+| FN-02-10  | Formulario de la landing a la página genérica; retirar el `fetch` de `public/app.js`.                                                                                                                                                                                                                                                                                                                                              | hecho localmente (2026-10-24); landing sin publicar                                                    | FN-02-07                  |             |
+| FN-02-11  | Marcar `PLAN-INSCRIPCION-UT2.md` como reemplazado por F2 y F3.                                                                                                                                                                                                                                                                                                                                                                     | pendiente                                                                                              | FN-02-09                  |             |
+| FN-03-01  | Secreto de webhook, `eccia_post_to_edge_function` con cabecera, autenticación en `_shared/http`.                                                                                                                                                                                                                                                                                                                                   | WA-01/WA-02 locales; activación productiva pendiente                                                   | FN-02-05b                 |             |
+| FN-03-02  | `db-events` y `sendRegistrationConfirmation` con estado, idempotencia y snapshots por evento.                                                                                                                                                                                                                                                                                                                                      | implementado localmente (pendiente FN-03-03)                                                           | FN-03-01                  | 3353e07, +1 |
+| FN-03-03  | Un trigger de despacho "inscripción creada"; eliminar `20261018150000` y las dos funciones de confirmación.                                                                                                                                                                                                                                                                                                                        | implementado localmente; corte productivo pendiente                                                    | FN-03-02                  |             |
+| FN-03-04  | Reconciliador `pg_cron`.                                                                                                                                                                                                                                                                                                                                                                                                           | implementado localmente; corte productivo pendiente                                                    |                           | FN-03-02    |
+| FN-03-05  | `sync-resend-contact` dentro de `db-events` con la regla de consentimiento en el caso de uso.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-03-04                  |             |
+| FN-04-01  | `certificates`: `issueCertificate` por (correo, evento), datos del evento, columnas del subplan.                                                                                                                                                                                                                                                                                                                                   | pendiente                                                                                              | FN-02-03, FN-02-06        |             |
+| FN-04-02  | Renderer PDF y QR como adaptadores con versiones exactas e `import()` dinámico.                                                                                                                                                                                                                                                                                                                                                    | pendiente                                                                                              | FN-04-01                  |             |
+| FN-04-03  | `download-certificate` y `validate-certificate` como adaptadores delgados con URL congeladas.                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-04-01                  |             |
+| FN-04-04  | Generación de plantillas (salida elegida del subplan).                                                                                                                                                                                                                                                                                                                                                                             | pendiente                                                                                              | FN-04-02                  |             |
+| FN-04-05  | Certificado de curso activado por evento, con acción del operador.                                                                                                                                                                                                                                                                                                                                                                 | pendiente                                                                                              | FN-04-02                  |             |
+| FN-04-06  | Sacar las referencias de diseño del certificado de `public/`.                                                                                                                                                                                                                                                                                                                                                                      | pendiente                                                                                              | FN-04-02                  |             |
+| FN-05-01  | Página de regalos genérica y reclamo de certificado por evento.                                                                                                                                                                                                                                                                                                                                                                    | pendiente                                                                                              | FN-04-01                  |             |
+| FN-05-02  | `operator`: invitación por Broadcasts con `segment_id`; absorber `send-workshop-reminder` y `send-course-access`.                                                                                                                                                                                                                                                                                                                  | pendiente                                                                                              | FN-03-05                  |             |
+| FN-06-01  | Revisar `PLAN-DOMINIO-ECCIA.md` contra `CLAUDE.md`.                                                                                                                                                                                                                                                                                                                                                                                | pendiente                                                                                              | —                         |             |
+| FN-06-02  | `PUBLIC_SITE_URL` en el legado restante; mover firmas y plantilla (NC-02).                                                                                                                                                                                                                                                                                                                                                         | pendiente                                                                                              | FN-06-01, FN-04-01        |             |
+| FN-06-03  | Corte de dominio y redirector de QR (DOM-04 a DOM-06 revisados).                                                                                                                                                                                                                                                                                                                                                                   | pendiente                                                                                              | FN-06-02, FN-05-01        |             |
 
 ### Reemplazo de las aserciones PowerShell
 
@@ -687,6 +761,96 @@ mientras contenga piezas de UT2 que el workflow desplegaría
 
 ## Avance
 
+### Ejecución local de FN-02-06 (2026-10-24)
+
+Alcance: implementar el diseño vinculante sin rediseño, sin operaciones remotas.
+Ruta: trabajo delegado a un único `odd-worker`; este documento se usa para
+seguimiento porque `odd/tasks/` no está entre las rutas permitidas. Estimación:
+tres unidades cohesivas, aproximadamente 1.500 líneas de autoría; solo commits
+locales en `feat/ficha-inspector`, sin preparar PRs ni publicar.
+
+- [x] IP-01: persistencia privada, vista pública, seed y tipos generados.
+      Comprobar primero el contrato fallando; después reset local y pruebas de
+      DB.
+- [x] IP-02: extender la inscripción con ficha, puertos, adaptadores y máquina
+      de estados con compensación. Probar orden, duplicados, recuperación y
+      fallos.
+- [x] IP-03: formulario accesible condicional, multipart, errores y cierre.
+      Probar con linkedom y ejecutar todas las verificaciones solicitadas.
+
+Cada unidad exige `deno task check` antes de su commit. Criterio de aceptación:
+contrato certgen normalizado, datos privados, foto privada reservada antes de la
+subida, recuperación de pendientes y comportamiento JSON existente preservado.
+Pendiente en producción: aprobación para migración remota, valor del usuario de
+`NEXTCLOUD_ROOT_DIR`, activar el indicador de UT2 y despacho F3 solo para
+`completa`. No se modifica F3 en esta tarea.
+
+Estado inicial sustituido por la ejecución observada: `deno --version` responde
+2.9.7. RED de IP-01 observado antes de escribir la migración: el indicador
+`requiere_ficha_inspector` no existía en la base local; la vista y el contrato
+de PostgREST todavía no exponían la nueva columna (3 aserciones fallidas en las
+dos pruebas de DB). `supabase db reset --local` aplicó
+`20261025090000_add_inspector_profiles.sql` y cargó el indicador UT2 en el seed.
+GREEN: `deno task test:db`, 14 pruebas aprobadas (47 pasos); tipos regenerados
+con `supabase gen types typescript --local`, formateados y comparación posterior
+de bytes idéntica; `deno task check`, 147 pruebas aprobadas (41 pasos); pglast,
+22 migraciones analizadas sin error. IP-01: commit `50bc856`; revisión nativa
+declinada para ese candidato, sin desactivar revisiones futuras. No se ejecutó
+ni autorizó operación remota.
+
+IP-02 se implementó en el backend de `public-api`, sin duplicar el pipeline de
+inscripción: el cuerpo se limita antes de leerlo y también durante la lectura;
+challenge, límites y ventana del evento preceden a la validación de ficha. La
+reserva genera el ID y ruta privada antes de subir; la reclamación de pendientes
+usa comparación atómica de `actualizado_en` (umbral de dos minutos), la
+inscripción conserva `marketing_consent` dentro de la transacción del trigger y
+los fallos compensan foto e inscripción. Se amplió la migración IP-01, aún local
+y no publicada, para la marca temporal, el consentimiento y la correspondencia
+entre evento/documento/ID y ruta.
+
+RED de IP-02: la prueba DB primero detectó que la tabla no persistía
+`marketing_consent`; la prueba del adaptador WebDAV detectó que el validador de
+rutas rechazaba el nombre de archivo JPG. Ambos contratos quedaron en verde.
+GREEN: `deno task check`, 162 pruebas aprobadas (41 pasos); `deno task test:db`,
+15 pruebas aprobadas (48 pasos); regeneración local de `database.types.ts`,
+formateo y diff posterior de cero; pglast, 22 migraciones analizadas sin error.
+El estado de IP-02 queda verificado solo en el stack local. No se cambió F3 ni
+se ejecutaron operaciones remotas. `FN-02-06` continúa en curso: IP-03 sigue
+pendiente.
+
+- 2026-10-24: IP-03, cliente de ficha del inspector completado localmente en
+  `feat/ficha-inspector`. El catálogo valida `requiere_ficha_inspector` como
+  booleano; la vista muestra la ficha solo para esos eventos, sin duplicar el
+  campo de nombre general. El modelo refleja los límites de
+  `parseInspectorProfile` y valida el archivo por tipo y tamaño; la firma real
+  sigue siendo responsabilidad del backend. Con ficha se envía el contrato
+  multipart de `public-api` mediante `FormData` del navegador, sin fijar
+  `Content-Type`; sin ficha se conserva el cuerpo JSON anterior. Se reutilizó
+  literalmente el consentimiento de la ficha de UT2 y se añadieron errores
+  accesibles con foco en el primer campo inválido.
+  - RED conductual:
+    `deno test --no-check --allow-read supabase/functions/tests/frontend/api_test.ts supabase/functions/tests/frontend/inscripcion_view_test.ts supabase/functions/tests/frontend/inscripcion_container_test.ts`
+    observó 9 fallos conductuales y 28 aprobaciones: faltaban el indicador de
+    catálogo, multipart, códigos de error, render condicional, validación y
+    recolección de la ficha. La ejecución habitual se hizo después con
+    comprobación de tipos; su fallo inicial de tipos no se cuenta como RED.
+  - GREEN:
+    `deno test --allow-read supabase/functions/tests/frontend/api_test.ts supabase/functions/tests/frontend/inscripcion_model_test.ts supabase/functions/tests/frontend/inscripcion_view_test.ts supabase/functions/tests/frontend/inscripcion_container_test.ts`,
+    47 pruebas aprobadas (44 pasos). Prueba de DB tras
+    `supabase db reset --local`: `deno task test:db`, 15 pruebas aprobadas (48
+    pasos). Tipos regenerados con `supabase gen types typescript --local`,
+    formateados y comparación idéntica con
+    `supabase/functions/_shared/database.types.ts`. `deno task check`: 169
+    pruebas aprobadas (46 pasos); pglast: 22 migraciones; las tres suites
+    PowerShell indicadas en CLAUDE.md: OK; `git diff --check`: limpio.
+  - IP-01 e IP-02 siguen respaldados por los commits `50bc856` y `dbda00e`; el
+    usuario declinó la revisión nativa de cada candidato. No se desactivó
+    revisión ni se hicieron operaciones remotas. IP-03 queda pendiente del ciclo
+    nativo que coordina el orquestador después del commit.
+  - Pendiente en producción: aprobación del usuario para aplicar la migración,
+    valor de `NEXTCLOUD_ROOT_DIR` provisto por el usuario y
+    `requiere_ficha_inspector=true` para UT2. F3 debe despachar solo fichas
+    `completa`; F3 no se implementó en esta tarea.
 - 2026-10-18: plan propuesto. Decisiones D-06 (sin hotfix del webinar) y D-07
   (todos los lanzamientos postergados) registradas. Pendientes DU-01 a DU-04.
 - 2026-10-18: FN-00-01 hecho. Privilegios por columna confirmados en
@@ -1224,3 +1388,462 @@ mientras contenga piezas de UT2 que el workflow desplegaría
     permitido; la prueba de `public_api_test.ts` falló primero (RED en las tres
     variantes 403/429) y pasa con el cambio (`deno task check`: 147 pruebas
     aprobadas). Se despliega con `public-api` al mergear.
+- 2026-10-24: FN-02-04 y FN-02-07 publicados, con aprobación del usuario.
+  `20261024200000_add_public_event_catalog.sql` aplicada con `apply_migration`.
+  Antes: sin vista ni columnas `tipo`/`resumen`; 3 eventos activos. Después:
+  `anon` lee la vista y no puede escribirla ni leer la tabla base;
+  `authenticated` sin acceso; 3 filas en la vista; 0 eventos con `tipo` o
+  `resumen`; columnas exactas. Por PostgREST con la publishable key: vista 200
+  con 3 filas, tabla base 401, escritura en la vista 401, columna ajena 400.
+  Cadena de PRs #22 a #26 integrada en `delivery/inscripcion-generica`; PR de
+  seguimiento #27 con CI en verde, mergeado en `main` (`dc5197d`); `Check`,
+  Pages y despliegue de funciones correctos. En producción, `inscripcion.html`,
+  sus siete módulos y `brand/tokens.css` responden 200; el preflight y un 403 de
+  `public-api` incluyen `access-control-expose-headers: retry-after`. Pendiente:
+  abrir la página en un navegador real (la extensión de Chrome no estaba
+  conectada), cargar datos de un evento y abrir su ventana (FN-02-08) para la
+  prueba de extremo a extremo con Turnstile, incluido el 429.
+- 2026-10-24: FN-02-08. `supabase/seed.sql` carga en local el curso UT2
+  (cerrado) y `prueba-local` (abierto, solo local); `supabase db reset --local`
+  lo aplica, `deno task test:db` 12 aprobadas y `deno task check` 147 aprobadas
+  (commit `5d13668`). Prefijo `ECCIA-UT2-` confirmado por el usuario. Fila del
+  curso cargada en producción con aprobación del usuario, como dato de operador:
+
+  ```sql
+  insert into public.eccia_eventos (
+    masterclass_codigo, event_title, tipo, resumen, fecha_texto, fecha_evento,
+    duracion, codigo_prefijo, activo
+  )
+  values (
+    'ultrasonido-nivel-ii', 'Ultrasonido Convencional Nivel II', 'curso',
+    'Curso de Ultrasonido Convencional Nivel II.',
+    'Del 17 al 25 de octubre de 2026', '2026-10-17', '40 horas', 'ECCIA-UT2-',
+    true
+  )
+  on conflict (masterclass_codigo) do nothing;
+  ```
+
+  Antes: código y prefijo inexistentes, 5 eventos, 3 filas en la vista. Después:
+  6 eventos, 4 filas en la vista, 0 eventos abiertos; la vista pública devuelve
+  el curso con ventana nula. Pendiente de FN-02-08: prueba de extremo a extremo
+  en un navegador real con un evento interno abierto unos minutos (requiere
+  aprobación del usuario y la extensión de Chrome o una prueba manual del
+  usuario). Siguiente tarea según el plan: FN-02-06 (ficha del inspector).
+- 2026-10-24: corrección de `codigo_prefijo`. Error del agente: cargó el curso
+  UT2 con `ECCIA-UT2-`, tomado de `PLAN-INSCRIPCION-UT2.md` sin contrastarlo con
+  certgen. Los certificados de cursos END los emite certgen con su propia
+  numeración (`LITTUS-<registro>_<ENT|CAL|CER>_...`); `codigo_prefijo` es solo
+  el prefijo de los certificados de participación que emite este sistema.
+  Decisión (usuario): nulo para los cursos END. Migración
+  `20261024210000_make_certificate_prefix_optional.sql`: quita el `not null` (el
+  `check` de formato sigue para valores no nulos) y anula los prefijos
+  inventados de `end-vt-pt-mt-2026-09` y `end-vt-ii-pt-ii-ut-i-2026-10`. La
+  prueba `registration_event_test.ts`, que fijaba un prefijo válido y único para
+  esas filas, ahora exige nulo: RED (2 filas con prefijo) y GREEN tras la
+  migración (`test:db` 12 aprobadas; `deno task check` 147; pglast 21
+  migraciones; tipos regenerados, `codigo_prefijo: string | null`). En
+  producción, con aprobación del usuario: migración aplicada y
+  `update public.eccia_eventos set codigo_prefijo = null where
+  masterclass_codigo = 'ultrasonido-nivel-ii' and codigo_prefijo =
+  'ECCIA-UT2-'`
+  como dato de operador. Antes: columna obligatoria; UT2, END09 y END10 con
+  prefijo. Después: columna opcional; esas tres filas nulas; `DF-DMST-`,
+  `LEYV-PMM-` y `ECCIA-UT1-` sin cambios. `seed.sql` alineado.
+
+### Correccion local de nombre del inspector (2026-10-24)
+
+- [x] Corregir `nombre_completo` a `NOMBRES APELLIDOS` en el parser y la
+      migracion no aplicada al remoto. Contrato contrastado con
+      `certgen/domain/alta_inspector.py:8-11`. Ruta: correccion delegada de
+      FN-02-06; alcance limitado a parser, migracion, pruebas y este plan.
+- RED: la prueba de dominio fallo con el orden anterior (`PEREZ ANA MARIA`)
+  frente al esperado (`ANA MARIA PEREZ`). Las pruebas DB contra el stack local
+  anterior tambien detectaron la restriccion de nombre invertida; el adaptador
+  reporto `Inspector profile store unavailable`. Tras el reset, una asercion DB
+  identifico que el caso de nombre invalido debia mantener el orden nuevo.
+- GREEN: prueba focalizada de dominio y aplicacion, 8 aprobadas;
+  `supabase db
+  reset --local` correcto; `deno task test:db`, 15 aprobadas (48
+  pasos); `deno task check`, 169 aprobadas (46 pasos). El reset aplico la
+  migracion localmente. Pendientes: diff check, commit local y revision nativa
+  del orquestador. La migracion sigue sin aplicarse al remoto; no se altero F3.
+
+- Actualizacion posterior: el fix local quedo en el commit `fdfae5b`
+  (`feat/ficha-inspector`); evaluacion nativa `medium`, `under_budget`, 42
+  lineas y `review_due=false`. Con autorizacion explicita, se aplico en
+  produccion la migracion `20261025090000_add_inspector_profiles`, con SHA-256
+  `32ef2d702a9999c64b01121f1256ffc4ead103ae0274620aca660275cb805dac`. La
+  consulta transaccional verifico el SQL exacto, agrego una sola entrada al
+  historial (20 a 21) y dejo intactos los timestamps divergentes; no se uso
+  `db push`. Verificacion posterior: 116 inscripciones, 0 perfiles, 4 eventos
+  publicos y flag nuevo en `false`; lectura anonima del catalogo correcta, RLS y
+  privilegios privados comprobados. No hubo deploy, push, PR ni cambios de F3.
+  En ese momento seguia pendiente la decision del operador de activar
+  `requiere_ficha_inspector=true` para UT2; la inscripcion continua cerrada
+  (limites de ventana nulos).
+
+Actualización posterior: UT2 quedó con `requiere_ficha_inspector=true`;
+producción verificada con 116 inscripciones, 0 perfiles, 4 eventos públicos y
+ventana de inscripción cerrada. La rama local de frontend/backend sigue sin
+publicar; no hubo deploy, push ni PR.
+
+### Corrección local de ruta canónica del inspector (2026-10-24)
+
+- El diseño exige persistir `<ROOT>/inscripciones/<evento>/fotos/...`, mientras
+  que `FileStorage` recibe una ruta relativa y añade la raíz al formar la URL
+  WebDAV.
+- `InspectorProfiles` persiste la ruta con la raíz resuelta de forma diferida
+  desde `_shared/config.ts`, y devuelve la ruta relativa para upload/delete. Las
+  reservas y reintentos validan segmentos completos; una raíz distinta falla
+  cerrada. No se cambia la migración aplicada.
+- El test de adaptador verifica persistencia raíz, ruta relativa de claims
+  frescas/stale y rechazo de `Test Root Evil` cuando la raíz configurada es
+  `Test Root`. No hay política de rotación de raíz en alcance (producción tiene
+  0 perfiles).
+- El primer intento integrado en el stack local produjo 500 `INTERNAL_ERROR` por
+  la discrepancia de ruta (RED). Tras la corrección de slice A, la cobertura
+  handler/Postgres/WebDAV pasó en slice B (véase abajo); browser/Turnstile real
+  sigue pendiente y requiere autorización para abrir un evento.
+
+### Evidencia integrada local FN-02-08 (slice B, 2026-10-24)
+
+- Slice A: `ac006de`
+  (`fix(inspector-profile): persist root-qualified photo paths`); evaluación
+  nativa `medium`, 304 líneas, `under_budget`, `review_due=false` contra
+  `057d5c8` con `--committed-only`.
+- La prueba local invoca el handler exportado con adaptadores Supabase contra
+  localhost y un evento temporal que requiere ficha. Usa JWT local, challenge
+  falso, límites en Postgres local y `createNextcloudFileStorage` con `fetch`
+  inyectado; comprueba nombre `NOMBRES APELLIDOS`, inscripción vinculada, perfil
+  completa, ruta persistida bajo raíz y raíz aplicada una sola vez en WebDAV.
+- La segunda solicitud inyecta un fallo del upload: responde
+  `PHOTO_UPLOAD_FAILED`, borra la ruta y deja 0 perfiles y 0 inscripciones para
+  ese intento. La prueba comprueba primero que la base local no tiene destino de
+  webhook; limpia evento, inscripciones y filas de límites.
+- RED antes de la corrección de slice A: 500 `INTERNAL_ERROR` al intentar la
+  reserva con ruta relativa. GREEN: `deno task test:db`, 16 pruebas aprobadas
+  (48 pasos); `deno task check`, 169 pruebas aprobadas (46 pasos);
+  `git diff --check`, limpio.
+- Evidencia limitada al stack local. No es aceptación en navegador ni con
+  Turnstile real; la ventana de UT2 sigue cerrada. Abrir evento, contactar
+  servicios externos, desplegar o publicar siguen requiriendo autorización
+  separada. Entrega elegida: `feature-branch-chain`; commits solo locales. No se
+  autoriza abrir ni publicar PRs, desplegar ni abrir eventos.
+
+### FN-02-10 - ruta local de landing al flujo genérico
+
+- Slice A: `56c26d6`, 45 líneas; evaluación nativa `medium`, `under_budget`,
+  `review_due=false` contra `f4ae5b8`.
+- Slice B retira el formulario cerrado y el POST directo; los nueve CTA llevan
+  al slug `ultrasonido-industrial-scan-a` con texto que no promete registro.
+- RED: el test DOM observó 0 CTA en la ruta genérica (esperados 8); GREEN:
+  destino y formulario retirado verificados con `linkedom`.
+- Al sacar `public/app.js` del lint legacy, `deno task check` reveló una entrada
+  obsoleta en el ratchet de arquitectura; se quitaron ambas exclusiones viejas,
+  sin debilitar las reglas. La prueba evita aserciones estáticas de fuente.
+- GREEN local: test Deno focalizado 1/1; suite PowerShell OK; `deno task check`
+  170 aprobadas (46 pasos); `git diff --check` limpio.
+- Sin prueba DB: el cambio es frontend. Navegador/Turnstile real de FN-02-08
+  sigue pendiente; no se abrió el evento, publicó la landing ni contactó
+  servicios externos. Entrega `feature-branch-chain`; commits solo locales.
+
+### FN-03-01 · autenticación de webhooks (WA-01/WA-02 implementados localmente)
+
+- Ruta delegada directa; entrega `feature-branch-chain`. Pronóstico WA-01:
+  250–350 líneas; WA-02: hasta 300 líneas. Commits locales, sin push, PR,
+  despliegue, secretos productivos ni envíos externos.
+- [x] WA-01: parseo tipado y diferido de `ECCIA_WEBHOOK_SECRET`, guardia HTTP
+      compartida, ambos receptores actuales y prueba unitaria pura.
+- WA-01: commit local `0be2f27`; revisión nativa declinada para ese candidato.
+  Verificador independiente: `deno task check` (175 aprobadas) y prueba
+  focalizada (5/5), sin bloqueos.
+- [x] WA-02: migración autenticada del emisor SQL, prueba DB contra `pg_net`
+      local con rollback, runbook de corte y rotación, y evidencia local. Ruta
+      delegada directa; entrega `feature-branch-chain`; forecast ≤350 líneas;
+      comprobada en el stack local.
+- [x] WA-02a: observar RED funcional contra el emisor actual y añadir prueba
+      local aislada que compruebe secreto ausente/vacío, cabecera y límites de
+      seguridad.
+- [x] WA-02b: conservar comportamiento del emisor al añadir cabecera en una
+      migración nueva; documentar provisionamiento y corte coordinado sin
+      ejecutarlos.
+- [x] WA-02c: aplicar migraciones solo al stack local; ejecutar DB suite,
+      chequeo completo y `git diff --check`; registrar resultado antes del
+      commit.
+- RED WA-02: antes de la migración, la prueba DB falló en los casos de secreto
+  ausente/vacío (se encolaba el POST) y en la cabecera personalizada ausente;
+  las aserciones de `SECURITY DEFINER`, `search_path` vacío y revocaciones ya
+  pasaban.
+- GREEN WA-02: `supabase db reset --local` aplicó la migración nueva;
+  `deno task test:db` pasó 17 pruebas (53 pasos), incluida verificación de
+  cabecera, URL, cuerpo, timeout y rollback; `deno task check` pasó 175 pruebas
+  (46 pasos) y `git diff --check` quedó limpio.
+- La prueba usa una URL fija en `127.0.0.1:1`, secretos ficticios y siempre
+  revierte la transacción: no dispara solicitudes HTTP ni conserva fixtures.
+- La cabecera protege el ingreso HTTP público, no oculta el secreto a roles de
+  base de datos confiables capaces de leer la cola `pg_net`.
+- RED funcional: tras el scaffold de importaciones, fallaron el recorte del
+  secreto configurado y el paso autenticado al callback; el caso válido aún
+  devolvía 401.
+- GREEN: prueba focalizada `webhook_auth_test.ts` 5/5; `deno task check` 175
+  aprobadas (46 pasos). Sin prueba DB: WA-01 no cambia SQL.
+- La primera pasada del chequeo detectó `require-await` por un wrapper sin
+  `await`; se quitó `async` y el chequeo final quedó verde. No se generó ni
+  provisionó ningún secreto ni se ejecutaron envíos.
+- Revisión nativa de WA-02: concedida y aprobada para el rango del commit
+  `0047b5b` respecto de `0be2f27` (SHA-256 objetivo
+  `b80f4ea81494c6de91b2ee38d4f31373438a8d4a204a68d33a31c88fe3a83638`). Los
+  cuatro revisores (`risk`, `resilience`, `readability`, `reliability`) no
+  reportaron hallazgos; no hubo corrección. La aprobación fue reconocida y la
+  autoridad de revisión quedó consumida. Esto cubre solo ese rango: WA-01 tuvo
+  una revisión declinada y no se aprueba todo F3. La revisión no autoriza
+  publicación ni despliegue.
+- Antes de producción se requiere corte coordinado con pausa de escrituras y
+  recuperación de notificaciones pendientes; no habrá modo anónimo de
+  transición. No se configuró ningún secreto real, desplegó código ni contactó
+  servicios externos; WA-01/WA-02 están implementados localmente, no activados
+  en producción.
+
+### FN-03-02 · `db-events` y `sendRegistrationConfirmation`
+
+- Ruta: delegado directo (writer Sonnet); entrega `feature-branch-chain`. Se
+  extiende la plantilla y el contrato del envío existente; no se copian. Commits
+  locales, sin push, PR, despliegue, secretos productivos ni envíos externos.
+- Pronóstico: 1300–1600 líneas autorales en dos unidades de trabajo (el
+  heurístico de 400 líneas es solo orientativo): (1) núcleo de confirmación
+  (dominio, puertos, adaptadores memoria y Supabase, migración, caso de uso,
+  plantilla compartida y sus pruebas); (2) borde (adaptador Resend, ruta
+  `db-events`, configuración, despliegue, ratchet, plantilla heredada y plan).
+- Decisión de diseño: `confirmation_error` ya existe (`20260621173138`) y cumple
+  el papel de "último error"; no se duplica con `confirmation_last_error`. La
+  migración añade solo `confirmation_attempts` y `confirmation_last_attempt_at`
+  en `eccia_taller_inscripciones`.
+- Decisión de diseño: el contenido propio del evento que hoy está fijo en la
+  plantilla (horario, modalidad, qué incluye, enlaces de comunidad, transmisión
+  y aula) pasa a columnas nulas de `eccia_eventos`, con `check` de HTTPS. No se
+  exponen en `eccia_eventos_publicos`. Los valores de producción son datos del
+  operador, no una migración.
+- [x] FN-03-02a: dominio de confirmación (estado, idempotencia, error saneado) y
+      errores tipados.
+- [x] FN-03-02b: puertos `Mailer`, `Registrations` y `Events` ampliados solo con
+      lo que consume el caso de uso; adaptadores memoria.
+- [x] FN-03-02c: migración (columnas de intentos y de contenido del evento),
+      `database.types.ts`, adaptador Supabase y prueba de contrato en el stack
+      local.
+- [x] FN-03-02d: plantilla compartida parametrizada por el evento con snapshots
+      de Scan A y UT2.
+- [x] FN-03-02e: caso de uso `sendRegistrationConfirmation`.
+- [x] FN-03-02f: adaptador Resend (`/emails`, solo correo operativo) con `fetch`
+      inyectado.
+- [x] FN-03-02g: grupo `db-events` con la ruta "inscripción creada" tras
+      `withWebhookAuth`; `config.toml` y workflow de despliegue.
+- [x] FN-03-02h: ratchet del host de Resend con lista heredada decreciente; la
+      plantilla heredada reutiliza la compartida; aserciones PowerShell movidas
+      reemplazadas por pruebas `deno test`.
+- Evidencia de la unidad 1 (núcleo): RED observado para el dominio
+  (`confirmation_test.ts`), la plantilla (`registrationConfirmation_test.ts`) y
+  el caso de uso (`sendRegistrationConfirmation_test.ts`) con módulos ausentes
+  antes de implementar; GREEN con `deno task check` (194 pruebas, 46 pasos) y
+  `deno task test:db` (18 pruebas, 60 pasos) tras `supabase db reset --local`.
+  La prueba de contrato del adaptador Supabase se escribió junto con el
+  adaptador, sin RED previo; se comprobó su sensibilidad quitando la guarda
+  `confirmation_sent_at is null` del `update`, lo que hizo fallar el paso "never
+  overwrites a sent one".
+- Los snapshots viven en `tests/email/snapshots/*.snap` (no `.html`) porque
+  `deno fmt` reformatea HTML y rompería la igualdad exacta. Se actualizan de
+  forma deliberada, nunca desde la prueba.
+- Evidencia de la unidad 2 (borde): RED observado para el adaptador Resend, la
+  configuración `parseDbEventsConfig`, la ruta `db-events` y el ratchet del host
+  de Resend (módulos o exportaciones ausentes antes de implementar); la prueba
+  `deploy_workflow_test.ts` exige además que `db-events` esté en el workflow y
+  en `config.toml`, y se verificó en verde tras registrarlo (sin RED previo
+  propio). GREEN con `deno task check` (213 pruebas, 46 pasos).
+- Ruta "inscripción creada": `POST /db-events/registration-created` (también con
+  prefijo `/functions/v1/`), protegida por `withWebhookAuth`. El cuerpo es el
+  que ya envía `private.eccia_post_to_edge_function` (`type`, `schema`, `table`,
+  `record.id`); se parsea una sola vez en `_shared/http/registrationCreated.ts`.
+  FN-03-03 debe apuntar el trigger de despacho a esta ruta; no se tocó ningún
+  trigger.
+- Configuración nueva de `db-events` (solo `config.ts`): además de
+  `SUPABASE_URL`, la clave de servicio y `PUBLIC_SITE_URL`, exige
+  `RESEND_API_KEY`, `MAIL_FROM` y `MAIL_REPLY_TO`. Los dos últimos son nuevos
+  (la función heredada tiene el remitente fijo en el código). No se configuró
+  ningún secreto; hay que definirlos antes del corte de FN-03-03.
+- Ratchet: `resendHostOutsideAdapter` (texto crudo, igual que
+  `publicSettingsOutsideSource`) limita el host de Resend a
+  `_shared/adapters/resend/`; la lista heredada tiene las cinco funciones que
+  aún llaman a Resend y solo puede decrecer.
+- La plantilla heredada `send-registration-confirmation/template.ts` ahora
+  delega en la plantilla compartida con el contenido de Scan A fijado allí hasta
+  FN-03-03; el recordatorio (`renderWorkshopReminderEmail`) no cambia. Se
+  eliminaron de `tests/landing.tests.ps1` las cinco aserciones sobre el código
+  movido (WhatsApp, live, enlace y texto del aula, texto obsoleto) y se
+  reemplazaron por `tests/email/legacyConfirmation_test.ts` y los snapshots.
+  `landing.tests.ps1` falla desde antes de este cambio en tres aserciones ajenas
+  (taller técnico gratuito, lista de control previa al envío y nombre final del
+  evento; verificado en `3ccba13` con PowerShell 5.1 y el mismo conjunto de
+  fallos); `certificate-generation` y `certificate-claim` pasan.
+- Cambio visible de la plantilla heredada: el kicker pasa de "Taller técnico
+  gratuito" a "Webinar" (según `tipo`) y el pie ya no dice "al taller"; el
+  título del evento sale de `event_title`. El contenido de producción de los
+  eventos (horario, modalidad, enlaces) son datos del operador que hay que
+  cargar con la service role antes de FN-03-03; no se incluye en migraciones.
+- Límites conocidos: `_shared/log.ts` no estaba en las superficies de esta
+  tarea, así que la ruta registra solo `request.completed`/`request.failed`,
+  estado y método (la lista blanca de rutas no incluye `db-events`);
+  `.github/scripts/check_migrations.py` no se pudo ejecutar (sin Python ni
+  `pglast` en este equipo), la migración se validó aplicándola con
+  `supabase db reset --local`.
+- Revisión nativa del rango `3353e07`..`1933bf0`: riesgo `high`; el usuario la
+  declinó para este candidato. Verificación independiente del padre:
+  `deno task check` 213 aprobadas (46 pasos); `supabase db reset --local` y
+  `deno task test:db` 18 aprobadas (60 pasos).
+
+### FN-03-03 · trigger de despacho "inscripción creada"
+
+- Ruta: delegado directo (writer Sonnet); entrega `feature-branch-chain`.
+  Commits locales, sin push, PR, despliegue, secretos productivos ni acciones
+  remotas.
+- Pronóstico: 250–350 líneas autorales en una o dos unidades de trabajo (el
+  heurístico de 400 líneas es solo orientativo).
+- `20261018150000` y `send-ut2-registration-confirmation` ya no existen en el
+  repositorio; no hay nada que eliminar de ellos.
+- [x] FN-03-03a: migración `20261025120000_dispatch_registration_created.sql`:
+      elimina el trigger heredado
+      `eccia_send_registration_confirmation_after_insert` y su función, y crea
+      un único trigger de despacho "inscripción creada" sin `WHEN` por evento
+      hacia `db-events/registration-created`.
+- [x] FN-03-03b: pruebas de base de datos (RED contra el esquema actual, luego
+      GREEN): una inscripción encola exactamente una petición `pg_net` a la ruta
+      con la cabecera del secreto y el cuerpo que parsea
+      `parseRegistrationCreated`; ningún trigger de la tabla filtra por evento.
+- [x] FN-03-03c: `send-registration-confirmation` eliminada con todas sus
+      referencias (`config.toml`, workflow, `deno.json`, lista heredada del host
+      de Resend, `LEGACY_FUNCTIONS`, `legacyConfirmation_test.ts`). Decisión del
+      padre: `renderWorkshopReminderEmail` se movió a
+      `send-workshop-reminder/template.ts` (FN-05-02 lo consolidará en
+      `_shared`).
+- [x] FN-03-03d: sustituir las aserciones de `tests/landing.tests.ps1` sobre la
+      función eliminada y `20260921190000` por pruebas `deno test`.
+- Evidencia (unidad 1, trigger y pruebas): RED observado con
+  `registration_dispatch_test.ts` contra el esquema anterior (0 peticiones a
+  `db-events/registration-created`, trigger con `WHEN`); GREEN tras
+  `supabase db reset --local` con la migración `20261025120000` (4 pasos).
+- Evidencia (unidad 2, eliminación): se añadieron pruebas `deno test` para lo
+  que sigue existiendo: la plantilla del recordatorio
+  (`workshopReminder_test.ts`), la ausencia de la función retirada en
+  `config.toml`, workflow y directorios (`deploy_workflow_test.ts`), la regla de
+  arquitectura "ninguna función importa del directorio de otra"
+  (`noCrossFunctionImports`, lista heredada vacía) y que el trigger de
+  `sync-resend-contact` sigue intacto. Estas pruebas se escribieron después de
+  la eliminación, sin RED previo propio; la regla de importaciones cruzadas
+  habría fallado con el import anterior del recordatorio. En `landing.tests.ps1`
+  se quitaron las aserciones sobre la función eliminada y sobre `20260921190000`
+  y se redirigió a la nueva ruta la de la plantilla del recordatorio; en
+  `certificate-generation.tests.ps1` se quitó la del bloque de `config.toml`. No
+  se añadió ninguna aserción a `.ps1`.
+- Prerrequisitos del corte productivo (coordinado, como FN-03-01): 1) desplegar
+  primero `db-events` (el workflow despliega las funciones antes que las
+  migraciones); 2) cargar con la service role el contenido de cada evento
+  (horario, modalidad, enlaces de comunidad, transmisión y aula); 3) definir los
+  secretos `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, `PUBLIC_SITE_URL` y
+  el secreto de webhook (también en `private.eccia_config`); 4) aplicar las
+  migraciones en orden hasta `20261025120000`; 5) borrar con la CLI la función
+  remota `send-registration-confirmation` (el MCP no puede borrar funciones).
+  Hasta entonces nada de esto se ejecuta: todo es local.
+
+### FN-03-04 · reconciliador `pg_cron` de confirmaciones
+
+- Ruta: delegado directo (writer Sonnet); entrega `feature-branch-chain`.
+  Commits locales, sin push, PR, despliegue, secretos productivos ni acciones
+  remotas.
+- Pronóstico: 450–600 líneas autorales entre código, pruebas y plan en una o dos
+  unidades de trabajo (el heurístico de 400 líneas es solo orientativo).
+- Regla de reintento (dominio, constantes con nombre): una inscripción es
+  reintentable si `confirmation_sent_at` es nulo, tiene menos de 5 intentos, su
+  último intento (o, si nunca hubo, su creación) tiene al menos 10 minutos de
+  antigüedad y fue creada hace menos de 48 horas. Los 10 minutos dejan que el
+  webhook inmediato termine antes de reintentar; 5 intentos acotan el gasto ante
+  una falla persistente. La ventana de 48 horas evita que el primer ciclo envíe
+  confirmaciones a inscripciones históricas que nunca se confirmaron. No hay
+  retroceso exponencial: la regla es idéntica en dominio, adaptador de memoria y
+  consulta SQL, y el cron corre cada 5 minutos.
+- [x] FN-03-04a: dominio `isConfirmationRetryDue` y constantes.
+- [x] FN-03-04b: puerto `findPendingConfirmations({ now, limit })`, adaptadores
+      de memoria y Supabase, prueba de contrato en la pila local e índice
+      parcial.
+- [x] FN-03-04c: caso de uso `reconcilePendingConfirmations` (reutiliza
+      `sendRegistrationConfirmation`, aísla fallas por fila, devuelve conteos).
+- [x] FN-03-04d: ruta `POST db-events/reconcile` tras `withWebhookAuth`.
+- [x] FN-03-04e: migración `20261025130000_schedule_confirmation_reconciler.sql`
+      (pg_cron, función de despacho definer, trabajo cada 5 minutos) y pruebas
+      de base de datos.
+- Evidencia RED: las pruebas se escribieron antes del código. `deno test` sobre
+  `confirmation_test.ts`, `reconcilePendingConfirmations_test.ts` y
+  `db_events_test.ts` falló en la comprobación de tipos (símbolos de dominio,
+  puerto y caso de uso inexistentes). `confirmation_reconciler_test.ts`, con
+  `--no-check` contra la pila anterior a la migración, falló en 4 de sus 5 pasos
+  (`relation "cron.job" does not exist`, función de despacho inexistente); el
+  quinto, de limpieza, no tiene objeto previo que le falte. GREEN: tras
+  implementar, `deno task check` 226 aprobadas (46 pasos), y tras
+  `supabase db reset --local`, `deno task test:db` 20 aprobadas (72 pasos),
+  incluida la prueba de contrato `findPendingConfirmations` para memoria y
+  Supabase y la reaplicación idempotente de la migración (un solo trabajo).
+- Decisiones: la ruta `POST db-events/reconcile` (con y sin prefijo
+  `/functions/v1`) ignora el cuerpo y devuelve solo
+  `{attempted, sent, failed, skipped}`; lotes de 50 filas por ciclo; el caso de
+  uso reutiliza `sendRegistrationConfirmation` (idempotente), y una fila ya
+  enviada entre la consulta y el envío cuenta como `skipped`. La migración
+  `20261025130000` crea `pg_cron`, un índice parcial sobre `creado_en` para
+  filas sin enviar, la función
+  `private.eccia_dispatch_confirmation_reconciliation()` (definer, `search_path`
+  vacío, sin `execute` para `public`, `anon` ni `authenticated`) y el trabajo
+  `eccia-reconcile-registration-confirmations` cada 5 minutos. El adaptador en
+  memoria recibe un reloj inyectable para fijar la fecha de creación, como lo
+  hace `creado_en` en la base.
+- Límite conocido: si el evento de una inscripción no existe, el caso de uso
+  falla antes de contar el intento, de modo que la fila se reintenta en cada
+  ciclo hasta salir de la ventana de 48 horas. Una clave foránea hacia
+  `eccia_eventos` lo vuelve improbable; contarlo como intento fallido queda como
+  mejora si aparece.
+- Prerrequisitos productivos (no se ejecuta nada remoto): 1) habilitar `pg_cron`
+  en el proyecto remoto (Database > Extensions) antes de aplicar la migración;
+  2) desplegar `db-events` (con la ruta `reconcile`) antes de la migración, como
+  ya exige el orden de despliegue; 3) el secreto de webhook y
+  `functions_base_url` deben estar en `private.eccia_config`, porque el despacho
+  los reutiliza; sin ellos el cron emite una advertencia y no encola nada.
+
+### Corte productivo UT2 · preflight de solo lectura (2026-10-24)
+
+- Autorizado por el usuario; Supabase MCP sobre `dkvuihkwuuocjjsscuso`, solo
+  lecturas.
+- Migraciones remotas: la última aplicada es `20261025090000`
+  (`add_inspector_profiles`); faltan `20261025100000` a `20261025130000`. Las
+  versiones remotas anteriores difieren de los nombres locales (deriva conocida
+  de F1).
+- Extensiones: `pg_net` 0.20.4 y `supabase_vault` instaladas; `pg_cron` 1.6.4
+  disponible, sin instalar (la migración `20261025130000` la crea).
+- `private.eccia_config` solo tiene `functions_base_url`; falta
+  `webhook_secret`.
+- Triggers en `eccia_taller_inscripciones`: solo
+  `eccia_sync_resend_contact_after_insert`. El trigger de confirmación ya no
+  existe en producción: hoy no se envía ninguna confirmación. La migración
+  `20261025120000` usa `drop ... if exists`, así que aplica igual.
+- Funciones desplegadas: `public-api` v3 (sin la ficha), sin `db-events`;
+  `send-registration-confirmation` sigue desplegada y se borra con la CLI tras
+  el corte.
+- `ultrasonido-nivel-ii`: `activo = true`, `requiere_ficha_inspector = true`,
+  ventana nula (cerrada).
+- Los nombres de secretos de Edge Functions no se pueden listar por MCP.
+
+### Corte productivo UT2 · paso 2, secretos de funciones (2026-10-24)
+
+- Autorizado por el usuario; Supabase CLI sobre `dkvuihkwuuocjjsscuso`.
+- `supabase secrets list` (solo nombres y digests): ya existían
+  `TURNSTILE_SECRET_KEY`, `NEXTCLOUD_*` (incluido `NEXTCLOUD_ROOT_DIR`),
+  `PUBLIC_SITE_URL`, `REQUEST_LIMIT_HASH_SECRET` y `RESEND_API_KEY`; faltaban
+  los tres de abajo, únicos requeridos por `config.ts` que no estaban.
+- `supabase secrets set`: `ECCIA_WEBHOOK_SECRET` (aleatorio de 32 bytes, nunca
+  impreso), `MAIL_FROM` y `MAIL_REPLY_TO` (los valores de la función de
+  confirmación retirada). Verificado por digest SHA-256 de los tres.
+- El mismo secreto de webhook falta en `private.eccia_config` (paso 4).

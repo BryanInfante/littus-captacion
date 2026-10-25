@@ -27,6 +27,7 @@ const event = (
   duration: null,
   registrationOpensAt: opensAt === null ? null : new Date(opensAt),
   registrationClosesAt: closesAt === null ? null : new Date(closesAt),
+  requiresInspectorProfile: false,
 });
 
 Deno.test("the event code comes from ?evento= and keeps the domain length bounds", () => {
@@ -193,6 +194,107 @@ Deno.test("each invalid field gets its own message", () => {
   );
 });
 
+Deno.test("inspector profile validation normalizes values and enforces mirrored bounds", () => {
+  const photo = new File([new Uint8Array([1])], "foto.png", {
+    type: "image/png",
+  });
+  const valid = validateRegistration({
+    name: "",
+    email: "Ana@Example.com",
+    marketingConsent: false,
+    inspectorProfile: {
+      nombres: " Ana   ",
+      apellidos: " Pérez ",
+      documento: " ab c12345 ",
+      pais: " Ecuador ",
+      experienciaAnios: "0",
+      empleadorDeclarado: "",
+      sinEmpleador: true,
+      consentimientoDatos: true,
+      foto: photo,
+    },
+  }, true);
+  assertEquals(valid, {
+    ok: true,
+    values: {
+      name: "",
+      email: "ana@example.com",
+      marketingConsent: false,
+      inspectorProfile: {
+        nombres: "Ana",
+        apellidos: "Pérez",
+        documento: "ABC12345",
+        pais: "Ecuador",
+        experienciaAnios: 0,
+        empleadorDeclarado: "",
+        sinEmpleador: true,
+        consentimientoDatos: true,
+        foto: photo,
+      },
+    },
+  });
+
+  const invalid = validateRegistration({
+    name: "",
+    email: "ana@example.com",
+    marketingConsent: false,
+    inspectorProfile: {
+      nombres: "A",
+      apellidos: "B",
+      documento: "bad!",
+      pais: "",
+      experienciaAnios: "61",
+      empleadorDeclarado: "Empresa",
+      sinEmpleador: true,
+      consentimientoDatos: false,
+      foto: new File([new Uint8Array(5 * 1024 * 1024 + 1)], "foto.gif", {
+        type: "image/gif",
+      }),
+    },
+  }, true);
+  assertEquals(invalid.ok, false);
+  if (invalid.ok) throw new Error("Expected inspector validation errors");
+  assertEquals(
+    Object.keys(invalid.errors).sort(),
+    [
+      "apellidos",
+      "consentimientoDatos",
+      "documento",
+      "empleadorDeclarado",
+      "experienciaAnios",
+      "foto",
+      "nombres",
+      "pais",
+    ].sort(),
+  );
+
+  const boundary = validateRegistration(
+    {
+      name: "",
+      email: "ana@example.com",
+      marketingConsent: false,
+      inspectorProfile: {
+        nombres: "Ana",
+        apellidos: "Pérez",
+        documento: "ABC12345",
+        pais: "E".repeat(61),
+        experienciaAnios: "061",
+        empleadorDeclarado: "X".repeat(121),
+        sinEmpleador: false,
+        consentimientoDatos: true,
+        foto: photo,
+      },
+    },
+    true,
+  );
+  assertEquals(boundary.ok, false);
+  if (boundary.ok) throw new Error("Expected profile bounds to fail");
+  assertEquals(
+    Object.keys(boundary.errors).sort(),
+    ["empleadorDeclarado", "experienciaAnios", "pais"].sort(),
+  );
+});
+
 Deno.test("every registration error maps to a message next to its field or in the status", () => {
   const failure = (
     error: Parameters<typeof describeRegistrationError>[0]["error"],
@@ -214,6 +316,19 @@ Deno.test("every registration error maps to a message next to its field or in th
     message:
       "Algún dato no tiene el formato esperado. Corrige el nombre y el correo e inténtalo de nuevo.",
   });
+  assertEquals(
+    describeRegistrationError({
+      ok: false,
+      error: "INVALID_INPUT",
+      retryAfterSeconds: null,
+    }, true),
+    {
+      target: "status",
+      title: "Revisa tus datos",
+      message:
+        "Algún dato no tiene el formato esperado. Revisa el correo y los campos de la ficha e inténtalo de nuevo.",
+    },
+  );
   assertEquals(failure("EVENT_NOT_FOUND"), {
     target: "status",
     title: "Evento no disponible",

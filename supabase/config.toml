@@ -23,10 +23,12 @@ verify_jwt = false
 # Invocadas por pg_net desde los triggers, sin Authorization.
 # Ver private.eccia_post_to_edge_function en la migración 20260904140000.
 
-[functions.send-registration-confirmation]
+[functions.sync-resend-contact]
 verify_jwt = false
 
-[functions.sync-resend-contact]
+# Grupo db-events: receptor de los webhooks de base de datos. Sin JWT; la
+# protección es el secreto compartido x-eccia-webhook-secret (withWebhookAuth).
+[functions.db-events]
 verify_jwt = false
 
 # Invocadas a mano por un operador. Su protección no es el JWT sino el gate de

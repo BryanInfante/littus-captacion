@@ -22,6 +22,7 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config.js";
  * @property {string | null} duration
  * @property {Date | null} registrationOpensAt
  * @property {Date | null} registrationClosesAt
+ * @property {boolean} requiresInspectorProfile
  */
 
 /**
@@ -31,6 +32,20 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config.js";
  * @property {string} email
  * @property {boolean} marketingConsent
  * @property {string} challengeToken
+ * @property {InspectorProfileRequest | undefined} [inspectorProfile]
+ */
+
+/**
+ * @typedef {object} InspectorProfileRequest
+ * @property {string} nombres
+ * @property {string} apellidos
+ * @property {string} documento
+ * @property {string} pais
+ * @property {number} experienciaAnios
+ * @property {string} empleadorDeclarado
+ * @property {boolean} sinEmpleador
+ * @property {boolean} consentimientoDatos
+ * @property {File} foto
  */
 
 /**
@@ -40,6 +55,9 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config.js";
  * @typedef {"INVALID_INPUT" | "CHALLENGE_FAILED" | "EVENT_NOT_FOUND"
  *   | "ALREADY_REGISTERED" | "REGISTRATION_CLOSED" | "RATE_LIMITED"
  *   | "INTERNAL_ERROR" | "NETWORK_ERROR" | "UNEXPECTED_RESPONSE"
+ *   | "INSPECTOR_PROFILE_REQUIRED" | "INSPECTOR_PROFILE_UNEXPECTED"
+ *   | "INSPECTOR_PROFILE_IN_PROGRESS" | "PAYLOAD_TOO_LARGE"
+ *   | "PHOTO_UPLOAD_FAILED"
  * } RegistrationError
  */
 
@@ -61,6 +79,7 @@ const CATALOG_COLUMNS = [
   "duracion",
   "inscripcion_abre_en",
   "inscripcion_cierra_en",
+  "requiere_ficha_inspector",
 ].join(",");
 
 /** @type {Readonly<Record<string, number>>} */
@@ -72,6 +91,11 @@ const ERROR_STATUS = {
   REGISTRATION_CLOSED: 409,
   RATE_LIMITED: 429,
   INTERNAL_ERROR: 500,
+  INSPECTOR_PROFILE_REQUIRED: 400,
+  INSPECTOR_PROFILE_UNEXPECTED: 400,
+  INSPECTOR_PROFILE_IN_PROGRESS: 409,
+  PAYLOAD_TOO_LARGE: 413,
+  PHOTO_UPLOAD_FAILED: 502,
 };
 
 /** The catalog could not be read; the page cannot tell whether the event exists. */
@@ -136,6 +160,10 @@ const parseCatalogRow = (row, code) => {
   if (type !== null && type !== "webinar" && type !== "curso") {
     throw new CatalogUnavailableError("Unexpected tipo");
   }
+  const requiresInspectorProfile = row.requiere_ficha_inspector;
+  if (typeof requiresInspectorProfile !== "boolean") {
+    throw new CatalogUnavailableError("Unexpected requiere_ficha_inspector");
+  }
   return {
     code,
     title,
@@ -146,6 +174,7 @@ const parseCatalogRow = (row, code) => {
     duration: optionalText(row, "duracion"),
     registrationOpensAt: optionalInstant(row, "inscripcion_abre_en"),
     registrationClosesAt: optionalInstant(row, "inscripcion_cierra_en"),
+    requiresInspectorProfile,
   };
 };
 
@@ -233,19 +262,48 @@ export const createApiClient = (fetchFn) => ({
   register: async (registration) => {
     /** @type {Response} */
     let response;
+    const inspectorProfile = registration.inspectorProfile;
+    /** @type {BodyInit} */
+    let body;
+    /** @type {HeadersInit} */
+    let headers;
+    if (inspectorProfile === undefined) {
+      headers = { "content-type": "application/json" };
+      body = JSON.stringify({
+        event_code: registration.eventCode,
+        nombre: registration.name,
+        correo: registration.email,
+        marketing_consent: registration.marketingConsent,
+        challenge_token: registration.challengeToken,
+      });
+    } else {
+      const form = new FormData();
+      form.set("event_code", registration.eventCode);
+      form.set("correo", registration.email);
+      form.set("challenge_token", registration.challengeToken);
+      form.set("marketing_consent", String(registration.marketingConsent));
+      form.set("nombres", inspectorProfile.nombres);
+      form.set("apellidos", inspectorProfile.apellidos);
+      form.set("documento", inspectorProfile.documento);
+      form.set("pais", inspectorProfile.pais);
+      form.set("experiencia_anios", String(inspectorProfile.experienciaAnios));
+      form.set("empleador_declarado", inspectorProfile.empleadorDeclarado);
+      form.set("sin_empleador", String(inspectorProfile.sinEmpleador));
+      form.set(
+        "consentimiento_datos",
+        String(inspectorProfile.consentimientoDatos),
+      );
+      form.set("foto", inspectorProfile.foto, inspectorProfile.foto.name);
+      headers = {};
+      body = form;
+    }
     try {
       response = await fetchFn(
         `${SUPABASE_URL}/functions/v1/public-api/registrations`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            event_code: registration.eventCode,
-            nombre: registration.name,
-            correo: registration.email,
-            marketing_consent: registration.marketingConsent,
-            challenge_token: registration.challengeToken,
-          }),
+          headers,
+          body,
         },
       );
     } catch {

@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $indexPath = Join-Path $PSScriptRoot "..\public\index.html"
 $stylesPath = Join-Path $PSScriptRoot "..\public\styles.css"
@@ -8,13 +8,11 @@ $emailTemplatePath = Join-Path $PSScriptRoot "..\emails\eccia-base.html"
 $emailGuidePath = Join-Path $PSScriptRoot "..\EMAIL_OPERATIONS.md"
 $resendSyncPath = Join-Path $PSScriptRoot "..\supabase\functions\sync-resend-contact\index.ts"
 $confirmationEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-registration-confirmation.html"
-$confirmationFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\index.ts"
-$confirmationTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-registration-confirmation\template.ts"
+$confirmationTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-workshop-reminder\template.ts"
 $reminderFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-workshop-reminder\index.ts"
 $courseAccessEmailPath = Join-Path $PSScriptRoot "..\emails\eccia-end-vtptmt-acceso.html"
 $courseAccessFunctionPath = Join-Path $PSScriptRoot "..\supabase\functions\send-course-access\index.ts"
 $courseAccessTemplatePath = Join-Path $PSScriptRoot "..\supabase\functions\send-course-access\template.ts"
-$triggerScopeMigrationPath = Join-Path $PSScriptRoot "..\supabase\migrations\20260921190000_scope_registration_confirmation_trigger.sql"
 $functionsConfigPath = Join-Path $PSScriptRoot "..\supabase\config.toml"
 
 if (-not (Test-Path -LiteralPath $indexPath)) {
@@ -45,11 +43,6 @@ $confirmationEmail = if (Test-Path -LiteralPath $confirmationEmailPath) {
 } else {
     ""
 }
-$confirmationFunction = if (Test-Path -LiteralPath $confirmationFunctionPath) {
-    Get-Content -LiteralPath $confirmationFunctionPath -Raw -Encoding UTF8
-} else {
-    ""
-}
 $confirmationTemplate = if (Test-Path -LiteralPath $confirmationTemplatePath) {
     Get-Content -LiteralPath $confirmationTemplatePath -Raw -Encoding UTF8
 } else {
@@ -72,11 +65,6 @@ $courseAccessFunction = if (Test-Path -LiteralPath $courseAccessFunctionPath) {
 }
 $courseAccessTemplate = if (Test-Path -LiteralPath $courseAccessTemplatePath) {
     Get-Content -LiteralPath $courseAccessTemplatePath -Raw -Encoding UTF8
-} else {
-    ""
-}
-$triggerScopeMigration = if (Test-Path -LiteralPath $triggerScopeMigrationPath) {
-    Get-Content -LiteralPath $triggerScopeMigrationPath -Raw -Encoding UTF8
 } else {
     ""
 }
@@ -125,26 +113,10 @@ foreach ($sectionId in $sectionIds) {
     $lastPosition = $position
 }
 
-Assert-Contains 'id="inscripcion"' "El formulario principal debe usar id='inscripcion'."
 Assert-Contains 'class="skip-link"' "La página debe permitir saltar directamente al contenido."
 Assert-Contains 'id="contenido-principal"' "El contenido principal debe ser un destino accesible."
 Assert-True (-not $html.Contains('class="primary-nav"')) "El header no debe mostrar el menú de navegación antiguo."
 Assert-True (-not $styles.Contains('.primary-nav')) "No deben quedar estilos sin uso del menú de navegación antiguo."
-Assert-Contains 'name="nombre"' "Falta el campo nombre."
-Assert-Contains 'type="email"' "Falta el campo correo electrónico."
-Assert-Contains 'name="marketing_consent"' "Falta el consentimiento opcional para comunicaciones futuras."
-Assert-Contains 'type="checkbox"' "El consentimiento de marketing debe usar una casilla explícita."
-Assert-Contains 'Quiero recibir informaci' "El consentimiento debe explicar claramente qué acepta la persona."
-Assert-Contains 'aria-describedby="form-note"' "El formulario debe asociar su nota informativa."
-Assert-Contains 'id="form-note"' "La nota informativa del formulario debe tener un identificador."
-Assert-Contains 'aria-describedby="nombre-help"' "El campo nombre debe asociar la indicación de obligatoriedad."
-Assert-Contains 'id="nombre-help"' "El campo nombre debe tener ayuda accesible."
-Assert-Contains 'aria-describedby="correo-help"' "El campo correo debe asociar la indicación de obligatoriedad."
-Assert-Contains 'id="correo-help"' "El campo correo debe tener ayuda accesible."
-Assert-Contains 'aria-hidden="true">*</span>' "Los campos obligatorios deben incluir un indicador visual no redundante."
-Assert-Contains 'role="status"' "El resultado del formulario debe declararse como región de estado."
-Assert-Contains 'aria-live="polite"' "El resultado del formulario debe anunciarse sin interrumpir."
-Assert-Contains 'tabindex="-1"' "El resultado del formulario debe poder recibir foco programático."
 Assert-Contains 'class="mobile-cta"' "La versión móvil debe mantener disponible el CTA principal."
 Assert-Contains 'Con certificado' "Falta el beneficio de certificado."
 Assert-Contains 'Online y en directo' "Falta el beneficio online."
@@ -163,11 +135,7 @@ Assert-True (-not $html.Contains('hero-index')) "El hero no debe incluir índice
 Assert-True (-not $html.Contains('hero-signal')) "El hero no debe incluir una simulación decorativa del Scan A."
 Assert-True (-not $html.Contains('scan-waveform')) "El hero no debe incluir waveforms decorativos."
 
-$formCount = ([regex]::Matches($html, "<form\b")).Count
-Assert-True ($formCount -eq 1) "Debe existir exactamente un formulario."
 
-$ctaCount = ([regex]::Matches($html, 'href="#inscripcion"')).Count
-Assert-True ($ctaCount -ge 6) "Los CTA secundarios deben apuntar a #inscripcion."
 
 Assert-Contains 'Inspector Senior de Soldadura AWS SCWI' "Falta la certificación AWS SCWI."
 Assert-Contains '23050028' "Falta el registro AWS SCWI."
@@ -216,7 +184,6 @@ if ($styles.Contains('font-size: .78rem')) {
 
 $functionalDetailSelectors = @(
     '.authority-line',
-    '.form-note, .form-status',
     '.topic-list span',
     '.pending-inline',
     '.footer-inner'
@@ -250,64 +217,20 @@ foreach ($selector in $globalUxSelectors) {
 }
 
 Assert-True ($styles.Contains('env(safe-area-inset-bottom')) "El CTA fijo móvil debe respetar el área segura inferior."
-Assert-True ($styles.Contains('.required-mark')) "Falta el estilo del indicador de campo obligatorio."
-Assert-True ($styles.Contains('.field-help')) "Falta el estilo de la ayuda accesible de los campos."
 Assert-True ($app.Contains('prefers-reduced-motion: reduce')) "El spotlight debe respetar la preferencia de movimiento reducido."
-Assert-True ($app.Contains('status.focus()')) "El mensaje de resultado debe recibir foco tras completar el formulario."
-Assert-True ($app.Contains('https://dkvuihkwuuocjjsscuso.supabase.co/rest/v1/eccia_taller_inscripciones')) "El formulario debe enviar las inscripciones a la tabla ECCIA de Supabase."
 Assert-True (-not $app.Contains('qfbhyzynpyqqcpuuibod')) "El frontend no debe apuntar al proyecto Supabase dado de baja el 2026-07-25 (hoy staging de otra aplicación). Ver RECOVERY.md."
-Assert-True ($app.Contains('sb_publishable_')) "El frontend debe usar una publishable key de Supabase."
-Assert-True ($app.Contains('method: "POST"')) "La inscripción debe enviarse mediante POST."
-Assert-True ($app.Contains('apikey: SUPABASE_PUBLISHABLE_KEY')) "La solicitud debe incluir el header apikey."
-Assert-True ($app.Contains('Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`')) "La solicitud debe incluir autorización con la publishable key."
-Assert-True ($app.Contains('nombre: form.elements.nombre.value.trim()')) "El nombre debe normalizarse antes de enviarse."
-Assert-True ($app.Contains('correo: form.elements.correo.value.trim().toLowerCase()')) "El correo debe normalizarse antes de enviarse."
-Assert-True ($app.Contains('marketing_consent: form.elements.marketing_consent.checked')) "La preferencia de comunicaciones debe persistirse de forma explícita."
 Assert-True (-not [regex]::IsMatch($app, '\b(necesitás|revisá|intentá)\b', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) "El microcopy ECCIA debe usar español neutro tuteado."
-Assert-True ($app.Contains('submitButton.disabled = true')) "El formulario debe impedir envíos duplicados mientras procesa la solicitud."
-Assert-True ($app.Contains('response.status === 409')) "La interfaz debe manejar inscripciones duplicadas."
-Assert-True ($app.Contains('error.code === "23505"')) "La interfaz debe reconocer la restricción única de PostgreSQL."
-Assert-True ($app.Contains('No pudimos completar tu inscripción')) "La interfaz debe mostrar un error recuperable cuando falle la solicitud."
-Assert-True ($app.Contains('Inscripción confirmada')) "La interfaz debe confirmar una inscripción persistida."
-Assert-True ($app.Contains('Ultrasonido - Interpretación del Scan A')) "La confirmación del frontend debe usar el nombre técnico del evento."
 Assert-True (-not $app.Contains('taller técnico Domina el Scan A')) "El frontend no debe tratar la frase editorial como nombre del evento."
-Assert-True (-not $app.Contains('Registro de demostración completado')) "El formulario no debe conservar el flujo demostrativo."
-Assert-True (-not $html.Contains('Formulario demostrativo')) "La nota del formulario debe describir la persistencia real."
-Assert-True ($styles.Contains('.submit-button:disabled')) "El botón debe comunicar visualmente el estado de carga."
-Assert-True ($styles.Contains('.form-status[data-state="error"]')) "El formulario debe diferenciar visualmente los errores."
-Assert-True ($styles.Contains('.consent-field')) "El consentimiento debe tener un tratamiento visual accesible."
-Assert-True ($styles.Contains('.consent-field input')) "La casilla de consentimiento debe conservar un control nativo claramente visible."
-Assert-Contains 'id="registration-success-modal"' "Falta el modal posterior a la inscripción."
-Assert-Contains 'role="dialog"' "El modal debe exponerse como diálogo accesible."
-Assert-Contains 'aria-modal="true"' "El modal debe declararse modal para tecnologías de asistencia."
-Assert-Contains 'aria-labelledby="registration-success-title"' "El modal debe tener un nombre accesible."
-Assert-Contains 'data-modal-close' "El modal debe ofrecer un control de cierre."
-Assert-Contains 'Este evento ha terminado' "El modal debe comunicar que el evento terminó."
-Assert-Contains 'https://wa.me/59399976669' "El modal debe ofrecer un canal para próximas fechas."
-Assert-Contains 'Registro cerrado' "El formulario debe comunicar que el registro está cerrado."
 Assert-Contains 'rel="noopener noreferrer"' "Los enlaces externos deben abrirse de forma segura."
-Assert-True ($styles.Contains('.registration-modal')) "Faltan estilos para el modal de confirmación."
-Assert-True ($styles.Contains('.registration-modal::backdrop')) "El modal debe tener un backdrop identificable."
-Assert-True ($styles.Contains('.registration-modal__dialog')) "El diálogo debe tener una superficie visual ECCIA."
-Assert-True ($app.Contains('registrationModal.showModal()')) "El modal debe abrirse tras una inscripción exitosa."
 Assert-True ($app.Contains('META_PIXEL_ID')) "La landing debe declarar una configuración explícita para Meta Pixel."
 Assert-True ($app.Contains('const META_PIXEL_ID = "896484926815497"')) "Meta Pixel debe usar el Pixel ID real configurado en Meta Events Manager."
 Assert-True ($app.Contains('fbq("init", META_PIXEL_ID)')) "Meta Pixel debe inicializarse con el Pixel ID configurado."
 Assert-True ($app.Contains('fbq("track", "PageView")')) "Meta Pixel debe medir PageView cuando el pixel esté configurado."
-Assert-True ($app.Contains('trackMetaLead()')) "El evento Lead debe dispararse solo después de una inscripción persistida."
-Assert-True ($app.Contains('fbq("track", "Lead")')) "La conversión mínima de Meta Ads debe usar el evento estándar Lead."
 Assert-True ($app.Contains('if (!META_PIXEL_ID)')) "El tracking debe quedar desactivado de forma segura si falta el Pixel ID real."
 Assert-Contains 'https://www.facebook.com/tr?id=896484926815497&ev=PageView&noscript=1' "La landing debe incluir fallback noscript de PageView para Meta Pixel."
 Assert-True ($readme.Contains('Meta Pixel')) "La documentación debe explicar la integración mínima con Meta Pixel."
 Assert-True ($readme.Contains('Conversions API')) "La documentación debe dejar programada la evolución ideal con Conversions API."
 Assert-True ($readme.Contains('event_id')) "La evolución a Conversions API debe contemplar deduplicación mediante event_id."
-Assert-True ($app.Contains('event.key === "Escape"')) "El modal debe poder cerrarse con Escape."
-Assert-True ($app.Contains('event.target === registrationModal')) "El modal debe cerrarse al activar el backdrop."
-Assert-True ($app.Contains('previouslyFocusedElement?.focus()')) "El modal debe devolver el foco al elemento previo."
-Assert-True ($app.Contains('getFocusableElements')) "El modal debe contener el foco mientras está abierto."
-Assert-True ($app.Contains('modalPrimaryAction?.focus()')) "El foco inicial debe ir a la acción principal cuando exista."
-Assert-True ($app.Contains('const REGISTRATION_CLOSED = true')) "El frontend debe bloquear nuevas inscripciones del evento finalizado."
-Assert-True ($app.Contains('Este evento ya terminó y no recibe nuevas inscripciones.')) "El bloqueo debe explicar por qué no se puede registrar."
 Assert-True ($styles.Contains('clamp(2.75rem, 7vw, 4.75rem)')) "El titular del hero debe usar la escala editorial definida por ECCIA."
 Assert-True ($styles.Contains('.hero-editorial')) "Faltan estilos para la composición editorial del hero."
 Assert-True ($styles.Contains('.registration-rail')) "Faltan estilos para subordinar visualmente el formulario."
@@ -381,21 +304,7 @@ Assert-True ($confirmationEmail.Contains('Visitar el aula virtual')) "El enlace 
 Assert-True (-not $confirmationEmail.Contains('cuando esté disponible')) "La confirmación no debe conservar el texto obsoleto sobre el acceso."
 Assert-True (-not $confirmationEmail.Contains('RESEND_UNSUBSCRIBE_URL')) "Una confirmación operativa no debe incluir baja promocional."
 Assert-True (-not $confirmationEmail.Contains('aceptaste comunicaciones')) "Una confirmación operativa no debe afirmar consentimiento comercial."
-Assert-True (Test-Path -LiteralPath $confirmationFunctionPath) "Falta la Edge Function de confirmación."
-Assert-True ($confirmationFunction.Contains("`${RESEND_API_URL}/emails")) "La confirmación debe usar POST /emails de Resend."
-Assert-True ($confirmationFunction.Contains("'Idempotency-Key'")) "La confirmación debe usar una clave de idempotencia."
-Assert-True ($confirmationFunction.Contains('registration-confirmation/')) "La clave de idempotencia debe estar vinculada a la inscripción."
-Assert-True ($confirmationFunction.Contains('confirmation_sent_at')) "La función debe registrar la fecha de confirmación."
-Assert-True ($confirmationFunction.Contains('confirmation_resend_email_id')) "La función debe auditar el identificador de Resend."
-Assert-True ($confirmationFunction.Contains('confirmation_error')) "La función debe registrar el último error."
-Assert-True (-not $confirmationFunction.Contains('marketing_consent')) "El envío operativo no debe depender del consentimiento comercial."
-Assert-True (-not $confirmationFunction.Contains('/contacts')) "La confirmación individual no debe crear ni modificar Contacts."
 Assert-True (Test-Path -LiteralPath $confirmationTemplatePath) "Falta el template de la confirmación."
-Assert-True ($confirmationTemplate.Contains('https://chat.whatsapp.com/EnFIAc8hBNc5Xn4jufjeGD')) "El template TS debe incluir la comunidad de WhatsApp."
-Assert-True ($confirmationTemplate.Contains('https://www.youtube.com/live/yW3OQFl76kg?si=F1X3As2vkM9lQ6v_')) "El template TS debe incluir el live."
-Assert-True ($confirmationTemplate.Contains('href="https://cursos.littusgroup.com/"')) "El template TS debe enlazar al aula virtual desde el footer."
-Assert-True ($confirmationTemplate.Contains('Visitar el aula virtual')) "El template TS debe identificar claramente el acceso al aula virtual."
-Assert-True (-not $confirmationTemplate.Contains('cuando esté disponible')) "El template TS no debe conservar el texto obsoleto sobre el acceso."
 Assert-True (-not $confirmationTemplate.Contains('marketing_consent')) "El template operativo no debe depender del consentimiento comercial."
 Assert-True ($confirmationTemplate.Contains('renderWorkshopReminderEmail')) "El template TS debe reutilizar la marca para el recordatorio operativo."
 Assert-True ($confirmationTemplate.Contains('https://youtube.com/live/yW3OQFl76kg?feature=share')) "El recordatorio debe usar el enlace de transmisión aprobado."
@@ -420,9 +329,6 @@ Assert-True (-not $reminderFunction.Contains('RESEND_UNSUBSCRIBE_URL')) "El reco
 # El trigger de confirmación disparaba en CADA insert y mandaba el correo del
 # taller de julio a cualquier curso nuevo. Esta es la prueba que impide que
 # vuelva a quedar sin filtro.
-Assert-True (Test-Path -LiteralPath $triggerScopeMigrationPath) "Falta la migración que acota el trigger de confirmación a su propio taller."
-Assert-True ($triggerScopeMigration.Contains("when (new.taller_codigo = 'domina-scan-a')")) "El trigger de confirmación debe filtrar por taller_codigo: su plantilla es específica de Domina el Scan A."
-Assert-True (-not $triggerScopeMigration.Contains("drop trigger if exists eccia_sync_resend_contact_after_insert")) "El gate de consentimiento vive dentro de sync-resend-contact, no en su trigger."
 
 Assert-True (Test-Path -LiteralPath $courseAccessEmailPath) "Falta la plantilla HTML del correo de acceso al aula virtual."
 Assert-True ($courseAccessEmail.Contains('{{FIRST_NAME}}')) "El correo de acceso debe personalizar el saludo."

@@ -1,6 +1,6 @@
 import { registerPublicRegistration } from "../_shared/application/registerPublicRegistration.ts";
 import { TurnstileHumanChallenge } from "../_shared/adapters/turnstile/humanChallenge.ts";
-import { loadConfig } from "../_shared/config.ts";
+import { loadConfig, loadInspectorStorageConfig } from "../_shared/config.ts";
 import { corsHeaders } from "../_shared/http/cors.ts";
 import { errorResponse } from "../_shared/http/errors.ts";
 import { parseRegistrationRequest } from "../_shared/http/registration.ts";
@@ -9,10 +9,14 @@ import type { Events } from "../_shared/ports/events.ts";
 import type { HumanChallenge } from "../_shared/ports/humanChallenge.ts";
 import type { Registrations } from "../_shared/ports/registrations.ts";
 import type { RequestLimits } from "../_shared/ports/requestLimits.ts";
+import type { InspectorProfiles } from "../_shared/ports/inspectorProfiles.ts";
+import type { FileStorage } from "../_shared/ports/fileStorage.ts";
 
 export type HandlerDependencies = {
   readonly events: Events;
   readonly registrations: Registrations;
+  readonly inspectorProfiles?: InspectorProfiles;
+  readonly fileStorage?: FileStorage;
   readonly humanChallenge: HumanChallenge;
   readonly requestLimits: RequestLimits;
   readonly now: () => Date;
@@ -94,11 +98,32 @@ if (import.meta.main) {
   const { createSupabaseRequestLimits } = await import(
     "../_shared/adapters/supabase/requestLimits.ts"
   );
+  const { createSupabaseInspectorProfiles } = await import(
+    "../_shared/adapters/supabase/inspectorProfiles.ts"
+  );
+  const { createNextcloudFileStorage } = await import(
+    "../_shared/adapters/nextcloud/fileStorage.ts"
+  );
   Deno.serve(createHandler({
     ...createSupabasePorts({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
     }),
+    inspectorProfiles: createSupabaseInspectorProfiles({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      rootDirectory: () => loadInspectorStorageConfig().rootDirectory,
+    }),
+    fileStorage: {
+      upload: (path, bytes, contentType) =>
+        createNextcloudFileStorage(loadInspectorStorageConfig()).upload(
+          path,
+          bytes,
+          contentType,
+        ),
+      delete: (path) =>
+        createNextcloudFileStorage(loadInspectorStorageConfig()).delete(path),
+    },
     humanChallenge: new TurnstileHumanChallenge({
       secretKey: config.turnstileSecretKey,
       fetch: (input, init) => fetch(input, init),

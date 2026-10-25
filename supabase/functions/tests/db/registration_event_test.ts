@@ -76,17 +76,15 @@ Deno.test("registrations reference canonical event rows", async (t) => {
           masterclass_codigo: string;
           activo: boolean;
           unknown_metadata: boolean;
-          valid_unique_prefix: boolean;
+          no_certificate_prefix: boolean;
         }[]
       >`
         select e.masterclass_codigo, e.activo,
                (e.fecha_evento is null and e.fecha_texto is null and e.duracion is null)
                  as unknown_metadata,
-               (e.codigo_prefijo ~ '^[A-Z]{2,8}-[A-Z0-9]{2,6}-$' and not exists (
-                 select 1 from public.eccia_eventos other
-                 where other.codigo_prefijo = e.codigo_prefijo
-                   and other.masterclass_codigo <> e.masterclass_codigo
-               )) as valid_unique_prefix
+               -- certgen issues END course certificates with its own
+               -- numbering, so this system holds no certificate prefix.
+               (e.codigo_prefijo is null) as no_certificate_prefix
         from public.eccia_eventos e
         where e.masterclass_codigo in ('end-vt-pt-mt-2026-09', 'end-vt-ii-pt-ii-ut-i-2026-10')
         order by e.masterclass_codigo
@@ -98,13 +96,13 @@ Deno.test("registrations reference canonical event rows", async (t) => {
             masterclass_codigo: "end-vt-ii-pt-ii-ut-i-2026-10",
             activo: false,
             unknown_metadata: true,
-            valid_unique_prefix: true,
+            no_certificate_prefix: true,
           },
           {
             masterclass_codigo: "end-vt-pt-mt-2026-09",
             activo: false,
             unknown_metadata: true,
-            valid_unique_prefix: true,
+            no_certificate_prefix: true,
           },
         ],
         "past END events must exist, be inactive, and preserve unknown metadata",

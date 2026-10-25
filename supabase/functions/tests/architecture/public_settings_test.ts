@@ -39,7 +39,6 @@ const readTextFiles = async (
 // publishable key. Do not add entries; remove each one when its page moves to
 // the api client (FN-02-10 for the landing, F4 for the certificate pages).
 const LEGACY_PUBLIC_SETTINGS = [
-  "public/app.js",
   "public/certificados.js",
   "public/validar-certificado.html",
 ];

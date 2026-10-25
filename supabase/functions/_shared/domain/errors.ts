@@ -4,7 +4,14 @@ export type DomainErrorCode =
   | "REGISTRATION_CLOSED"
   | "ALREADY_REGISTERED"
   | "CHALLENGE_FAILED"
-  | "RATE_LIMITED";
+  | "RATE_LIMITED"
+  | "INSPECTOR_PROFILE_REQUIRED"
+  | "INSPECTOR_PROFILE_UNEXPECTED"
+  | "INSPECTOR_PROFILE_IN_PROGRESS"
+  | "PHOTO_UPLOAD_FAILED"
+  | "PAYLOAD_TOO_LARGE"
+  | "REGISTRATION_NOT_FOUND"
+  | "MAIL_DELIVERY_FAILED";
 
 export class DomainError extends Error {
   // Whole seconds until the exhausted limit resets; only RATE_LIMITED has one.

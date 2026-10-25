@@ -7,6 +7,17 @@ export type Config = {
   readonly requestLimitHashSecret: string;
 };
 
+export type InspectorStorageConfig = {
+  readonly webdavUrl: string;
+  readonly username: string;
+  readonly appPassword: string;
+  readonly rootDirectory: string;
+};
+
+export type WebhookConfig = {
+  readonly webhookSecret: string;
+};
+
 type Environment = Readonly<Record<string, string | undefined>>;
 
 const invalid = (variable: string): Error =>
@@ -86,3 +97,76 @@ export const parseConfig = (env: Environment): Config => ({
 });
 
 export const loadConfig = (): Config => parseConfig(Deno.env.toObject());
+
+// Loaded only by public-api's ficha adapter so unrelated functions do not gain
+// new required secrets during rolling deployments.
+export const parseInspectorStorageConfig = (
+  env: Environment,
+): InspectorStorageConfig => {
+  const rawUrl = required(env, "NEXTCLOUD_WEBDAV_URL");
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw invalid("NEXTCLOUD_WEBDAV_URL");
+  }
+  if (
+    (url.protocol !== "https:" && url.protocol !== "http:") || url.username ||
+    url.password || url.search || url.hash
+  ) {
+    throw invalid("NEXTCLOUD_WEBDAV_URL");
+  }
+  const rootDirectory = required(env, "NEXTCLOUD_ROOT_DIR").replace(/\/$/, "");
+  if (
+    !rootDirectory.split("/").every((segment) =>
+      /^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$/.test(segment)
+    )
+  ) {
+    throw invalid("NEXTCLOUD_ROOT_DIR");
+  }
+  return {
+    webdavUrl: rawUrl.replace(/\/$/, ""),
+    username: required(env, "NEXTCLOUD_USERNAME"),
+    appPassword: required(env, "NEXTCLOUD_APP_PASSWORD"),
+    rootDirectory,
+  };
+};
+
+export const loadInspectorStorageConfig = (): InspectorStorageConfig =>
+  parseInspectorStorageConfig(Deno.env.toObject());
+
+export const parseWebhookConfig = (
+  env: Readonly<Record<string, string | undefined>>,
+): WebhookConfig => ({
+  webhookSecret: required(env, "ECCIA_WEBHOOK_SECRET"),
+});
+
+export const loadWebhookConfig = (): WebhookConfig =>
+  parseWebhookConfig(Deno.env.toObject());
+
+export type DbEventsConfig = {
+  readonly supabaseUrl: string;
+  readonly supabaseServiceRoleKey: string;
+  readonly publicSiteUrl: string;
+  readonly resendApiKey: string;
+  readonly mailFrom: string;
+  readonly mailReplyTo: string;
+};
+
+// Loaded only by the db-events group so it does not inherit public-api
+// secrets (Turnstile, request limits) it never uses.
+export const parseDbEventsConfig = (env: Environment): DbEventsConfig => ({
+  supabaseUrl: origin(required(env, "SUPABASE_URL"), "SUPABASE_URL", anyHttp),
+  supabaseServiceRoleKey: serviceRoleKey(env),
+  publicSiteUrl: origin(
+    required(env, "PUBLIC_SITE_URL"),
+    "PUBLIC_SITE_URL",
+    httpsOrLocal,
+  ),
+  resendApiKey: required(env, "RESEND_API_KEY"),
+  mailFrom: required(env, "MAIL_FROM"),
+  mailReplyTo: required(env, "MAIL_REPLY_TO"),
+});
+
+export const loadDbEventsConfig = (): DbEventsConfig =>
+  parseDbEventsConfig(Deno.env.toObject());

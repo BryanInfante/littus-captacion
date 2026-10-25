@@ -150,3 +150,19 @@ Deno.test("every deployed function has explicit verify_jwt configuration", () =>
   });
   assertNoFunctionViolations("Edge Function JWT configuration", violations);
 });
+
+Deno.test("the retired send-registration-confirmation function is gone everywhere", () => {
+  const functions = recordAt(config, "functions");
+  assertNoFunctionViolations("retired confirmation function", [
+    ...(functions !== null &&
+        Object.hasOwn(functions, "send-registration-confirmation")
+      ? ["supabase/config.toml still declares send-registration-confirmation"]
+      : []),
+    ...(deployedFunctions.includes("send-registration-confirmation")
+      ? ["the workflow still deploys send-registration-confirmation"]
+      : []),
+    ...(functionDirectories.has("send-registration-confirmation")
+      ? ["supabase/functions/send-registration-confirmation still exists"]
+      : []),
+  ]);
+});

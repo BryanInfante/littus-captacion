@@ -4,7 +4,13 @@ import { DomainError } from "../../_shared/domain/errors.ts";
 import { Email } from "../../_shared/domain/email.ts";
 import type { HumanChallenge } from "../../_shared/ports/humanChallenge.ts";
 import type { RequestLimits } from "../../_shared/ports/requestLimits.ts";
-import { memoryPorts, NOW, openEvent } from "../fixtures/registration.ts";
+import {
+  eventsStub,
+  memoryPorts,
+  NOW,
+  openEvent,
+  registrationsStub,
+} from "../fixtures/registration.ts";
 
 const input = () => ({
   eventCode: openEvent().code,
@@ -41,18 +47,14 @@ const setup = (
     ports: {
       humanChallenge,
       requestLimits,
-      events: {
-        findByCode: (code: string) => {
-          calls.push(["event", code]);
-          return base.events.findByCode(code);
-        },
-      },
-      registrations: {
-        create: (details: Parameters<typeof base.registrations.create>[0]) => {
-          calls.push(["write"]);
-          return base.registrations.create(details);
-        },
-      },
+      events: eventsStub((code) => {
+        calls.push(["event", code]);
+        return base.events.findByCode(code);
+      }),
+      registrations: registrationsStub((details) => {
+        calls.push(["write"]);
+        return base.registrations.create(details);
+      }),
     },
   };
 };

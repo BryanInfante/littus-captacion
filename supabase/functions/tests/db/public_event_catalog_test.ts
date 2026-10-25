@@ -19,6 +19,7 @@ const CATALOG_COLUMNS = [
   "duracion",
   "inscripcion_abre_en",
   "inscripcion_cierra_en",
+  "requiere_ficha_inspector",
 ];
 
 const ACTIVE_CODE = "prueba-catalogo-activo";
@@ -203,6 +204,7 @@ Deno.test("the public event catalog exposes only allow-listed columns of active 
           duracion: "2 horas",
           inscripcion_abre_en: "2026-10-01T00:00:00+00:00",
           inscripcion_cierra_en: "2026-11-04T00:00:00+00:00",
+          requiere_ficha_inspector: false,
         }]);
       },
     );

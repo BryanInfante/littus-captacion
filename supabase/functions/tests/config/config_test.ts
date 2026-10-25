@@ -1,5 +1,8 @@
 import { assertEquals, assertThrows } from "../dev_deps.ts";
-import { parseConfig } from "../../_shared/config.ts";
+import {
+  parseConfig,
+  parseInspectorStorageConfig,
+} from "../../_shared/config.ts";
 
 const env = (): Record<string, string | undefined> => ({
   SUPABASE_URL: "http://127.0.0.1:54321",
@@ -184,4 +187,30 @@ Deno.test("config failures never echo challenge hash or service role secret valu
       assertEquals(error.message.includes(secret), false);
     }
   }
+});
+
+Deno.test("inspector storage config validates a safe relative root without changing base config requirements", () => {
+  const storage = parseInspectorStorageConfig({
+    NEXTCLOUD_WEBDAV_URL:
+      "https://cloud.example.invalid/remote.php/dav/files/user",
+    NEXTCLOUD_USERNAME: "fixture-user",
+    NEXTCLOUD_APP_PASSWORD: "fixture-password",
+    NEXTCLOUD_ROOT_DIR: "Littus Root/Archive",
+    NEXTCLOUD_FICHAS_FOTOS_DIR: "ignored legacy setting",
+  });
+  assertEquals(storage.rootDirectory, "Littus Root/Archive");
+  for (const root of ["../escape", "/absolute", "folder//nested", "folder/."]) {
+    assertThrows(
+      () =>
+        parseInspectorStorageConfig({
+          NEXTCLOUD_WEBDAV_URL: "https://cloud.example.invalid/dav",
+          NEXTCLOUD_USERNAME: "user",
+          NEXTCLOUD_APP_PASSWORD: "password",
+          NEXTCLOUD_ROOT_DIR: root,
+        }),
+      Error,
+      "NEXTCLOUD_ROOT_DIR",
+    );
+  }
+  assertEquals(parseConfig(env()).supabaseUrl, "http://127.0.0.1:54321");
 });

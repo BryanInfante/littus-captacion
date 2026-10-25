@@ -8,6 +8,9 @@ import {
 import type { Events } from "../ports/events.ts";
 import type { HumanChallenge } from "../ports/humanChallenge.ts";
 import type { Registrations } from "../ports/registrations.ts";
+import type { InspectorProfiles } from "../ports/inspectorProfiles.ts";
+import type { FileStorage } from "../ports/fileStorage.ts";
+import type { Logger } from "../log.ts";
 import type { RequestLimitKey, RequestLimits } from "../ports/requestLimits.ts";
 import {
   registerForEvent,
@@ -24,6 +27,9 @@ export type PublicRegistrationPorts = {
   readonly registrations: Registrations;
   readonly humanChallenge: HumanChallenge;
   readonly requestLimits: RequestLimits;
+  readonly inspectorProfiles?: InspectorProfiles;
+  readonly fileStorage?: FileStorage;
+  readonly logger?: Logger;
 };
 
 const consume = async (

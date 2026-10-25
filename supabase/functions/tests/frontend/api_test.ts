@@ -30,6 +30,7 @@ const CATALOG_ROW = {
   duracion: "2 horas",
   inscripcion_abre_en: "2026-10-01T00:00:00+00:00",
   inscripcion_cierra_en: null,
+  requiere_ficha_inspector: false,
 };
 
 Deno.test("fetchPublicEvent reads one row of the catalog view with the publishable key", async () => {
@@ -48,6 +49,7 @@ Deno.test("fetchPublicEvent reads one row of the catalog view with the publishab
     duration: "2 horas",
     registrationOpensAt: new Date("2026-10-01T00:00:00Z"),
     registrationClosesAt: null,
+    requiresInspectorProfile: false,
   });
   assertEquals(calls.length, 1);
   const [{ url, init }] = calls;
@@ -58,7 +60,7 @@ Deno.test("fetchPublicEvent reads one row of the catalog view with the publishab
   assertEquals(url.searchParams.get("masterclass_codigo"), "eq.webinar-scan-a");
   assertEquals(
     url.searchParams.get("select"),
-    "masterclass_codigo,event_title,tipo,resumen,fecha_texto,fecha_evento,duracion,inscripcion_abre_en,inscripcion_cierra_en",
+    "masterclass_codigo,event_title,tipo,resumen,fecha_texto,fecha_evento,duracion,inscripcion_abre_en,inscripcion_cierra_en,requiere_ficha_inspector",
   );
   const headers = new Headers(init?.headers);
   assertEquals(headers.get("apikey"), SUPABASE_PUBLISHABLE_KEY);
@@ -94,6 +96,7 @@ Deno.test("fetchPublicEvent keeps nullable catalog fields as null", async () => 
       fecha_evento: null,
       duracion: null,
       inscripcion_abre_en: null,
+      requiere_ficha_inspector: true,
     }])
   );
   const event = await createApiClient(fetchFn).fetchPublicEvent(
@@ -102,6 +105,17 @@ Deno.test("fetchPublicEvent keeps nullable catalog fields as null", async () => 
   assertEquals(event?.type, null);
   assertEquals(event?.summary, null);
   assertEquals(event?.registrationOpensAt, null);
+  assertEquals(event?.requiresInspectorProfile, true);
+});
+
+Deno.test("fetchPublicEvent rejects a malformed inspector-profile flag", async () => {
+  const { fetchFn } = recordingFetch(() =>
+    Response.json([{ ...CATALOG_ROW, requiere_ficha_inspector: "true" }])
+  );
+  await assertRejects(
+    () => createApiClient(fetchFn).fetchPublicEvent("webinar-scan-a"),
+    CatalogUnavailableError,
+  );
 });
 
 Deno.test("fetchPublicEvent fails closed on transport, status and shape errors", async (t) => {
@@ -176,6 +190,60 @@ Deno.test("register posts the registration contract to public-api", async () => 
   });
 });
 
+Deno.test("register sends inspector details as multipart without a content type header", async () => {
+  const { calls, fetchFn } = recordingFetch(() =>
+    Response.json({ id: "1" }, { status: 201 })
+  );
+  const photo = new File([new Uint8Array([0xff, 0xd8, 0xff])], "foto.jpg", {
+    type: "image/jpeg",
+  });
+  const result = await createApiClient(fetchFn).register({
+    ...REGISTRATION,
+    inspectorProfile: {
+      nombres: "Ana",
+      apellidos: "Pérez",
+      documento: "ABC12345",
+      pais: "Ecuador",
+      experienciaAnios: 8,
+      empleadorDeclarado: "Empresa",
+      sinEmpleador: false,
+      consentimientoDatos: true,
+      foto: photo,
+    },
+  });
+  assertEquals(result, { ok: true });
+  const [{ init }] = calls;
+  const headers = new Headers(init?.headers);
+  assertEquals(headers.get("content-type"), null);
+  assertEquals(init?.body instanceof FormData, true);
+  const body = init?.body as FormData;
+  assertEquals(
+    Object.fromEntries(
+      [...body.entries()].filter(([key]) => key !== "foto"),
+    ),
+    {
+      event_code: "webinar-scan-a",
+      correo: "ana@example.com",
+      challenge_token: "token-1",
+      marketing_consent: "true",
+      nombres: "Ana",
+      apellidos: "Pérez",
+      documento: "ABC12345",
+      pais: "Ecuador",
+      experiencia_anios: "8",
+      empleador_declarado: "Empresa",
+      sin_empleador: "false",
+      consentimiento_datos: "true",
+    },
+  );
+  const uploaded = body.get("foto") as File;
+  assertEquals([uploaded.name, uploaded.type, uploaded.size], [
+    photo.name,
+    photo.type,
+    photo.size,
+  ]);
+});
+
 Deno.test("register maps each documented error to a typed result", async (t) => {
   const cases: [number, string, RegistrationError][] = [
     [400, "INVALID_INPUT", "INVALID_INPUT"],
@@ -183,6 +251,11 @@ Deno.test("register maps each documented error to a typed result", async (t) => 
     [404, "EVENT_NOT_FOUND", "EVENT_NOT_FOUND"],
     [409, "ALREADY_REGISTERED", "ALREADY_REGISTERED"],
     [409, "REGISTRATION_CLOSED", "REGISTRATION_CLOSED"],
+    [400, "INSPECTOR_PROFILE_REQUIRED", "INSPECTOR_PROFILE_REQUIRED"],
+    [400, "INSPECTOR_PROFILE_UNEXPECTED", "INSPECTOR_PROFILE_UNEXPECTED"],
+    [409, "INSPECTOR_PROFILE_IN_PROGRESS", "INSPECTOR_PROFILE_IN_PROGRESS"],
+    [413, "PAYLOAD_TOO_LARGE", "PAYLOAD_TOO_LARGE"],
+    [502, "PHOTO_UPLOAD_FAILED", "PHOTO_UPLOAD_FAILED"],
     [500, "INTERNAL_ERROR", "INTERNAL_ERROR"],
   ];
   for (const [status, code, expected] of cases) {

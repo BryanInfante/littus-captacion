@@ -33,7 +33,9 @@ export type Database = {
       "eccia_eventos": {
         Row: {
           "activo": boolean;
-          "codigo_prefijo": string;
+          "aula_url": string | null;
+          "codigo_prefijo": string | null;
+          "comunidad_url": string | null;
           "creado_en": string;
           "descripcion": string | null;
           "duracion": string | null;
@@ -42,17 +44,24 @@ export type Database = {
           "event_title_linea_2": string | null;
           "fecha_evento": string | null;
           "fecha_texto": string | null;
+          "horario_texto": string | null;
+          "incluye_texto": string | null;
           "inscripcion_abre_en": string | null;
           "inscripcion_cierra_en": string | null;
           "masterclass_codigo": string;
+          "modalidad_texto": string | null;
           "nextcloud_directorio": string | null;
+          "requiere_ficha_inspector": boolean;
           "resumen": string | null;
           "tipo": string | null;
+          "transmision_url": string | null;
         };
         ComputedFields: never;
         Insert: {
           "activo"?: boolean;
-          "codigo_prefijo": string;
+          "aula_url"?: string | null;
+          "codigo_prefijo"?: string | null;
+          "comunidad_url"?: string | null;
           "creado_en"?: string;
           "descripcion"?: string | null;
           "duracion"?: string | null;
@@ -61,16 +70,23 @@ export type Database = {
           "event_title_linea_2"?: string | null;
           "fecha_evento"?: string | null;
           "fecha_texto"?: string | null;
+          "horario_texto"?: string | null;
+          "incluye_texto"?: string | null;
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo": string;
+          "modalidad_texto"?: string | null;
           "nextcloud_directorio"?: string | null;
+          "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
           "tipo"?: string | null;
+          "transmision_url"?: string | null;
         };
         Update: {
           "activo"?: boolean;
-          "codigo_prefijo"?: string;
+          "aula_url"?: string | null;
+          "codigo_prefijo"?: string | null;
+          "comunidad_url"?: string | null;
           "creado_en"?: string;
           "descripcion"?: string | null;
           "duracion"?: string | null;
@@ -79,14 +95,105 @@ export type Database = {
           "event_title_linea_2"?: string | null;
           "fecha_evento"?: string | null;
           "fecha_texto"?: string | null;
+          "horario_texto"?: string | null;
+          "incluye_texto"?: string | null;
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string;
+          "modalidad_texto"?: string | null;
           "nextcloud_directorio"?: string | null;
+          "requiere_ficha_inspector"?: boolean;
           "resumen"?: string | null;
           "tipo"?: string | null;
+          "transmision_url"?: string | null;
         };
         Relationships: [];
+      };
+      "eccia_fichas_inspector": {
+        Row: {
+          "actualizado_en": string;
+          "apellidos": string;
+          "consentimiento_datos_en": string;
+          "correo": string;
+          "creado_en": string;
+          "documento": string;
+          "empleador_declarado": string | null;
+          "estado": string;
+          "experiencia_anios": number;
+          "foto_path": string;
+          "id": string;
+          "inscripcion_id": string;
+          "marketing_consent": boolean;
+          "masterclass_codigo": string;
+          "nombre_completo": string;
+          "nombres": string;
+          "pais": string;
+          "sin_empleador": boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          "actualizado_en"?: string;
+          "apellidos": string;
+          "consentimiento_datos_en": string;
+          "correo": string;
+          "creado_en"?: string;
+          "documento": string;
+          "empleador_declarado"?: string | null;
+          "estado"?: string;
+          "experiencia_anios": number;
+          "foto_path": string;
+          "id"?: string;
+          "inscripcion_id": string;
+          "marketing_consent"?: boolean;
+          "masterclass_codigo": string;
+          "nombre_completo": string;
+          "nombres": string;
+          "pais": string;
+          "sin_empleador"?: boolean;
+        };
+        Update: {
+          "actualizado_en"?: string;
+          "apellidos"?: string;
+          "consentimiento_datos_en"?: string;
+          "correo"?: string;
+          "creado_en"?: string;
+          "documento"?: string;
+          "empleador_declarado"?: string | null;
+          "estado"?: string;
+          "experiencia_anios"?: number;
+          "foto_path"?: string;
+          "id"?: string;
+          "inscripcion_id"?: string;
+          "marketing_consent"?: boolean;
+          "masterclass_codigo"?: string;
+          "nombre_completo"?: string;
+          "nombres"?: string;
+          "pais"?: string;
+          "sin_empleador"?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "eccia_fichas_inspector_inscripcion_id_fkey";
+            columns: ["inscripcion_id"];
+            isOneToOne: true;
+            referencedRelation: "eccia_taller_inscripciones";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "eccia_fichas_inspector_masterclass_codigo_fkey";
+            columns: ["masterclass_codigo"];
+            isOneToOne: false;
+            referencedRelation: "eccia_eventos";
+            referencedColumns: ["masterclass_codigo"];
+          },
+          {
+            foreignKeyName: "eccia_fichas_inspector_masterclass_codigo_fkey";
+            columns: ["masterclass_codigo"];
+            isOneToOne: false;
+            referencedRelation: "eccia_eventos_publicos";
+            referencedColumns: ["masterclass_codigo"];
+          },
+        ];
       };
       "eccia_limites_solicitud": {
         Row: {
@@ -196,7 +303,9 @@ export type Database = {
       };
       "eccia_taller_inscripciones": {
         Row: {
+          "confirmation_attempts": number;
           "confirmation_error": string | null;
+          "confirmation_last_attempt_at": string | null;
           "confirmation_resend_email_id": string | null;
           "confirmation_sent_at": string | null;
           "correo": string;
@@ -212,7 +321,9 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          "confirmation_attempts"?: number;
           "confirmation_error"?: string | null;
+          "confirmation_last_attempt_at"?: string | null;
           "confirmation_resend_email_id"?: string | null;
           "confirmation_sent_at"?: string | null;
           "correo": string;
@@ -227,7 +338,9 @@ export type Database = {
           "taller_codigo": string;
         };
         Update: {
+          "confirmation_attempts"?: number;
           "confirmation_error"?: string | null;
+          "confirmation_last_attempt_at"?: string | null;
           "confirmation_resend_email_id"?: string | null;
           "confirmation_sent_at"?: string | null;
           "correo"?: string;
@@ -269,6 +382,7 @@ export type Database = {
           "inscripcion_abre_en": string | null;
           "inscripcion_cierra_en": string | null;
           "masterclass_codigo": string | null;
+          "requiere_ficha_inspector": boolean | null;
           "resumen": string | null;
           "tipo": string | null;
         };
@@ -281,6 +395,7 @@ export type Database = {
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string | null;
+          "requiere_ficha_inspector"?: boolean | null;
           "resumen"?: string | null;
           "tipo"?: string | null;
         };
@@ -292,6 +407,7 @@ export type Database = {
           "inscripcion_abre_en"?: string | null;
           "inscripcion_cierra_en"?: string | null;
           "masterclass_codigo"?: string | null;
+          "requiere_ficha_inspector"?: boolean | null;
           "resumen"?: string | null;
           "tipo"?: string | null;
         };

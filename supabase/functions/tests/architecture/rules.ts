@@ -243,6 +243,29 @@ export const domainImportsStayInDomain: Rule = {
       ),
 };
 
+// A function may import its own files and _shared/, never another function's
+// directory: the shared code goes to _shared/ (CLAUDE.md, "Extend, do not copy").
+const SHARED_ROOT = "_shared";
+const TESTS_ROOT = "tests";
+
+export const noCrossFunctionImports: Rule = {
+  name: "a function imports only its own files and _shared/",
+  check: (path, facts) => {
+    const [own, ...rest] = path.split("/");
+    if (rest.length === 0 || own === SHARED_ROOT || own === TESTS_ROOT) {
+      return [];
+    }
+    return facts.moduleReferences.flatMap(({ line, specifier }) => {
+      if (specifier === null || !specifier.startsWith(".")) return [];
+      const resolved = new URL(specifier, `file:///${path}`).pathname.slice(1);
+      const target = resolved.split("/")[0];
+      return target === own || target === SHARED_ROOT
+        ? []
+        : [{ path, line, detail: specifier }];
+    });
+  },
+};
+
 // Settings that bind a page to the deployed backend. Pages and the api client
 // import them from one module, so rotating a key or moving the project is a
 // one-line change. Paths are relative to the repository root. The patterns
@@ -268,6 +291,24 @@ export const publicSettingsOutsideSource = (
         PUBLIC_SETTINGS
           .filter(({ pattern }) => pattern.test(text))
           .map(({ name }) => ({ path, line: index + 1, detail: name })),
+    )
+  );
+
+// Only the Resend adapter knows the provider host, so a second caller cannot
+// bypass the Mailer port or reach the promotional endpoints by hand. Raw text,
+// like the public settings rule: the host is a string, not a syntax fact.
+const RESEND_ADAPTER = "_shared/adapters/resend/";
+const RESEND_HOST = /api\.resend\.com/i;
+
+export const resendHostOutsideAdapter = (
+  files: readonly SourceFile[],
+): Violation[] =>
+  files.flatMap(({ path, source }) =>
+    path.startsWith(RESEND_ADAPTER) ? [] : source.split("\n").flatMap(
+      (text, index) =>
+        RESEND_HOST.test(text)
+          ? [{ path, line: index + 1, detail: "Resend API host" }]
+          : [],
     )
   );
 
